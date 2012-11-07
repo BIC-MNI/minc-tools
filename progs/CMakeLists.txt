@@ -179,21 +179,23 @@ INSTALL(PROGRAMS
     OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ  WORLD_EXECUTE WORLD_READ
    DESTINATION bin )
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/minchistory/minchistory.in ${CMAKE_CURRENT_BINARY_DIR}/minchistory @ONLY)
-add_custom_target(minchistory chmod +x ${CMAKE_CURRENT_BINARY_DIR}/minchistory 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/minchistory/minchistory.in ${CMAKE_CURRENT_BINARY_DIR}/minchistory.out @ONLY)
+add_custom_target(minchistory chmod +x ${CMAKE_CURRENT_BINARY_DIR}/minchistory.out 
  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/minchistory/minchistory.in)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mincpik/mincpik.in ${CMAKE_CURRENT_BINARY_DIR}/mincpik @ONLY)
-add_custom_target(mincpik chmod +x ${CMAKE_CURRENT_BINARY_DIR}/mincpik 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mincpik/mincpik.in ${CMAKE_CURRENT_BINARY_DIR}/mincpik.out @ONLY)
+add_custom_target(mincpik chmod +x ${CMAKE_CURRENT_BINARY_DIR}/mincpik.out 
  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mincpik/mincpik.in)
 
 
-INSTALL(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/minchistory
+INSTALL(PROGRAMS
+  ${CMAKE_CURRENT_BINARY_DIR}/minchistory.out
   PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ  WORLD_EXECUTE WORLD_READ
-   DESTINATION bin )
+  RENAME minchistory
+  DESTINATION bin )
 
 INSTALL(PROGRAMS
-  ${CMAKE_CURRENT_BINARY_DIR}/mincpik
+  ${CMAKE_CURRENT_BINARY_DIR}/mincpik.out
   PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ  WORLD_EXECUTE WORLD_READ
-   DESTINATION bin )
+  RENAME mincpik
+  DESTINATION bin )
