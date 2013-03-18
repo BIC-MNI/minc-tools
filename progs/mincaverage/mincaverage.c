@@ -130,6 +130,8 @@ typedef struct {
    int binarize;
    int need_sd;
    double binrange[2];
+   double ignore_below;
+   double ignore_above;
    double *norm_factor;
    int averaging_over_dimension;
    int num_weights;
@@ -186,6 +188,8 @@ static int max_buffer_size_in_kb = 4 * 1024;
 static int binarize = FALSE;
 static double binrange[2] = {DBL_MAX, -DBL_MAX};
 static double binvalue = -DBL_MAX;
+static double ignore_below = -DBL_MAX;
+static double ignore_above = DBL_MAX;
 static Double_Array weights = {0, NULL};
 static int width_weighted = FALSE;
 static char *filelist = NULL;
@@ -258,6 +262,10 @@ ArgvInfo argTable[] = {
        "Specify a range for binarization."},
    {"-binvalue", ARGV_FLOAT, (char *) 1, (char *) &binvalue,
        "Specify a target value (+/- 0.5) for binarization."},
+   {"-ignore_below", ARGV_FLOAT, (char *) 1, (char *) &ignore_below,
+       "Specify a vaule, below which voxels are ignored"},
+   {"-ignore_above", ARGV_FLOAT, (char *) 1, (char *) &ignore_above,
+       "Specify a vaule, above which voxels are ignored"},
    {"-weights", ARGV_FUNC, (char *) get_double_list, 
        (char *) &weights,
        "Specify weights for averaging (\"<w1>,<w2>,...\")."},
@@ -482,6 +490,10 @@ int main(int argc, char *argv[])
       average_data.binrange[1] = binrange[1];
    }
    average_data.binarize = binarize;
+
+   /* Store the ignore above/below values */
+   average_data.ignore_below = ignore_below;
+   average_data.ignore_above = ignore_above;
 
    /* Check for no specification of normalization */
 #ifdef NO_DEFAULT_NORM
@@ -753,7 +765,7 @@ static void do_average(void *caller_data, long num_voxels,
    double value;
    int curfile, curindex;
    int num_out;
-   double norm_factor, binmin, binmax, weight;
+   double norm_factor, binmin, binmax, weight, ignore_below, ignore_above;
    int binarize;
 
    /* Get pointer to window info */
@@ -793,6 +805,8 @@ static void do_average(void *caller_data, long num_voxels,
    binarize = average_data->binarize;
    binmin = average_data->binrange[0];
    binmax = average_data->binrange[1];
+   ignore_below = average_data->ignore_below;
+   ignore_above = average_data->ignore_above;
 
    /* Loop through the voxels */
    for (ivox=0; ivox < num_voxels*input_vector_length; ivox++) {
@@ -800,7 +814,7 @@ static void do_average(void *caller_data, long num_voxels,
       if (binarize) {
          value = ( ((value >= binmin) && (value <= binmax)) ? 1.0 : 0.0 );
       }
-      if (value != -DBL_MAX) {
+      if (value != -DBL_MAX && value > ignore_below && value < ignore_above ) {
          value *= norm_factor;
          output_data[0][ivox] += weight;
          output_data[1][ivox] += value * weight;
