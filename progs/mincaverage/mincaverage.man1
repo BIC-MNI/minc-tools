@@ -113,6 +113,9 @@ Do not normalize volumes (default).
 Specify the name of an output standard deviation file, to be
 calculated in addition the mean that is normally calculated.
 .TP
+\fB\-weightfile\fR \fIweightfile.mnc\fR 
+Specify an output cumulative voxel weight file (default=none).
+.TP
 \fB\-copy_header\fR
 Copy all of the additional header information from the first input
 file (default for one input file).
@@ -140,6 +143,18 @@ Specify a single legal value (integer) for binarization. The range is
 set to be +/- 0.5 around this value to achieve an effective rounding
 of input values.
 .TP
+\fB\-ignore_below\fR \fIvalue\fR
+Do not include voxels below this value in the average and sd
+.TP
+\fB\-ignore_above\fR \fIvalue\fR
+Do not include voxels above this value in the average and sd
+.TP
+\fB\-floor\fR \fIvalue\fR
+Synonym for \fB\-ignore_below\fR
+.TP
+\fB\-ignore_above\fR \fIvalue\fR
+Synonym for \fB\-ignore_above\fR
+.TP
 \fB\-weights\fR \fI<w1,w2,...>\fR
 Specify a series of weights for averaging. The number of weighting
 values must match the number of input files and the values must be
@@ -154,7 +169,12 @@ This option can only be used when averaging across a dimension
 width variable that corresponds to the averaging dimension. For
 example, using \fB\-width_weighted\fR with \fB\-avgdim\fR time will use the
 time-width variable to weight the values.
-
+.TP
+\fB\-min_weight\fR \fIvalue\fR
+This specifies the minimum weight (number of volumes if no weights are specified) needed for calculating a valid average. If the cumulative weight for a voxel is below this threshold, the average and sd reported will be 0. This would typically be useful if values are excluded using any of the \fB\-ignore\fR options, or by NaN values in the input volume(s).
+.TP
+\fB\-min_weight_fraction\fR \fIvalue\fR
+Same as \fB\-min_weight\fR, but specified as a fraction of the sum of the input weights (or the number of input volumes, if no weight is specified).
 .SH Generic options for all commands:
 .TP
 \fB-help\fR

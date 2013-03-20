@@ -129,6 +129,7 @@ typedef struct {
 typedef struct {
    int binarize;
    int need_sd;
+   int need_weight;
    double binrange[2];
    double ignore_below;
    double ignore_above;
@@ -136,6 +137,7 @@ typedef struct {
    int averaging_over_dimension;
    int num_weights;
    double *weights;
+   double weight_thresh;
 } Average_Data;
 
 typedef struct {
@@ -179,6 +181,7 @@ static int normalize = -1;
 static int normalize = FALSE;
 #endif
 static char *sdfile = NULL;
+static char *weightfile = NULL;
 static nc_type datatype = MI_ORIGINAL_TYPE;
 static int is_signed = FALSE;
 static double valid_range[2] = {0.0, 0.0};
@@ -190,6 +193,8 @@ static double binrange[2] = {DBL_MAX, -DBL_MAX};
 static double binvalue = -DBL_MAX;
 static double ignore_below = -DBL_MAX;
 static double ignore_above = DBL_MAX;
+static double weight_thresh = 0.0;
+static double weight_thresh_fraction = 0.0;
 static Double_Array weights = {0, NULL};
 static int width_weighted = FALSE;
 static char *filelist = NULL;
@@ -250,6 +255,8 @@ ArgvInfo argTable[] = {
        "Do not normalize data sets (default)."},
    {"-sdfile", ARGV_STRING, (char *) 1, (char *) &sdfile,
        "Specify an output sd file (default=none)."},
+   {"-weightfile", ARGV_STRING, (char *) 1, (char *) &weightfile,
+       "Specify an output cumulative voxel weight file (default=none)."},
    {"-copy_header", ARGV_CONSTANT, (char *) TRUE, (char *) &copy_all_header,
        "Copy all of the header from the first file (default for one file)."},
    {"-nocopy_header", ARGV_CONSTANT, (char *) FALSE, (char *) &copy_all_header,
@@ -263,18 +270,22 @@ ArgvInfo argTable[] = {
    {"-binvalue", ARGV_FLOAT, (char *) 1, (char *) &binvalue,
        "Specify a target value (+/- 0.5) for binarization."},
    {"-ignore_below", ARGV_FLOAT, (char *) 1, (char *) &ignore_below,
-       "Specify a vaule, below which voxels are ignored"},
+       "Do not include voxels below this value in the average and sd."},
    {"-ignore_above", ARGV_FLOAT, (char *) 1, (char *) &ignore_above,
-       "Specify a vaule, above which voxels are ignored"},
+       "Do not include voxels above this value in the average and sd."},
    {"-floor", ARGV_FLOAT, (char *) 1, (char *) &ignore_below,
-       "Specify a vaule, below which voxels are ignored"},
+       "Do not include voxels below this value in the average and sd."},
    {"-ceil", ARGV_FLOAT, (char *) 1, (char *) &ignore_above,
-       "Specify a vaule, above which voxels are ignored"},
+       "Do not include voxels above this value in the average and sd."},
    {"-weights", ARGV_FUNC, (char *) get_double_list, 
        (char *) &weights,
        "Specify weights for averaging (\"<w1>,<w2>,...\")."},
    {"-width_weighted", ARGV_CONSTANT, (char *) TRUE, (char *) &width_weighted,
        "Weight by dimension widths when -avgdim is used."},
+   {"-min_weight", ARGV_FLOAT, (char *) 1, (char *) &weight_thresh,
+       "Minimum cumulative weight needed for calculating the average or sd." },
+   {"-min_weight_fraction", ARGV_FLOAT, (char *) 1, (char *) &weight_thresh_fraction,
+       "Same as -min_weight, but specified as a fraction of the sum of the input weights (or the number of input volumes, if no weight is specified)." },
    {NULL, ARGV_END, NULL, NULL, NULL}
 };
 
@@ -282,7 +293,7 @@ ArgvInfo argTable[] = {
 
 int main(int argc, char *argv[])
 {
-   char **infiles, *outfiles[2];
+   char **infiles, *outfiles[3];
    int nfiles, nout;
    char *arg_string;
    Norm_Data norm_data;
@@ -310,9 +321,14 @@ int main(int argc, char *argv[])
         "       %s -help\n\n", argv[0]);
       exit(EXIT_FAILURE);
    }
+   outfiles[0] = outfiles[1] = outfiles[2] = NULL;
    outfiles[0] = argv[argc-1];
-   outfiles[1] = sdfile;
-   nout = ((sdfile == NULL) ? 1 : 2);
+   nout = 1;
+   if( sdfile != NULL )
+	   outfiles[nout++] = sdfile;
+   if( weightfile != NULL )
+	   outfiles[nout++] = weightfile;
+
    first_mincid = MI_ERROR;
 
    /* Get the list of input files either from the command line or
@@ -471,6 +487,22 @@ int main(int argc, char *argv[])
       }
    }
 
+   /* If we don't have weights, each input will get a weight of 1 */
+   if (average_data.num_weights == 0)
+       total_weight = nfiles;
+
+   /* Check the cumulative weight thresholding */
+   if (weight_thresh > 0.0 && weight_thresh_fraction > 0.0){
+      (void) fprintf(stderr, 
+                     "Do not specify both -min_weight -min_weight_fraction\n");
+      exit(EXIT_FAILURE);
+   }
+   else if( weight_thresh_fraction > 0.0 ){
+       weight_thresh = weight_thresh_fraction * total_weight;
+   }
+   average_data.weight_thresh = weight_thresh;
+   
+
    /* Check for binarization */
    if (binarize) {
       if (normalize == TRUE) {
@@ -589,6 +621,7 @@ int main(int argc, char *argv[])
 
    /* Do averaging */
    average_data.need_sd = (sdfile != NULL);
+   average_data.need_weight = (weightfile != NULL);
    loop_options = create_loop_options();
    if (first_mincid != MI_ERROR) {
       set_loop_first_input_mincid(loop_options, first_mincid);
@@ -776,7 +809,10 @@ static void do_average(void *caller_data, long num_voxels,
    average_data = (Average_Data *) caller_data;
 
    /* Check arguments */
-   num_out = (average_data->need_sd ? 3 : 2);
+   num_out = 2 + 
+       ( average_data->need_sd != 0 ) + 
+       ( average_data->need_weight != 0 );
+
    if ((input_num_buffers != 1) || (output_num_buffers != num_out) || 
        (output_vector_length != input_vector_length)) {
       (void) fprintf(stderr, "Bad arguments to do_average!\n");
@@ -856,7 +892,10 @@ static void start_average(void *caller_data, long num_voxels,
    average_data = (Average_Data *) caller_data;
 
    /* Check arguments */
-   num_out = (average_data->need_sd ? 3 : 2);
+   num_out = 2 + 
+	   ( average_data->need_sd != 0 ) + 
+	   ( average_data->need_weight != 0 );
+
    if (output_num_buffers != num_out) {
       (void) fprintf(stderr, "Bad arguments to start_average!\n");
       exit(EXIT_FAILURE);
@@ -893,14 +932,20 @@ static void finish_average(void *caller_data, long num_voxels,
 {
    Average_Data *average_data;
    long ivox;
-   int num_out;
+   int num_out, i_weight;
    double sum0, sum1, sum2, value;
 
    /* Get pointer to window info */
    average_data = (Average_Data *) caller_data;
 
+   /* If we haven't asked for sd, the weight output index will be 1  */
+   i_weight = 2 - ( average_data->need_sd == 0 );
+
    /* Check arguments */
-   num_out = (average_data->need_sd ? 3 : 2);
+   num_out = 2 + 
+	   ( average_data->need_sd != 0 ) + 
+	   ( average_data->need_weight != 0 );
+
    if (output_num_buffers != num_out) {
       (void) fprintf(stderr, "Bad arguments to finish_average!\n");
       exit(EXIT_FAILURE);
@@ -910,7 +955,7 @@ static void finish_average(void *caller_data, long num_voxels,
    for (ivox=0; ivox < num_voxels*output_vector_length; ivox++) {
       sum0 = output_data[0][ivox];
       sum1 = output_data[1][ivox];
-      if (sum0 > 0.0) {
+      if (sum0 > 0.0 && sum0 >= average_data->weight_thresh) {
          output_data[0][ivox] = sum1 / sum0;
          if (average_data->need_sd) {
             sum2 = output_data[2][ivox];
@@ -932,6 +977,9 @@ static void finish_average(void *caller_data, long num_voxels,
          if (average_data->need_sd)
             output_data[1][ivox] = 0.0;
       }
+
+      if (average_data->need_weight)
+          output_data[i_weight][ivox] = sum0;
             
    }
 
