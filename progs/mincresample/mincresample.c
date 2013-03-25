@@ -116,7 +116,7 @@
  * Added -spacetype, -talairach and -units options.
  *
  * Revision 3.2  1995/11/21  14:13:20  neelin
- * Transform input sampling with transformation and use this as default.
+ * VIO_Transform input sampling with transformation and use this as default.
  * Added -tfm_input_sampling to specify above option.
  * Added -use_input_sampling to get old behaviour (no longer the default).
  * Added -origin option (to specify coordinate instead of start values).
@@ -177,7 +177,7 @@
  * an icv is used on input.
  * 
  * Revision 1.6  93/08/11  13:27:59  neelin
- * Converted to use Dave MacDonald's General_transform code.
+ * Converted to use Dave MacDonald's VIO_General_transform code.
  * Fixed bug in get_slice - for non-linear transformations coord was
  * transformed, then used again as a starting coordinate.
  * Handle files that have image-max/min that doesn't vary over slices.
@@ -228,7 +228,7 @@ int Specified_transform = FALSE;
 static void get_arginfo(int argc, char *argv[],
                         Program_Flags *program_flags,
                         VVolume *in_vol, VVolume *out_vol,
-                        General_transform *transformation);
+                        VIO_General_transform *transformation);
 static void check_imageminmax(File_Info *fp, Volume_Data *volume);
 static void get_file_info(char *filename, int initialized_volume_def,
                           Volume_Definition *volume_def,
@@ -247,21 +247,21 @@ static void create_output_file(char *filename, int clobber,
                                char *tm_stamp,
                                Transform_Info *transform_info);
 static void get_voxel_to_world_transf(Volume_Definition *volume_def,
-                                      General_transform *voxel_to_world);
+                                      VIO_General_transform *voxel_to_world);
 static void irregular_transform_function(void *user_data,
-                                         Real x,
-                                         Real y,
-                                         Real z,
-                                         Real *x_trans,
-                                         Real *y_trans,
-                                         Real *z_trans);
+                                         VIO_Real x,
+                                         VIO_Real y,
+                                         VIO_Real z,
+                                         VIO_Real *x_trans,
+                                         VIO_Real *y_trans,
+                                         VIO_Real *z_trans);
 static void irregular_inverse_transform_function(void *user_data,
-                                                 Real x,
-                                                 Real y,
-                                                 Real z,
-                                                 Real *x_trans,
-                                                 Real *y_trans,
-                                                 Real *z_trans);
+                                                 VIO_Real x,
+                                                 VIO_Real y,
+                                                 VIO_Real z,
+                                                 VIO_Real *x_trans,
+                                                 VIO_Real *y_trans,
+                                                 VIO_Real *z_trans);
 static double get_default_range(char *what, nc_type datatype, int is_signed);
 static void finish_up(VVolume *in_vol, VVolume *out_vol);
 static int get_transformation(char *dst, char *key, char *nextArg);
@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
 {
    VVolume in_vol_struct, out_vol_struct;
    VVolume *in_vol = &in_vol_struct, *out_vol = &out_vol_struct;
-   General_transform transformation;
+   VIO_General_transform transformation;
    Program_Flags program_flags;
 
    /* Get argument information */
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 static void get_arginfo(int argc, char *argv[],
                         Program_Flags *program_flags,
                         VVolume *in_vol, VVolume *out_vol, 
-                        General_transform *transformation)
+                        VIO_General_transform *transformation)
 {
    /* Argument parsing information */
 #ifdef TRANSFORM_CHANGE_KLUDGE
@@ -379,7 +379,7 @@ static void get_arginfo(int argc, char *argv[],
           "Do not invert the transformation (default).\n"},
       {"-tfm_input_sampling", ARGV_CONSTANT, (char *) TRUE,
           (char *) &transform_input_sampling,
-          "Transform the input sampling with the transform (default).\n"},
+          "VIO_Transform the input sampling with the transform (default).\n"},
       {"-use_input_sampling", ARGV_CONSTANT, (char *) FALSE,
           (char *) &transform_input_sampling,
           "Use the input sampling without transforming (old behaviour).\n"},
@@ -402,61 +402,61 @@ static void get_arginfo(int argc, char *argv[],
           (char *) args.volume_def.nelements,
           "Number of elements along each dimension (X, Y, Z)"},
       {"-xnelements", ARGV_LONG, (char *) 0, 
-          (char *) &args.volume_def.nelements[X],
+          (char *) &args.volume_def.nelements[VIO_X],
           "Number of elements along the X dimension"},
       {"-ynelements", ARGV_LONG, (char *) 0, 
-          (char *) &args.volume_def.nelements[Y],
+          (char *) &args.volume_def.nelements[VIO_Y],
           "Number of elements along the Y dimension"},
       {"-znelements", ARGV_LONG, (char *) 0, 
-          (char *) &args.volume_def.nelements[Z],
+          (char *) &args.volume_def.nelements[VIO_Z],
           "Number of elements along the Z dimension"},
       {"-size", ARGV_LONG, (char *) 3, 
           (char *) args.volume_def.nelements,
           "synonym for -nelements)"},
       {"-xsize", ARGV_LONG, (char *) 0, 
-          (char *) &args.volume_def.nelements[X],
+          (char *) &args.volume_def.nelements[VIO_X],
           "synonym for -xnelements"},
       {"-ysize", ARGV_LONG, (char *) 0, 
-          (char *) &args.volume_def.nelements[Y],
+          (char *) &args.volume_def.nelements[VIO_Y],
           "synonym for -ynelements"},
       {"-zsize", ARGV_LONG, (char *) 0, 
-          (char *) &args.volume_def.nelements[Z],
+          (char *) &args.volume_def.nelements[VIO_Z],
           "synonym for -ynelements"},
       {"-step", ARGV_FLOAT, (char *) 3, 
           (char *) args.volume_def.step,
           "Step size along each dimension (X, Y, Z)"},
       {"-xstep", ARGV_FLOAT, (char *) 0, 
-          (char *) &args.volume_def.step[X],
+          (char *) &args.volume_def.step[VIO_X],
           "Step size along the X dimension"},
       {"-ystep", ARGV_FLOAT, (char *) 0, 
-          (char *) &args.volume_def.step[Y],
+          (char *) &args.volume_def.step[VIO_Y],
           "Step size along the Y dimension"},
       {"-zstep", ARGV_FLOAT, (char *) 0, 
-          (char *) &args.volume_def.step[Z],
+          (char *) &args.volume_def.step[VIO_Z],
           "Step size along the Z dimension"},
       {"-start", ARGV_FLOAT, (char *) 3, 
           (char *) args.volume_def.start,
           "Start point along each dimension (X, Y, Z)"},
       {"-xstart", ARGV_FLOAT, (char *) 0, 
-          (char *) &args.volume_def.start[X],
+          (char *) &args.volume_def.start[VIO_X],
           "Start point along the X dimension"},
       {"-ystart", ARGV_FLOAT, (char *) 0, 
-          (char *) &args.volume_def.start[Y],
+          (char *) &args.volume_def.start[VIO_Y],
           "Start point along the Y dimension"},
       {"-zstart", ARGV_FLOAT, (char *) 0, 
-          (char *) &args.volume_def.start[Z],
+          (char *) &args.volume_def.start[VIO_Z],
           "Start point along the Z dimension"},
       {"-dircos", ARGV_FLOAT, (char *) 9, 
           (char *) args.volume_def.dircos,
           "Direction cosines along each dimension (X, Y, Z)"},
       {"-xdircos", ARGV_FLOAT, (char *) 3, 
-          (char *) args.volume_def.dircos[X],
+          (char *) args.volume_def.dircos[VIO_X],
           "Direction cosines along the X dimension"},
       {"-ydircos", ARGV_FLOAT, (char *) 3, 
-          (char *) args.volume_def.dircos[Y],
+          (char *) args.volume_def.dircos[VIO_Y],
           "Direction cosines along the Y dimension"},
       {"-zdircos", ARGV_FLOAT, (char *) 3, 
-          (char *) args.volume_def.dircos[Z],
+          (char *) args.volume_def.dircos[VIO_Z],
           "Direction cosines along the Z dimension"},
       {"-origin", ARGV_FLOAT, (char *) 3, (char *) args.origin,
           "Origin of first pixel in 3D space"},
@@ -540,7 +540,7 @@ static void get_arginfo(int argc, char *argv[],
    File_Info *fp;
    char *tm_stamp, *pname;
    Volume_Definition input_volume_def, transformed_volume_def;
-   General_transform input_transformation;
+   VIO_General_transform input_transformation;
    int cflags;
 
    /* Initialize the transformation to identity */
@@ -624,8 +624,8 @@ static void get_arginfo(int argc, char *argv[],
    }
 
    /* Save the voxel_to_world transformation information */
-   in_vol->voxel_to_world = malloc(sizeof(General_transform));
-   in_vol->world_to_voxel = malloc(sizeof(General_transform));
+   in_vol->voxel_to_world = malloc(sizeof(VIO_General_transform));
+   in_vol->world_to_voxel = malloc(sizeof(VIO_General_transform));
    get_voxel_to_world_transf(&input_volume_def, in_vol->voxel_to_world);
    create_inverse_general_transform(in_vol->voxel_to_world,
                                     in_vol->world_to_voxel);
@@ -790,8 +790,8 @@ static void get_arginfo(int argc, char *argv[],
                       tm_stamp, &args.transform_info);
    
    /* Save the voxel_to_world transformation information */
-   out_vol->voxel_to_world = malloc(sizeof(General_transform));
-   out_vol->world_to_voxel = malloc(sizeof(General_transform));
+   out_vol->voxel_to_world = malloc(sizeof(VIO_General_transform));
+   out_vol->world_to_voxel = malloc(sizeof(VIO_General_transform));
    get_voxel_to_world_transf(&args.volume_def, out_vol->voxel_to_world);
    create_inverse_general_transform(out_vol->voxel_to_world,
                                     out_vol->world_to_voxel);
@@ -1141,7 +1141,7 @@ static void transform_volume_def(Transform_Info *transform_info,
             origin[idim] += input_volume_def->start[jdim] *
                input_volume_def->dircos[jdim][idim];
 
-      /* Transform origin vector */
+      /* VIO_Transform origin vector */
       DO_INVERSE_TRANSFORM(transformed_origin, 
                            transform_info->transformation, origin);
 
@@ -1152,7 +1152,7 @@ static void transform_volume_def(Transform_Info *transform_info,
          nelements = input_volume_def->nelements[idim] - 1;
          if (nelements < 1) nelements = 1.0;
 
-         /* Transform whole axis */
+         /* VIO_Transform whole axis */
          VECTOR_SCALAR_MULT(vector, input_volume_def->dircos[idim],
                             nelements * input_volume_def->step[idim]);
          VECTOR_ADD(vector, vector, origin);
@@ -1562,14 +1562,14 @@ static void create_output_file(char *filename, int cflags,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 static void get_voxel_to_world_transf(Volume_Definition *volume_def, 
-                                      General_transform *voxel_to_world)
+                                      VIO_General_transform *voxel_to_world)
 {
    int idim, jdim, cur_dim, vol_axis;
    int irregular;
    long ielement, dimlength;
-   Transform matrix;
+   VIO_Transform matrix;
    Irregular_Transform_Data *irreg_transf_data;
-   General_transform linear_transf, irreg_transf;
+   VIO_General_transform linear_transf, irreg_transf;
 
    /* Make an identity matrix */
    make_identity_transform(&matrix);
@@ -1673,12 +1673,12 @@ static void get_voxel_to_world_transf(Volume_Definition *volume_def,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 static void irregular_transform_function(void *user_data,
-                                         Real x,
-                                         Real y,
-                                         Real z,
-                                         Real *x_trans,
-                                         Real *y_trans,
-                                         Real *z_trans)
+                                         VIO_Real x,
+                                         VIO_Real y,
+                                         VIO_Real z,
+                                         VIO_Real *x_trans,
+                                         VIO_Real *y_trans,
+                                         VIO_Real *z_trans)
 {
    Irregular_Transform_Data *irreg_transf_data;
    int idim;
@@ -1735,12 +1735,12 @@ static void irregular_transform_function(void *user_data,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 static void irregular_inverse_transform_function(void *user_data,
-                                                 Real x,
-                                                 Real y,
-                                                 Real z,
-                                                 Real *x_trans,
-                                                 Real *y_trans,
-                                                 Real *z_trans)
+                                                 VIO_Real x,
+                                                 VIO_Real y,
+                                                 VIO_Real z,
+                                                 VIO_Real *x_trans,
+                                                 VIO_Real *y_trans,
+                                                 VIO_Real *z_trans)
 {
    Irregular_Transform_Data *irreg_transf_data;
    int idim, not_found;
@@ -1912,7 +1912,7 @@ static int get_transformation(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
 {
    Transform_Info *transform_info;
-   General_transform *transformation;
+   VIO_General_transform *transformation;
    FILE *fp;
    int ch, index;
 
@@ -1945,7 +1945,7 @@ static int get_transformation(char *dst, char *key, char *nextArg)
    else {
       if (open_file_with_default_suffix(nextArg,
                     get_default_transform_file_suffix(),
-                    READ_FILE, ASCII_FORMAT, &fp) != OK) {
+                    READ_FILE, ASCII_FORMAT, &fp) != VIO_OK) {
          (void) fprintf(stderr, "Error opening transformation file %s.\n",
                         nextArg);
          exit(EXIT_FAILURE);
@@ -1974,7 +1974,7 @@ static int get_transformation(char *dst, char *key, char *nextArg)
 
    /* Read the file */
    if (input_transform(fp, transform_info->file_name, 
-                       transformation)!=OK) {
+                       transformation)!=VIO_OK) {
       (void) fprintf(stderr, "Error reading transformation file.\n");
       exit(EXIT_FAILURE);
    }
@@ -2193,19 +2193,19 @@ static int get_axis_order(char *dst, char *key, char *nextArg)
 
    /* Check key for order */
    if (strcmp(key, "-transverse") == 0) {
-      volume_def->axes[Z] = 0;
-      volume_def->axes[Y] = 1;
-      volume_def->axes[X] = 2;
+      volume_def->axes[VIO_Z] = 0;
+      volume_def->axes[VIO_Y] = 1;
+      volume_def->axes[VIO_X] = 2;
    }
    else if (strcmp(key, "-sagittal") == 0) {
-      volume_def->axes[X] = 0;
-      volume_def->axes[Z] = 1;
-      volume_def->axes[Y] = 2;
+      volume_def->axes[VIO_X] = 0;
+      volume_def->axes[VIO_Z] = 1;
+      volume_def->axes[VIO_Y] = 2;
    }
    else if (strcmp(key, "-coronal") == 0) {
-      volume_def->axes[Y] = 0;
-      volume_def->axes[Z] = 1;
-      volume_def->axes[X] = 2;
+      volume_def->axes[VIO_Y] = 0;
+      volume_def->axes[VIO_Z] = 1;
+      volume_def->axes[VIO_X] = 2;
    }
 
    return FALSE;

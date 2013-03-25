@@ -138,7 +138,7 @@
 
 #define SQR(x)    ((x)*(x))
 #define WORLD_NDIMS 3
-#define DEFAULT_BOOLEAN (-1)
+#define DEFAULT_VIO_BOOL (-1)
 #define BINS_DEFAULT 2000
 
 /* Double_Array structure */
@@ -205,7 +205,7 @@ int      max_buffer_size_in_kb = 4 * 1024;
 static int verbose = FALSE;
 static int quiet = FALSE;
 static int clobber = FALSE;
-static int ignoreNaN = DEFAULT_BOOLEAN;
+static int ignoreNaN = DEFAULT_VIO_BOOL;
 static double fillvalue = -DBL_MAX;
 
 static int All = FALSE;
@@ -773,7 +773,7 @@ int main(int argc, char *argv[])
    }
 
    /* Check for NaN options */
-   if(ignoreNaN == DEFAULT_BOOLEAN) {
+   if(ignoreNaN == DEFAULT_VIO_BOOL) {
       ignoreNaN = (fillvalue != -DBL_MAX);
    }
    if(ignoreNaN && fillvalue == -DBL_MAX) {

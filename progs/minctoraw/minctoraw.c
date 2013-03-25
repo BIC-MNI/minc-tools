@@ -113,13 +113,13 @@
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#define BOOLEAN_DEFAULT -1
+#define VIO_BOOL_DEFAULT -1
 
 /* Variables used for argument parsing */
 static int output_datatype = INT_MAX;
 static int output_signed = INT_MAX;
 static double valid_range[2] = {DBL_MAX, DBL_MAX};
-static int normalize_output = BOOLEAN_DEFAULT;
+static int normalize_output = VIO_BOOL_DEFAULT;
 
 /* Argument table */
 static ArgvInfo argTable[] = {
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
    filename = argv[1];
 
    /* Check that a normalization option was specified */
-   if (normalize_output == BOOLEAN_DEFAULT) {
+   if (normalize_output == VIO_BOOL_DEFAULT) {
       (void) fprintf(stderr, 
                      "Please specify either -normalize or -nonormalize\n");
       (void) fprintf(stderr, "Usually -normalize is most appropriate\n");

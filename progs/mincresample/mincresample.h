@@ -90,7 +90,7 @@
  * Changed prototype for check_imageminmax.
  * 
  * Revision 1.6  93/08/11  13:34:20  neelin
- * Converted to use Dave MacDonald's General_transform code.
+ * Converted to use Dave MacDonald's VIO_General_transform code.
  * Fixed bug in get_slice - for non-linear transformations coord was
  * transformed, then used again as a starting coordinate.
  * Handle files that have image-max/min that doesn't vary over slices.
@@ -216,8 +216,8 @@ typedef struct {
    File_Info *file;           /* Information about associated file */
    Volume_Data *volume;      /* Volume data for (input volume) */
    Slice_Data *slice;        /* Slice data for (output volume) */
-   General_transform *voxel_to_world;
-   General_transform *world_to_voxel;
+   VIO_General_transform *voxel_to_world;
+   VIO_General_transform *world_to_voxel;
 } VVolume;
 
 typedef struct {
@@ -241,7 +241,7 @@ typedef struct {
    char *file_name;
    char *file_contents;
    long buffer_length;
-   General_transform *transformation;
+   VIO_General_transform *transformation;
 } Transform_Info;
 
 typedef struct {
@@ -349,7 +349,7 @@ typedef struct {
 
 extern void resample_volumes(Program_Flags *program_flags,
                              VVolume *in_vol, VVolume *out_vol, 
-                             General_transform *transformation);
+                             VIO_General_transform *transformation);
 extern int trilinear_interpolant(Volume_Data *volume, 
                                  Coord_Vector coord, double *result);
 extern int tricubic_interpolant(Volume_Data *volume, 

@@ -93,7 +93,7 @@
  * Loop for slice max/min is from 0, not 1 in load_volume.
  * 
  * Revision 1.7  93/08/11  13:34:15  neelin
- * Converted to use Dave MacDonald's General_transform code.
+ * Converted to use Dave MacDonald's VIO_General_transform code.
  * Fixed bug in get_slice - for non-linear transformations coord was
  * transformed, then used again as a starting coordinate.
  * Handle files that have image-max/min that doesn't vary over slices.
@@ -131,7 +131,7 @@
 static void load_volume(File_Info *file, long start[], long count[],
                         Volume_Data *volume);
 static void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
-                      General_transform *transformation,
+                      VIO_General_transform *transformation,
                       double *minimum, double *maximum);
 static void renormalize_slices(Program_Flags *program_flags, VVolume *out_vol,
                                double slice_min[], double slice_max[]);
@@ -159,7 +159,7 @@ static int do_Ncubic_interpolation(Volume_Data *volume,
 ---------------------------------------------------------------------------- */
 void resample_volumes(Program_Flags *program_flags,
                       VVolume *in_vol, VVolume *out_vol, 
-                      General_transform *transformation)
+                      VIO_General_transform *transformation)
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
@@ -465,7 +465,7 @@ void load_volume(File_Info *file, long start[], long count[],
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol, 
-               General_transform *transformation, 
+               VIO_General_transform *transformation, 
                double *minimum, double *maximum)
 {
    Slice_Data *slice;
@@ -483,7 +483,7 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
    Coord_Vector coord, transf_coord;
 
    /* Transformation stuff */
-   General_transform total_transf, temp_transf;
+   VIO_General_transform total_transf, temp_transf;
 
    /* Get slice and volume pointers */
    volume = in_vol->volume;
@@ -1304,9 +1304,9 @@ int nearest_neighbour_interpolant(Volume_Data *volume,
    slcmax = volume->size[SLC_AXIS] - 1;
    rowmax = volume->size[ROW_AXIS] - 1;
    colmax = volume->size[COL_AXIS] - 1;
-   slcind = ROUND(coord[SLICE]);
-   rowind = ROUND(coord[ROW]);
-   colind = ROUND(coord[COLUMN]);
+   slcind = VIO_ROUND(coord[SLICE]);
+   rowind = VIO_ROUND(coord[ROW]);
+   colind = VIO_ROUND(coord[COLUMN]);
    if ((slcind < 0) || (slcind > slcmax) ||
        (rowind < 0) || (rowind > rowmax) ||
        (colind < 0) || (colind > colmax)) {

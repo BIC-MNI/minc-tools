@@ -111,8 +111,8 @@ ArgvInfo argTable[] = {
 
 /* Main program */
 int main(int argc, char *argv[]){
-   General_transform trans1, trans2, trans3;
-   General_transform *new_result, *old_result, *input, *temp_result;
+   VIO_General_transform trans1, trans2, trans3;
+   VIO_General_transform *new_result, *old_result, *input, *temp_result;
    int iarg, first_arg, last_arg;
    char *outfile;
    char *arg_string;
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]){
    for (iarg=first_arg; iarg <= last_arg; iarg++) {
 
       /* Read in file to concatenate */
-      if (input_transform_file(argv[iarg], input) != OK) {
+      if (input_transform_file(argv[iarg], input) != VIO_OK) {
          (void) fprintf(stderr, "%s: Error reading transform file %s\n",
                         pname, argv[iarg]);
          exit(EXIT_FAILURE);
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]){
    }     /* End of loop through arguments */
 
    /* Write out the transform */
-   if (output_transform_file(outfile, arg_string, new_result) != OK) {
+   if (output_transform_file(outfile, arg_string, new_result) != VIO_OK) {
       (void) fprintf(stderr, "%s: Error writing transform file %s\n",
                      pname, outfile);
       exit(EXIT_FAILURE);

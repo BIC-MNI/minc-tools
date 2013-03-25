@@ -50,10 +50,10 @@ double   fdiv(double num, double denom);
 double   farccos(double a0, double b0, double c0, double a1, double b1, double c1);
 double   cindex(double a0, double b0, double c0, double a1, double b1, double c1);
 double   feuc(double a, double b, double c);
-void     clear_borders(Volume v, int sizes[3]);
-void     fill_slice0(Volume v, Real value, int v0, int v1_size, int v2_size);
-void     fill_slice1(Volume v, Real value, int v0_size, int v1, int v2_size);
-void     fill_slice2(Volume v, Real value, int v0_size, int v1_size, int v2);
+void     clear_borders(VIO_Volume v, int sizes[3]);
+void     fill_slice0(VIO_Volume v, VIO_Real value, int v0, int v1_size, int v2_size);
+void     fill_slice1(VIO_Volume v, VIO_Real value, int v0_size, int v1, int v2_size);
+void     fill_slice2(VIO_Volume v, VIO_Real value, int v0_size, int v1_size, int v2);
 void     print_version_info(void);
 
 /* argument variables */
@@ -90,13 +90,13 @@ int main(int argc, char **argv)
    char    *arg_string;
    char    *infile;
    char    *outfile;
-   Volume   in_vol;
-   Volume   out_vol;
-   nc_type  datatype;
-   BOOLEAN  signed_flag;
-   Real     steps[MAX_VAR_DIMS];
-   Real     starts[MAX_VAR_DIMS];
-   int      sizes[MAX_VAR_DIMS];
+   VIO_Volume   in_vol;
+   VIO_Volume   out_vol;
+   nc_type    datatype;
+   VIO_BOOL   signed_flag;
+   VIO_Real   steps[MAX_VAR_DIMS];
+   VIO_Real   starts[MAX_VAR_DIMS];
+   int        sizes[MAX_VAR_DIMS];
 
    double   out_real_max, out_real_min;
 
@@ -105,10 +105,10 @@ int main(int argc, char **argv)
 
    int      x, y, z;
    double   value;
-   progress_struct progress;
+   VIO_progress_struct progress;
 
    /* Jacobian matrix */
-   Real     J[3][3];
+   VIO_Real     J[3][3];
 
    /* Save list of arguments as strings  */
    arg_string = time_stamp(argc, argv);
@@ -356,7 +356,7 @@ double cindex(double a0, double b0, double c0, double a1, double b1, double c1)
    }
 
 /* steve's super-dooper padding function(s) */
-void clear_borders(Volume v, int sizes[3])
+void clear_borders(VIO_Volume v, int sizes[3])
 {
    fill_slice0(v, 0, 0, sizes[1], sizes[2]);
    fill_slice0(v, 0, sizes[0] - 1, sizes[1], sizes[2]);
@@ -368,7 +368,7 @@ void clear_borders(Volume v, int sizes[3])
    fill_slice2(v, 0, sizes[0], sizes[1], sizes[2] - 1);
    }
 
-void fill_slice0(Volume v, Real value, int v0, int v1_size, int v2_size)
+void fill_slice0(VIO_Volume v, VIO_Real value, int v0, int v1_size, int v2_size)
 {
    int      v1, v2;
 
@@ -379,7 +379,7 @@ void fill_slice0(Volume v, Real value, int v0, int v1_size, int v2_size)
       }
    }
 
-void fill_slice1(Volume v, Real value, int v0_size, int v1, int v2_size)
+void fill_slice1(VIO_Volume v, VIO_Real value, int v0_size, int v1, int v2_size)
 {
    int      v0, v2;
 
@@ -390,7 +390,7 @@ void fill_slice1(Volume v, Real value, int v0_size, int v1, int v2_size)
       }
    }
 
-void fill_slice2(Volume v, Real value, int v0_size, int v1_size, int v2)
+void fill_slice2(VIO_Volume v, VIO_Real value, int v0_size, int v1_size, int v2)
 {
    int      v0, v1;
 

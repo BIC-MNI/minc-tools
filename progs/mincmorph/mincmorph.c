@@ -522,7 +522,7 @@ int main(int argc, char *argv[])
          /* read in the kernel or set the kernel to an inbuilt one */
          if(op->kernel_id == K_NULL){
             kernel = new_kernel(0);
-            if(input_kernel(op->kernel_fn, kernel) != OK){
+            if(input_kernel(op->kernel_fn, kernel) != VIO_OK){
                fprintf(stderr, "%s: Died reading in kernel file: %s\n\n", argv[0],
                        op->kernel_fn);
                exit(EXIT_FAILURE);

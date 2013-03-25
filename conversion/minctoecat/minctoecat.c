@@ -114,11 +114,11 @@ int main ( int argc, char **argv) {
   char *minc_file_name = NULL; /*name of the input file (minc format)*/
   char *ecat_file_name = NULL; /*name of the output file (to be created into the ecat format*/
   minc_info *mi = NULL;
-  Volume volume;
+  VIO_Volume volume;
   short int *ecat_short_ptr = NULL;
   float ecat_scale_factor = 1;
-  progress_struct progress;
-  STRING DimOrder[MAX_DIMENSIONS];
+  VIO_progress_struct progress;
+  VIO_STR DimOrder[VIO_MAX_DIMENSIONS];
   MatrixFile *out_matrix_file = NULL;
   Main_header *out_main_header = NULL;
   Image_subheader *out_image_subheader = NULL;
@@ -215,7 +215,7 @@ int main ( int argc, char **argv) {
 		  1,
 		  TRUE,
 		  &volume,
-		  (minc_input_options *) NULL) != OK) return (1);
+		  (minc_input_options *) NULL) != VIO_OK) return (1);
   
    /*initializing the progress report*/
   initialize_progress_report(&progress,
@@ -229,7 +229,7 @@ int main ( int argc, char **argv) {
   for(fr = 0; fr < ((mi->time_length)?mi->time_length:1); fr++) {
     float max_val = 0, min_val = 0;
     int vx, vy, vz;
-    Real value;
+    VIO_Real value;
 
     if((ecat_short_ptr = (short int *)calloc((mi->x_size) * (mi->y_size) * (mi->z_size), sizeof(short int))) == NULL) {
       fprintf(stderr, "allocation error\n");
@@ -253,7 +253,7 @@ int main ( int argc, char **argv) {
 	  x_ind = ((mi->x_step > 0)?mi->x_size - 1 - vx:vx);
 	  y_ind = ((mi->y_step > 0)?mi->y_size - 1 - vy:vy);
 	  z_ind = ((mi->z_step > 0)?mi->z_size - 1 - vz:vz);
-	  ecat_short_ptr[IJK(z_ind, y_ind, x_ind, mi->y_size, mi->x_size)] = (short int)ROUND(value * cal_factor/(ecat_scale_factor));
+	  ecat_short_ptr[VIO_IJK(z_ind, y_ind, x_ind, mi->y_size, mi->x_size)] = (short int)VIO_ROUND(value * cal_factor/(ecat_scale_factor));
 	}
       }
     }

@@ -53,12 +53,12 @@ void split_kernel(Kernel * K, Kernel * k1, Kernel * k2)
    }
 
 /* binarise a volume between a range */
-Volume  *binarise(Volume * vol, double floor, double ceil, double fg, double bg)
+VIO_Volume  *binarise(VIO_Volume * vol, double floor, double ceil, double fg, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
    double   value;
-   progress_struct progress;
+   VIO_progress_struct progress;
 
    if(verbose){
       fprintf(stdout, "Binarising, range: [%g:%g] fg/bg: [%g:%g]\n", floor, ceil, fg, bg);
@@ -88,12 +88,12 @@ Volume  *binarise(Volume * vol, double floor, double ceil, double fg, double bg)
    }
 
 /* clamp a volume between a range */
-Volume  *clamp(Volume * vol, double floor, double ceil, double bg)
+VIO_Volume  *clamp(VIO_Volume * vol, double floor, double ceil, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
    double   value;
-   progress_struct progress;
+   VIO_progress_struct progress;
 
    if(verbose){
       fprintf(stdout, "Clamping, range: [%g:%g] bg: %g\n", floor, ceil, bg);
@@ -119,7 +119,7 @@ Volume  *clamp(Volume * vol, double floor, double ceil, double bg)
    }
 
 /* pad a volume using the background value */
-Volume  *pad(Kernel * K, Volume * vol, double bg)
+VIO_Volume  *pad(Kernel * K, VIO_Volume * vol, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
@@ -166,13 +166,13 @@ Volume  *pad(Kernel * K, Volume * vol, double bg)
    }
 
 /* perform a dilation on a volume */
-Volume  *dilation_kernel(Kernel * K, Volume * vol)
+VIO_Volume  *dilation_kernel(Kernel * K, VIO_Volume * vol)
 {
    int      x, y, z, c;
    double   value;
    int      sizes[MAX_VAR_DIMS];
-   progress_struct progress;
-   Volume   tmp_vol;
+   VIO_progress_struct progress;
+   VIO_Volume   tmp_vol;
 
    if(verbose){
       fprintf(stdout, "Dilation kernel\n");
@@ -214,12 +214,12 @@ Volume  *dilation_kernel(Kernel * K, Volume * vol)
    }
 
 /* perform a median kernel operation on a volume */
-Volume  *median_dilation_kernel(Kernel * K, Volume * vol)
+VIO_Volume  *median_dilation_kernel(Kernel * K, VIO_Volume * vol)
 {
    int      x, y, z, c, i;
    int      sizes[MAX_VAR_DIMS];
-   progress_struct progress;
-   Volume   tmp_vol;
+   VIO_progress_struct progress;
+   VIO_Volume   tmp_vol;
    double   value;
 
    unsigned int kvalue;
@@ -285,13 +285,13 @@ Volume  *median_dilation_kernel(Kernel * K, Volume * vol)
    }
 
 /* perform an erosion on a volume */
-Volume  *erosion_kernel(Kernel * K, Volume * vol)
+VIO_Volume  *erosion_kernel(Kernel * K, VIO_Volume * vol)
 {
    int      x, y, z, c;
    double   value;
    int      sizes[MAX_VAR_DIMS];
-   progress_struct progress;
-   Volume   tmp_vol;
+   VIO_progress_struct progress;
+   VIO_Volume   tmp_vol;
 
    if(verbose){
       fprintf(stdout, "Erosion kernel\n");
@@ -334,13 +334,13 @@ Volume  *erosion_kernel(Kernel * K, Volume * vol)
    }
 
 /* convolve a volume with a input kernel */
-Volume  *convolve_kernel(Kernel * K, Volume * vol)
+VIO_Volume  *convolve_kernel(Kernel * K, VIO_Volume * vol)
 {
    int      x, y, z, c;
    double   value;
    int      sizes[MAX_VAR_DIMS];
-   progress_struct progress;
-   Volume   tmp_vol;
+   VIO_progress_struct progress;
+   VIO_Volume   tmp_vol;
 
    if(verbose){
       fprintf(stdout, "Convolve kernel\n");
@@ -377,12 +377,12 @@ Volume  *convolve_kernel(Kernel * K, Volume * vol)
 
 /* should really only work on binary images    */
 /* from the original 2 pass Borgefors alg      */
-Volume  *distance_kernel(Kernel * K, Volume * vol, double bg)
+VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
 {
    int      x, y, z, c;
    double   value, min;
    int      sizes[MAX_VAR_DIMS];
-   progress_struct progress;
+   VIO_progress_struct progress;
    Kernel  *k1, *k2;
 
    /* split the Kernel */
@@ -466,12 +466,12 @@ Volume  *distance_kernel(Kernel * K, Volume * vol, double bg)
 
 /* do connected components labelling on a volume */
 /* resulting groups are sorted WRT size          */
-Volume  *group_kernel(Kernel * K, Volume * vol, double bg)
+VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
-   progress_struct progress;
-   Volume   tmp_vol;
+   VIO_progress_struct progress;
+   VIO_Volume   tmp_vol;
    Kernel  *k1, *k2;
 
    unsigned int *equiv;
@@ -563,7 +563,7 @@ Volume  *group_kernel(Kernel * K, Volume * vol, double bg)
                switch (num_matches){
                case 0:
                   /* no neighbours, make a new label and increment */
-                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (Real) group_idx);
+                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) group_idx);
 
                   SET_ARRAY_SIZE(equiv, group_idx, group_idx + 1, 500);
                   equiv[group_idx] = group_idx;
@@ -576,7 +576,7 @@ Volume  *group_kernel(Kernel * K, Volume * vol, double bg)
 
                case 1:
                   /* only one neighbour, no equivalences needed */
-                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (Real) min_label);
+                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) min_label);
                   counts[min_label]++;
                   break;
 
@@ -632,7 +632,7 @@ Volume  *group_kernel(Kernel * K, Volume * vol, double bg)
                      }
 
                   /* finally set the voxel in question to the minimum value */
-                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (Real) min_label);
+                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) min_label);
                   counts[min_label]++;
                   break;
                   }                       /* end case */
@@ -705,7 +705,7 @@ Volume  *group_kernel(Kernel * K, Volume * vol, double bg)
             value = (unsigned int)get_volume_voxel_value(*vol, z, y, x, 0, 0);
             if(value != 0){
                value = trans[equiv[value]];
-               set_volume_voxel_value(*vol, z, y, x, 0, 0, (Real) value);
+               set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) value);
                }
             }
          }
@@ -732,8 +732,8 @@ VIO_Volume *lcorr_kernel(Kernel * K, VIO_Volume * vol, VIO_Volume *cmp)
    double   value, v1, v2;
    double   ssum_v1, ssum_v2, sum_prd, denom;
    int      sizes[MAX_VAR_DIMS];
-   progress_struct progress;
-   Volume   tmp_vol;
+   VIO_progress_struct progress;
+   VIO_Volume   tmp_vol;
    
    if(verbose){
       fprintf(stdout, "Local Correlation kernel\n");

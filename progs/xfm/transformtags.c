@@ -90,12 +90,12 @@ int main(int argc, char *argv[])
 {
    char *pname, *intagfile, *outtagfile;
    int n_volumes, n_tag_points, ipoint;
-   Real **tags_volume1, **tags_volume2, **tag_list;
-   General_transform transform;
+   VIO_Real **tags_volume1, **tags_volume2, **tag_list;
+   VIO_General_transform transform;
    FILE *fp;
    char comment_string[512];
    char *comment = comment_string;
-   Real *weights;
+   VIO_Real *weights;
    int *structure_ids;
    int *patient_ids;
    char **labels;
@@ -114,11 +114,11 @@ int main(int argc, char *argv[])
    /* Read in tag file */
    if ((open_file_with_default_suffix(intagfile,
                   get_default_tag_file_suffix(),
-                  READ_FILE, ASCII_FORMAT, &fp) != OK) ||
+                  READ_FILE, ASCII_FORMAT, &fp) != VIO_OK) ||
        (input_tag_points(fp, &n_volumes, &n_tag_points, 
                          &tags_volume1, &tags_volume2, 
                          &weights, &structure_ids, &patient_ids, 
-                         &labels) != OK)) {
+                         &labels) != VIO_OK)) {
       (void) fprintf(stderr, "%s: Error reading tag file %s\n", 
                      pname, intagfile);
       exit(EXIT_FAILURE);
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
       create_linear_transform(&transform, NULL);
    }
    else {
-      if (input_transform_file(xfmfile, &transform) != OK) {
+      if (input_transform_file(xfmfile, &transform) != VIO_OK) {
          (void) fprintf(stderr, "%s: Error reading transform file %s\n",
                         pname, xfmfile);
          exit(EXIT_FAILURE);
@@ -177,11 +177,11 @@ int main(int argc, char *argv[])
    /* Write out the new tag file */
    if ((open_file_with_default_suffix(outtagfile,
                   get_default_tag_file_suffix(),
-                  WRITE_FILE, ASCII_FORMAT, &fp) != OK) ||
+                  WRITE_FILE, ASCII_FORMAT, &fp) != VIO_OK) ||
        (output_tag_points(fp, comment, n_volumes, n_tag_points,
                           tags_volume1, tags_volume2,
                           weights, structure_ids, patient_ids, 
-                          labels) != OK)) {
+                          labels) != VIO_OK)) {
       (void) fprintf(stderr, "%s: Error writing new tag file %s\n",
                      pname, outtagfile);
       exit(EXIT_FAILURE);

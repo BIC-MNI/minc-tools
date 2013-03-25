@@ -109,7 +109,7 @@ ArgvInfo argTable[] = {
 
 /* Main program */
 int main(int argc, char *argv[]){
-   General_transform transform, inverse;
+   VIO_General_transform transform, inverse;
    char *arg_string;
    char *pname;
    char    *infile;
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]){
    }
    
    /* Read in file to invert */
-   if (input_transform_file(infile, &transform) != OK) {
+   if (input_transform_file(infile, &transform) != VIO_OK) {
       (void) fprintf(stderr, "%s: Error reading transform file %s\n",
                      pname, infile);
       exit(EXIT_FAILURE);
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]){
    }
    
    /* Write out the transform */
-   if (output_transform_file(outfile, arg_string, &inverse) != OK) {
+   if (output_transform_file(outfile, arg_string, &inverse) != VIO_OK) {
       (void) fprintf(stderr, "%s: Error writing transform file %s\n",
                      pname, outfile);
       exit(EXIT_FAILURE);

@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
    char    *history;
    progress_struct progress;
    Volume   def_grid;
-   General_transform xfm;
+   VIO_General_transform xfm;
    int      x, y, z, v;
    double   vcoord[4], wcoord[3], wcoord_t[3];
    double   min, max;

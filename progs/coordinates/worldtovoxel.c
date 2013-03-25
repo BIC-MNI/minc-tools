@@ -111,7 +111,7 @@ ArgvInfo argTable[] = {
 
 int main(int argc, char *argv[])
 {
-   Volume volume;
+   VIO_Volume volume;
    volume_input_struct input_info;
    char *filename;
    double v0, v1, v2, wx, wy, wz;
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
    /* Open the image file */
    set_print_function(print_to_stderr);
    if (start_volume_input(filename, 3, dim_names, MI_ORIGINAL_TYPE, TRUE,
-                          0.0, 0.0, TRUE, &volume, NULL, &input_info) != OK) {
+                          0.0, 0.0, TRUE, &volume, NULL, &input_info) != VIO_OK) {
       (void) fprintf(stderr, "Error opening file %s for input.\n",
                      filename);
       exit(EXIT_FAILURE);

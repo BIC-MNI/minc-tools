@@ -6,10 +6,10 @@
 
 extern int verbose;
 
-static const STRING KERNEL_FILE_HEADER = "MNI Morphology Kernel File";
-static const STRING KERNEL_TYPE = "Kernel_Type";
-static const STRING NORMAL_KERNEL = "Normal_Kernel";
-static const STRING KERNEL = "Kernel";
+static const VIO_STR KERNEL_FILE_HEADER = "MNI Morphology Kernel File";
+static const VIO_STR KERNEL_TYPE = "Kernel_Type";
+static const VIO_STR NORMAL_KERNEL = "Normal_Kernel";
+static const VIO_STR KERNEL = "Kernel";
 
 /* inbuilt kernels */
 int      n_inbuilt_kern = 4;
@@ -20,7 +20,7 @@ Kernel  *new_kernel(int nelems)
    int      i, j;
    Kernel  *tmp;
 
-   ALLOC_VAR_SIZED_STRUCT(tmp, Real, 10);
+   ALLOC_VAR_SIZED_STRUCT(tmp, VIO_Real, 10);
 
    /* allocate and initialise the Kernel Array */
    SET_ARRAY_SIZE(tmp->K, 0, nelems, 10);
@@ -39,75 +39,75 @@ Kernel  *new_kernel(int nelems)
    }
 
 /* reads in a Kernel from a file                        */
-Status input_kernel(const char *kernel_file, Kernel * kernel)
+VIO_Status input_kernel(const char *kernel_file, Kernel * kernel)
 {
    int      i, j;
 
-   STRING   line;
-   STRING   type_name;
-   STRING   str;
-   Real     tmp_real;
+   VIO_STR   line;
+   VIO_STR   type_name;
+   VIO_STR   str;
+   VIO_Real     tmp_real;
    FILE    *file;
 
    /* parameter checking */
    if(kernel_file == NULL){
       print_error("input_kernel(): passed NULL FILE.\n");
-      return (ERROR);
+      return (VIO_ERROR);
       }
 
    file = fopen(kernel_file, "r");
    if(file == NULL){
       print_error("input_kernel(): error opening Kernel file.\n");
-      return (ERROR);
+      return (VIO_ERROR);
       }
 
    /* okay read the header */
-   if(mni_input_string(file, &line, (char)0, (char)0) != OK){
+   if(mni_input_string(file, &line, (char)0, (char)0) != VIO_OK){
       delete_string(line);
       print_error("input_kernel(): could not read header in file.\n");
-      return (ERROR);
+      return (VIO_ERROR);
       }
 
    if(!equal_strings(line, KERNEL_FILE_HEADER)){
       delete_string(line);
       print_error("input_kernel(): invalid header in file.\n");
-      return (ERROR);
+      return (VIO_ERROR);
       }
 
    /* --- read the type of Kernel */
-   if(mni_input_keyword_and_equal_sign(file, KERNEL_TYPE, FALSE) != OK){
-      return (ERROR);
+   if(mni_input_keyword_and_equal_sign(file, KERNEL_TYPE, FALSE) != VIO_OK){
+      return (VIO_ERROR);
       }
 
-   if(mni_input_string(file, &type_name, (char)';', (char)0) != OK){
+   if(mni_input_string(file, &type_name, (char)';', (char)0) != VIO_OK){
       print_error("input_kernel(): missing kernel type.\n");
-      return (ERROR);
+      return (VIO_ERROR);
       }
 
-   if(mni_skip_expected_character(file, (char)';') != OK){
-      return (ERROR);
+   if(mni_skip_expected_character(file, (char)';') != VIO_OK){
+      return (VIO_ERROR);
       }
 
    if(!equal_strings(type_name, NORMAL_KERNEL)){
       print_error("input_kernel(): invalid kernel type.\n");
       delete_string(type_name);
-      return (ERROR);
+      return (VIO_ERROR);
       }
    delete_string(type_name);
 
    /* --- read the next string */
-   if(mni_input_string(file, &str, (char)'=', (char)0) != OK)
-      return (ERROR);
+   if(mni_input_string(file, &str, (char)'=', (char)0) != VIO_OK)
+      return (VIO_ERROR);
 
    if(!equal_strings(str, KERNEL)){
       print_error("Expected %s =\n", KERNEL);
       delete_string(str);
-      return (ERROR);
+      return (VIO_ERROR);
       }
    delete_string(str);
 
-   if(mni_skip_expected_character(file, (char)'=') != OK){
-      return (ERROR);
+   if(mni_skip_expected_character(file, (char)'=') != VIO_OK){
+      return (VIO_ERROR);
       }
 
    /* now read the elements (lines) of the kernel */
@@ -122,22 +122,22 @@ Status input_kernel(const char *kernel_file, Kernel * kernel)
 
       /* get the 5 dimension vectors and the coefficient */
       for(j = 0; j < 6; j++){
-         if(mni_input_real(file, &tmp_real) == OK){
+         if(mni_input_real(file, &tmp_real) == VIO_OK){
             kernel->K[i][j] = tmp_real;
             }
          else {
             /* check for end */
-            if(mni_skip_expected_character(file, (char)';') == OK){
+            if(mni_skip_expected_character(file, (char)';') == VIO_OK){
                kernel->nelems = i;
                if(verbose){
                   fprintf(stderr, " %dx%d Kernel elements read\n", i, kernel->nelems);
                   }
-               return (OK);
+               return (VIO_OK);
                }
             else {
                print_error("input_kernel(): error reading kernel [%d,%d]\n", i + 1,
                            j + 1);
-               return (ERROR);
+               return (VIO_ERROR);
                }
             }
          }
@@ -151,7 +151,7 @@ Status input_kernel(const char *kernel_file, Kernel * kernel)
 
    /* SHOLDN'T BE REACHED */
    print_error("input_kernel(): Glark! Something is amiss in the State of Kansas\n");
-   return (ERROR);
+   return (VIO_ERROR);
    }
 
 /* pretty print a kernel */

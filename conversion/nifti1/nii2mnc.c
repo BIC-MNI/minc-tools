@@ -120,8 +120,8 @@ main(int argc, char **argv)
     double mnc_starts[MAX_SPACE_DIMS];
     double mnc_steps[MAX_SPACE_DIMS];
     double mnc_dircos[MAX_SPACE_DIMS][MAX_SPACE_DIMS];
-    Transform mnc_xform;
-    General_transform mnc_linear_xform;
+    VIO_Transform mnc_xform;
+    VIO_General_transform mnc_linear_xform;
     int mnc_vid;                /* Dimension variable id */
     struct analyze75_hdr ana_hdr;
 
