@@ -76,9 +76,9 @@ char *xfmfile = NULL;
 /* Argument table */
 ArgvInfo argTable[] = {
    {"-vol1", ARGV_CONSTANT, (char *) 1, (char *) &volume_to_transform,
-       "Transform tags for volume 1."},
+       "VIO_Transform tags for volume 1."},
    {"-vol2", ARGV_CONSTANT, (char *) 2, (char *) &volume_to_transform,
-       "Transform tags for volume 2 (default)."},
+       "VIO_Transform tags for volume 2 (default)."},
    {"-transformation", ARGV_STRING, (char *) NULL, (char *) &xfmfile,
        "Name of transformation file (default = identity)."},
    {NULL, ARGV_END, NULL, NULL, NULL}
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
       }
    }
 
-   /* Transform the points */
+   /* VIO_Transform the points */
    for (ipoint=0; ipoint < n_tag_points; ipoint++) {
       general_transform_point(&transform,
                               tag_list[ipoint][0],

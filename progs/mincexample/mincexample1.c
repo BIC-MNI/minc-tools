@@ -115,28 +115,28 @@ typedef struct {
    double start[NUMBER_OF_DIMENSIONS];    /* Start positions for dimensions */
    char dimension_names[NUMBER_OF_DIMENSIONS][MAX_NC_NAME];
                              /* Dimension names */
-} Volume;
+} VIO_Volume;
 
 /* Function prototypes */
-static void load_volume(char *infile, Volume *volume);
-static void get_dimension_info(char *infile, int icvid, Volume *volume);
+static void load_volume(char *infile, VIO_Volume *volume);
+static void get_dimension_info(char *infile, int icvid, VIO_Volume *volume);
 static void setup_icv(int icvid);
-static void read_volume_data(int icvid, Volume *volume);
+static void read_volume_data(int icvid, VIO_Volume *volume);
 static void save_volume(char *infile, char *outfile, char *arg_string, 
-                        Volume *volume);
-static void setup_variables(int inmincid, int mincid, Volume *volume, 
+                        VIO_Volume *volume);
+static void setup_variables(int inmincid, int mincid, VIO_Volume *volume, 
                             char *arg_string);
 static void setup_image_variables(int inmincid, int mincid, 
                                   int ndims, int dim[]);
 static void update_history(int mincid, char *arg_string);
-static void write_volume_data(int icvid, Volume *volume);
+static void write_volume_data(int icvid, VIO_Volume *volume);
 
 /* Main program */
 
 int main(int argc, char *argv[])
 {
    char *infile, *outfile;
-   Volume volume;
+   VIO_Volume volume;
    char *arg_string;
 
    /* Get arguments */
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 @CREATED    : August 22, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static void load_volume(char *infile, Volume *volume)
+static void load_volume(char *infile, VIO_Volume *volume)
 {
    int icvid, mincid;
 
@@ -266,7 +266,7 @@ static void setup_icv(int icvid)
 @CREATED    : August 26, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static void get_dimension_info(char *infile, int icvid, Volume *volume)
+static void get_dimension_info(char *infile, int icvid, VIO_Volume *volume)
 {
    int mincid, imgid, varid;
    int idim, ndims;
@@ -346,7 +346,7 @@ static void get_dimension_info(char *infile, int icvid, Volume *volume)
 @CREATED    : August 26, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static void read_volume_data(int icvid, Volume *volume)
+static void read_volume_data(int icvid, VIO_Volume *volume)
 {
    long start[MAX_VAR_DIMS], count[MAX_VAR_DIMS];
 
@@ -387,7 +387,7 @@ static void read_volume_data(int icvid, Volume *volume)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 static void save_volume(char *infile, char *outfile, char *arg_string, 
-                        Volume *volume)
+                        VIO_Volume *volume)
 {
    int mincid, icvid, inmincid;
 
@@ -441,7 +441,7 @@ static void save_volume(char *infile, char *outfile, char *arg_string,
 @CREATED    : August 26, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static void setup_variables(int inmincid, int mincid, Volume *volume, 
+static void setup_variables(int inmincid, int mincid, VIO_Volume *volume, 
                             char *arg_string)
 {
    int dim[MAX_VAR_DIMS], ndims, idim, varid;
@@ -613,7 +613,7 @@ static void update_history(int mincid, char *arg_string)
 @CREATED    : August 26, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static void write_volume_data(int icvid, Volume *volume)
+static void write_volume_data(int icvid, VIO_Volume *volume)
 {
    int mincid;
    long start[MAX_VAR_DIMS], count[MAX_VAR_DIMS];

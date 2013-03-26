@@ -32,7 +32,7 @@
  *    - the vax conversion routines are now included within the distribution
  *    - MALLOC, REALLOC and FREE macros definined within the ecat_file.h body
  *      MALLOC and REALLOC use the malloc_check and realloc_check in ecat_file.c
- *      which are not private(static) anymore
+ *      which are not static(static) anymore
  *      mni_def.h is not used anymore and 
  * Fixed x and y flipping when y size is odd.
  * Did not show up before since normal x and y size are even

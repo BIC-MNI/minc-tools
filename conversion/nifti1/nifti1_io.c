@@ -5,7 +5,7 @@
 /*****===================================================================*****/
 /*****     Sample functions to deal with NIFTI-1 and ANALYZE files       *****/
 /*****...................................................................*****/
-/*****            This code is released to the public domain.            *****/
+/*****            This code is released to the  domain.            *****/
 /*****...................................................................*****/
 /*****  Author: Robert W Cox, SSCC/DIRP/NIMH/NIH/DHHS/USA/EARTH          *****/
 /*****  Date:   August 2003                                              *****/
@@ -1164,7 +1164,7 @@ char *nifti_intent_string( int ii )
      case NIFTI_INTENT_GENMATRIX:  return "General matrix" ;
      case NIFTI_INTENT_SYMMATRIX:  return "Symmetric matrix" ;
      case NIFTI_INTENT_DISPVECT:   return "Displacement vector" ;
-     case NIFTI_INTENT_VECTOR:     return "Vector" ;
+     case NIFTI_INTENT_VECTOR:     return "VIO_Vector" ;
      case NIFTI_INTENT_POINTSET:   return "Pointset" ;
      case NIFTI_INTENT_TRIANGLE:   return "Triangle" ;
      case NIFTI_INTENT_QUATERNION: return "Quaternion" ;

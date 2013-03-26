@@ -26,7 +26,7 @@ NB: seeks for writable files with compression are quite restricted
 /*
 znzlib.c  (zipped or non-zipped library)
 
-*****            This code is released to the public domain.            *****
+*****            This code is released to the  domain.            *****
 
 *****  Author: Mark Jenkinson, FMRIB Centre, University of Oxford       *****
 *****  Date:   September 2004                                           *****

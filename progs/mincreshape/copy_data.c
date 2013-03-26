@@ -96,7 +96,7 @@
 #include <nd_loop.h>
 #include "mincreshape.h"
 
-#define ROUND( x ) ((long) ((x) + ( ((x) >= 0) ? 0.5 : (-0.5) ) ))
+#define VIO_ROUND( x ) ((long) ((x) + ( ((x) >= 0) ? 0.5 : (-0.5) ) ))
 
 static void get_num_minmax_values(Reshape_info *reshape_info,
                                   long *block_start, long *block_count,
@@ -840,36 +840,36 @@ static void convert_value_from_double(double dvalue,
       if (!is_signed) {
          dvalue = MAX(0, dvalue);
          dvalue = MIN(UCHAR_MAX, dvalue);
-         *((unsigned char *) ptr) = ROUND(dvalue);
+         *((unsigned char *) ptr) = VIO_ROUND(dvalue);
       }
       else {
          dvalue = MAX(SCHAR_MIN, dvalue);
          dvalue = MIN(SCHAR_MAX, dvalue);
-         *((signed char *) ptr) = ROUND(dvalue);
+         *((signed char *) ptr) = VIO_ROUND(dvalue);
       }
       break;
    case NC_SHORT :
       if (!is_signed) {
          dvalue = MAX(0, dvalue);
          dvalue = MIN(USHRT_MAX, dvalue);
-         *((unsigned short *) ptr) = ROUND(dvalue);
+         *((unsigned short *) ptr) = VIO_ROUND(dvalue);
       }
       else {
          dvalue = MAX(SHRT_MIN, dvalue);
          dvalue = MIN(SHRT_MAX, dvalue);
-         *((signed short *) ptr) = ROUND(dvalue);
+         *((signed short *) ptr) = VIO_ROUND(dvalue);
       }
       break;
    case NC_INT :
       if (!is_signed) {
          dvalue = MAX(0, dvalue);
          dvalue = MIN(UINT_MAX, dvalue);
-         *((unsigned int *) ptr) = ROUND(dvalue);
+         *((unsigned int *) ptr) = VIO_ROUND(dvalue);
       }
       else {
          dvalue = MAX(INT_MIN, dvalue);
          dvalue = MIN(INT_MAX, dvalue);
-         *((signed int *) ptr) = ROUND(dvalue);
+         *((signed int *) ptr) = VIO_ROUND(dvalue);
       }
       break;
    case NC_FLOAT :

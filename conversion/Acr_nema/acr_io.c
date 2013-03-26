@@ -11,7 +11,7 @@
  *  * large number of changes from Claude (64 bit and updates)
  *
  * Revision 6.7  2005/03/04 00:15:14  bert
- * Lose public and private keywords; change acr_read_one_element to assume implicit VR format for special sequence delimiters (group 0xfffe)
+ * Lose  and static keywords; change acr_read_one_element to assume implicit VR format for special sequence delimiters (group 0xfffe)
  *
  * Revision 6.6  2004/10/29 13:08:41  rotor
  *  * rewrote Makefile with no dependency on a minc distribution
@@ -79,7 +79,7 @@
  * Added #ifdef lint to DEFINE_ELEMENT.
  * 
  * Revision 1.5  94/01/06  13:30:57  neelin
- * Changed acr_need_invert to a public function.
+ * Changed acr_need_invert to a  function.
  * 
  * Revision 1.4  93/11/30  12:18:34  neelin
  * Handle MALLOC returning NULL because of extremely large data element length.
@@ -982,7 +982,7 @@ int acr_get_element_header_size(char vr_name[2],
 @INPUT      : afp - Acr_File pointer from which to read
 @OUTPUT     : group_id
               element_id 
-@RETURNS    : Status
+@RETURNS    : VIO_Status
 @DESCRIPTION: Peeks ahead to get the group and element ids of the next 
               element. The file position is restored. If a read error occurs,
               then group_id and element_id are set to INT_MIN and the status
@@ -1042,7 +1042,7 @@ Acr_Status acr_peek_at_next_element_id(Acr_File *afp,
                  routine. One additional byte is allocated and set to
                  zero so that the data can be treated as a string. If a
                  sequence is encountered, then NULL is returned.
-@RETURNS    : Status.
+@RETURNS    : VIO_Status.
 @DESCRIPTION: Routine to read in one ACR-NEMA element.
 @METHOD     : 
 @GLOBALS    : 
@@ -1148,7 +1148,7 @@ Acr_Status acr_read_one_element(Acr_File *afp,
               data_pointer - pointer to data. If NULL, then no data is
                  written.
 @OUTPUT     : (nothing)
-@RETURNS    : Status.
+@RETURNS    : VIO_Status.
 @DESCRIPTION: Routine to write out one ACR-NEMA element.
 @METHOD     : 
 @GLOBALS    : 

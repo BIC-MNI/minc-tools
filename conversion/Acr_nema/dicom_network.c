@@ -146,67 +146,67 @@ typedef struct {
 } Acr_Dicom_IO;
 
 /* Private functions */
-private Acr_Status read_pdu_header(Acr_File *afp, int *pdu_type, 
+static Acr_Status read_pdu_header(Acr_File *afp, int *pdu_type, 
                                    Acr_Long *pdu_length);
-private Acr_Status read_assoc_rq(Acr_File *afp, Acr_Group group);
-private Acr_Status read_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
+static Acr_Status read_assoc_rq(Acr_File *afp, Acr_Group group);
+static Acr_Status read_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
                                  int is_request);
-private Acr_Status read_data_tf(Acr_File *dicom_afp, Acr_Group group);
-private Acr_Status read_rel_rq(Acr_File *afp, Acr_Group group);
-private Acr_Status read_abort_rq(Acr_File *afp, Acr_Group group);
-private Acr_Status read_assoc_ac(Acr_File *afp, Acr_Group group);
-private Acr_Status read_assoc_rj(Acr_File *afp, Acr_Group group);
-private Acr_Status read_rel_rp(Acr_File *afp, Acr_Group group);
-private Acr_Status read_pdu_item(Acr_File *afp, Acr_Element *item);
-private Acr_Status read_uid_item(Acr_File *afp, Acr_Element_Id elid, 
+static Acr_Status read_data_tf(Acr_File *dicom_afp, Acr_Group group);
+static Acr_Status read_rel_rq(Acr_File *afp, Acr_Group group);
+static Acr_Status read_abort_rq(Acr_File *afp, Acr_Group group);
+static Acr_Status read_assoc_ac(Acr_File *afp, Acr_Group group);
+static Acr_Status read_assoc_rj(Acr_File *afp, Acr_Group group);
+static Acr_Status read_rel_rp(Acr_File *afp, Acr_Group group);
+static Acr_Status read_pdu_item(Acr_File *afp, Acr_Element *item);
+static Acr_Status read_uid_item(Acr_File *afp, Acr_Element_Id elid, 
                                  Acr_Element *item);
-private Acr_Status read_long_item(Acr_File *afp, Acr_Element_Id elid, 
+static Acr_Status read_long_item(Acr_File *afp, Acr_Element_Id elid, 
                                  Acr_Element *item);
-private Acr_Status read_unknown_item(Acr_File *afp, int item_type, 
+static Acr_Status read_unknown_item(Acr_File *afp, int item_type, 
                                      Acr_Element *item);
-private Acr_Status read_pres_context_item(Acr_File *afp, Acr_Element *item);
-private Acr_Status read_pres_context_reply_item(Acr_File *afp, 
+static Acr_Status read_pres_context_item(Acr_File *afp, Acr_Element *item);
+static Acr_Status read_pres_context_reply_item(Acr_File *afp, 
                                                 Acr_Element *item);
-private Acr_Status read_user_info_item(Acr_File *afp, Acr_Element *item);
-private char *get_uid_string(char *buffer, int length);
-private Acr_Element pdu_create_element_uid(Acr_Element_Id elid,
+static Acr_Status read_user_info_item(Acr_File *afp, Acr_Element *item);
+static char *get_uid_string(char *buffer, int length);
+static Acr_Element pdu_create_element_uid(Acr_Element_Id elid,
                                            char *value, int length);
-private Acr_Element pdu_create_element_short(Acr_Element_Id elid,
+static Acr_Element pdu_create_element_short(Acr_Element_Id elid,
                                              void *input_value);
-private Acr_Status write_assoc_rq(Acr_File *afp, Acr_Group group);
-private Acr_Status write_assoc_ac(Acr_File *afp, Acr_Group group);
-private Acr_Status write_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
+static Acr_Status write_assoc_rq(Acr_File *afp, Acr_Group group);
+static Acr_Status write_assoc_ac(Acr_File *afp, Acr_Group group);
+static Acr_Status write_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
                                      int is_request, long *length);
-private Acr_Status write_assoc_rj(Acr_File *afp, Acr_Group group_list);
-private Acr_Status write_rel_rq(Acr_File *afp, Acr_Group group_list);
-private Acr_Status write_rel_rp(Acr_File *afp, Acr_Group group_list);
-private Acr_Status write_abort_rq(Acr_File *afp, Acr_Group group_list);
-private Acr_Status write_fixed_length_pdu(Acr_File *afp, int pdu_type, 
+static Acr_Status write_assoc_rj(Acr_File *afp, Acr_Group group_list);
+static Acr_Status write_rel_rq(Acr_File *afp, Acr_Group group_list);
+static Acr_Status write_rel_rp(Acr_File *afp, Acr_Group group_list);
+static Acr_Status write_abort_rq(Acr_File *afp, Acr_Group group_list);
+static Acr_Status write_fixed_length_pdu(Acr_File *afp, int pdu_type, 
                                           int result, int source, int reason);
-private Acr_Status write_data_tf(Acr_File *dicom_afp, Acr_Message message);
-private Acr_Status write_uid_item(Acr_File *afp, Acr_Element element, 
+static Acr_Status write_data_tf(Acr_File *dicom_afp, Acr_Message message);
+static Acr_Status write_uid_item(Acr_File *afp, Acr_Element element, 
                                   int item_type, long *length);
-private Acr_Status write_pres_context_item(Acr_File *afp, Acr_Element item,
+static Acr_Status write_pres_context_item(Acr_File *afp, Acr_Element item,
                                            int is_request, long *length);
-private Acr_Status write_user_info_item(Acr_File *afp, Acr_Group group,
+static Acr_Status write_user_info_item(Acr_File *afp, Acr_Group group,
                                         long *length);
-private Acr_Status write_unknown_item(Acr_File *afp, int item_type,
+static Acr_Status write_unknown_item(Acr_File *afp, int item_type,
                                       long data_length, char *data_pointer, 
                                       long *length);
-private void pdu_copy_uid(char *string, char *buffer, int length);
-private Acr_File *initialize_dicom_stream(void *io_data, int maxlength,
+static void pdu_copy_uid(char *string, char *buffer, int length);
+static Acr_File *initialize_dicom_stream(void *io_data, int maxlength,
                                           Acr_Io_Routine io_routine,
                                           Dicom_IO_stream_type stream_type);
-private Acr_Dicom_IO *get_dicom_io_pointer(Acr_File *afp);
-private Acr_File *get_dicom_real_afp(Acr_File *afp);
-private long get_dicom_pdv_watchpoint(Acr_File *afp);
-private void set_dicom_pdv_watchpoint(Acr_File *afp, long pdv_watchpoint);
-private void dicom_reset(Acr_File *afp);
-private void dicom_setup_output(Acr_File *afp, 
+static Acr_Dicom_IO *get_dicom_io_pointer(Acr_File *afp);
+static Acr_File *get_dicom_real_afp(Acr_File *afp);
+static long get_dicom_pdv_watchpoint(Acr_File *afp);
+static void set_dicom_pdv_watchpoint(Acr_File *afp, long pdv_watchpoint);
+static void dicom_reset(Acr_File *afp);
+static void dicom_setup_output(Acr_File *afp, 
                                 long command_length, long data_length);
-private int dicom_input_routine(void *io_data, void *buffer, int nbytes);
-private int dicom_output_routine(void *io_data, void *buffer, int nbytes);
-private int dicom_ismore(void *io_data);
+static int dicom_input_routine(void *io_data, void *buffer, int nbytes);
+static int dicom_output_routine(void *io_data, void *buffer, int nbytes);
+static int dicom_ismore(void *io_data);
 
 /* Macros */
 #define EXTRACT_UID(group, elid, value, length) \
@@ -245,7 +245,7 @@ private int dicom_ismore(void *io_data);
 @CREATED    : February 21, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_uid_equal(char *uid1, char *uid2)
+ int acr_uid_equal(char *uid1, char *uid2)
 {
    int len1, len2, i;
 
@@ -279,7 +279,7 @@ public int acr_uid_equal(char *uid1, char *uid2)
 @CREATED    : August 25, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public char *acr_create_uid(void)
+ char *acr_create_uid(void)
 {
    static char uid[64];
    time_t current_time;
@@ -327,7 +327,7 @@ static char Implementation_class_uid[65] = "";
 @CREATED    : March 7, 2000 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_set_implementation_uid(char *uid)
+ void acr_set_implementation_uid(char *uid)
 {
    (void) strncpy(Implementation_class_uid, uid, 
                   sizeof(Implementation_class_uid));
@@ -349,7 +349,7 @@ public void acr_set_implementation_uid(char *uid)
 @MODIFIED   : March 7, 2001 (P.N.)
                  - changed name from acr_implementation_uid
 ---------------------------------------------------------------------------- */
-public char *acr_get_implementation_uid(void)
+ char *acr_get_implementation_uid(void)
 {
 
    /* Set the uid if it is not already set */
@@ -380,7 +380,7 @@ public char *acr_get_implementation_uid(void)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Acr_Status acr_input_dicom_message(Acr_File *dicom_afp, 
+ Acr_Status acr_input_dicom_message(Acr_File *dicom_afp, 
                                           Acr_Message *message)
 {
    int pdu_type;
@@ -483,7 +483,7 @@ public Acr_Status acr_input_dicom_message(Acr_File *dicom_afp,
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_pdu_header(Acr_File *afp, int *pdu_type, 
+static Acr_Status read_pdu_header(Acr_File *afp, int *pdu_type, 
                                    Acr_Long *pdu_length)
 {
    unsigned char buffer[PDU_HEADER_LEN];
@@ -510,7 +510,7 @@ private Acr_Status read_pdu_header(Acr_File *afp, int *pdu_type,
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_assoc_rq(Acr_File *afp, Acr_Group group)
+static Acr_Status read_assoc_rq(Acr_File *afp, Acr_Group group)
 {
    return read_assoc_rq_ac(afp, group, TRUE);
 }
@@ -529,7 +529,7 @@ private Acr_Status read_assoc_rq(Acr_File *afp, Acr_Group group)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
+static Acr_Status read_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
                                  int is_request)
 {
    unsigned char buffer[ASSOC_RQ_LEN - PDU_HEADER_LEN];
@@ -613,7 +613,7 @@ private Acr_Status read_assoc_rq_ac(Acr_File *afp, Acr_Group group,
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_data_tf(Acr_File *dicom_afp, Acr_Group group)
+static Acr_Status read_data_tf(Acr_File *dicom_afp, Acr_Group group)
 {
    Acr_Status status;
    Acr_Message message;
@@ -684,7 +684,7 @@ private Acr_Status read_data_tf(Acr_File *dicom_afp, Acr_Group group)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-private Acr_Status read_rel_rq(Acr_File *afp, Acr_Group group)
+static Acr_Status read_rel_rq(Acr_File *afp, Acr_Group group)
 {
    return acr_skip_input_data(afp, (long) ACR_SIZEOF_LONG);
 }
@@ -701,7 +701,7 @@ private Acr_Status read_rel_rq(Acr_File *afp, Acr_Group group)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_abort_rq(Acr_File *afp, Acr_Group group)
+static Acr_Status read_abort_rq(Acr_File *afp, Acr_Group group)
 {
    unsigned char buffer[ABORT_RQ_LEN - PDU_HEADER_LEN];
    Acr_Status status;
@@ -729,7 +729,7 @@ private Acr_Status read_abort_rq(Acr_File *afp, Acr_Group group)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_assoc_ac(Acr_File *afp, Acr_Group group)
+static Acr_Status read_assoc_ac(Acr_File *afp, Acr_Group group)
 {
    return read_assoc_rq_ac(afp, group, FALSE);
 }
@@ -746,7 +746,7 @@ private Acr_Status read_assoc_ac(Acr_File *afp, Acr_Group group)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_assoc_rj(Acr_File *afp, Acr_Group group)
+static Acr_Status read_assoc_rj(Acr_File *afp, Acr_Group group)
 {
    unsigned char buffer[ASSOC_RJ_LEN - PDU_HEADER_LEN];
    Acr_Status status;
@@ -776,7 +776,7 @@ private Acr_Status read_assoc_rj(Acr_File *afp, Acr_Group group)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-private Acr_Status read_rel_rp(Acr_File *afp, Acr_Group group)
+static Acr_Status read_rel_rp(Acr_File *afp, Acr_Group group)
 {
    return acr_skip_input_data(afp, (long) ACR_SIZEOF_LONG);
 }
@@ -795,7 +795,7 @@ private Acr_Status read_rel_rp(Acr_File *afp, Acr_Group group)
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_pdu_item(Acr_File *afp, Acr_Element *item)
+static Acr_Status read_pdu_item(Acr_File *afp, Acr_Element *item)
 {
    unsigned char buffer[PDU_ITEM_HEADER_LEN];
    Acr_Short item_length;
@@ -874,7 +874,7 @@ private Acr_Status read_pdu_item(Acr_File *afp, Acr_Element *item)
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_uid_item(Acr_File *afp, Acr_Element_Id elid, 
+static Acr_Status read_uid_item(Acr_File *afp, Acr_Element_Id elid, 
                                  Acr_Element *item)
 {
    unsigned char buffer[MAX_PDU_STRING_LENGTH];
@@ -912,7 +912,7 @@ private Acr_Status read_uid_item(Acr_File *afp, Acr_Element_Id elid,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_long_item(Acr_File *afp, Acr_Element_Id elid, 
+static Acr_Status read_long_item(Acr_File *afp, Acr_Element_Id elid, 
                                  Acr_Element *item)
 {
    unsigned char buffer[ACR_SIZEOF_LONG];
@@ -953,7 +953,7 @@ private Acr_Status read_long_item(Acr_File *afp, Acr_Element_Id elid,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_unknown_item(Acr_File *afp, int item_type, 
+static Acr_Status read_unknown_item(Acr_File *afp, int item_type, 
                                      Acr_Element *item)
 {
    Acr_Status status;
@@ -1003,7 +1003,7 @@ private Acr_Status read_unknown_item(Acr_File *afp, int item_type,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_pres_context_item(Acr_File *afp, Acr_Element *item)
+static Acr_Status read_pres_context_item(Acr_File *afp, Acr_Element *item)
 {
    unsigned char buffer[4];
    Acr_Element itemlist = NULL, newitem;
@@ -1070,7 +1070,7 @@ private Acr_Status read_pres_context_item(Acr_File *afp, Acr_Element *item)
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_pres_context_reply_item(Acr_File *afp, 
+static Acr_Status read_pres_context_reply_item(Acr_File *afp, 
                                                 Acr_Element *item)
 {
    unsigned char buffer[4];
@@ -1134,7 +1134,7 @@ private Acr_Status read_pres_context_reply_item(Acr_File *afp,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status read_user_info_item(Acr_File *afp, Acr_Element *item)
+static Acr_Status read_user_info_item(Acr_File *afp, Acr_Element *item)
 {
    Acr_Status status;
    Acr_Element newitem;
@@ -1177,7 +1177,7 @@ private Acr_Status read_user_info_item(Acr_File *afp, Acr_Element *item)
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private char *get_uid_string(char *buffer, int length)
+static char *get_uid_string(char *buffer, int length)
 {
    static char string[MAX_PDU_STRING_LENGTH];
    int start, end, ichar;
@@ -1221,7 +1221,7 @@ private char *get_uid_string(char *buffer, int length)
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Element pdu_create_element_uid(Acr_Element_Id elid,
+static Acr_Element pdu_create_element_uid(Acr_Element_Id elid,
                                            char *value, int length)
 {
    Acr_Element item;
@@ -1246,7 +1246,7 @@ private Acr_Element pdu_create_element_uid(Acr_Element_Id elid,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Element pdu_create_element_short(Acr_Element_Id elid,
+static Acr_Element pdu_create_element_short(Acr_Element_Id elid,
                                              void *input_value)
 {
    Acr_Short svalue;
@@ -1274,7 +1274,7 @@ private Acr_Element pdu_create_element_short(Acr_Element_Id elid,
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Acr_Status acr_output_dicom_message(Acr_File *dicom_afp, 
+ Acr_Status acr_output_dicom_message(Acr_File *dicom_afp, 
                                            Acr_Message message)
 {
    int pdu_type;
@@ -1344,7 +1344,7 @@ public Acr_Status acr_output_dicom_message(Acr_File *dicom_afp,
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_assoc_rq(Acr_File *afp, Acr_Group group)
+static Acr_Status write_assoc_rq(Acr_File *afp, Acr_Group group)
 {
    return write_assoc_rq_ac(afp, group, TRUE, NULL);
 }
@@ -1362,7 +1362,7 @@ private Acr_Status write_assoc_rq(Acr_File *afp, Acr_Group group)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_assoc_ac(Acr_File *afp, Acr_Group group)
+static Acr_Status write_assoc_ac(Acr_File *afp, Acr_Group group)
 {
    return write_assoc_rq_ac(afp, group, FALSE, NULL);
 }
@@ -1386,7 +1386,7 @@ private Acr_Status write_assoc_ac(Acr_File *afp, Acr_Group group)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
+static Acr_Status write_assoc_rq_ac(Acr_File *afp, Acr_Group group, 
                                      int is_request, long *length)
 {
    unsigned char buffer[ASSOC_RQ_LEN];
@@ -1471,7 +1471,7 @@ private Acr_Status write_assoc_rq_ac(Acr_File *afp, Acr_Group group,
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_assoc_rj(Acr_File *afp, Acr_Group group_list)
+static Acr_Status write_assoc_rj(Acr_File *afp, Acr_Group group_list)
 {
    int result, source, reason;
 
@@ -1497,7 +1497,7 @@ private Acr_Status write_assoc_rj(Acr_File *afp, Acr_Group group_list)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-private Acr_Status write_rel_rq(Acr_File *afp, Acr_Group group_list)
+static Acr_Status write_rel_rq(Acr_File *afp, Acr_Group group_list)
 {
    return write_fixed_length_pdu(afp, ACR_PDU_REL_RQ, 0, 0, 0);
 }
@@ -1516,7 +1516,7 @@ private Acr_Status write_rel_rq(Acr_File *afp, Acr_Group group_list)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-private Acr_Status write_rel_rp(Acr_File *afp, Acr_Group group_list)
+static Acr_Status write_rel_rp(Acr_File *afp, Acr_Group group_list)
 {
    return write_fixed_length_pdu(afp, ACR_PDU_REL_RP, 0, 0, 0);
 }
@@ -1534,7 +1534,7 @@ private Acr_Status write_rel_rp(Acr_File *afp, Acr_Group group_list)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_abort_rq(Acr_File *afp, Acr_Group group_list)
+static Acr_Status write_abort_rq(Acr_File *afp, Acr_Group group_list)
 {
    int source, reason;
 
@@ -1561,7 +1561,7 @@ private Acr_Status write_abort_rq(Acr_File *afp, Acr_Group group_list)
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_fixed_length_pdu(Acr_File *afp, int pdu_type, 
+static Acr_Status write_fixed_length_pdu(Acr_File *afp, int pdu_type, 
                                           int result, int source, int reason)
 {
    unsigned char buffer[ABORT_RQ_LEN];
@@ -1598,7 +1598,7 @@ private Acr_Status write_fixed_length_pdu(Acr_File *afp, int pdu_type,
 @CREATED    : February 10, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_data_tf(Acr_File *dicom_afp, Acr_Message message)
+static Acr_Status write_data_tf(Acr_File *dicom_afp, Acr_Message message)
 {
    Acr_Group pdu_group, command_group, data_group;
    Acr_Element element;
@@ -1698,7 +1698,7 @@ private Acr_Status write_data_tf(Acr_File *dicom_afp, Acr_Message message)
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_uid_item(Acr_File *afp, Acr_Element element, 
+static Acr_Status write_uid_item(Acr_File *afp, Acr_Element element, 
                                   int item_type, long *length)
 {
    unsigned char buffer[PDU_ITEM_HEADER_LEN];
@@ -1776,7 +1776,7 @@ private Acr_Status write_uid_item(Acr_File *afp, Acr_Element element,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_pres_context_item(Acr_File *afp, Acr_Element item,
+static Acr_Status write_pres_context_item(Acr_File *afp, Acr_Element item,
                                            int is_request, long *length)
 {
    unsigned char buffer[PDU_ITEM_HEADER_LEN+4];
@@ -1864,7 +1864,7 @@ private Acr_Status write_pres_context_item(Acr_File *afp, Acr_Element item,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_user_info_item(Acr_File *afp, Acr_Group group,
+static Acr_Status write_user_info_item(Acr_File *afp, Acr_Group group,
                                         long *length)
 {
    unsigned char buffer[2*PDU_ITEM_HEADER_LEN+ACR_SIZEOF_LONG];
@@ -1962,7 +1962,7 @@ private Acr_Status write_user_info_item(Acr_File *afp, Acr_Group group,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status write_unknown_item(Acr_File *afp, int item_type,
+static Acr_Status write_unknown_item(Acr_File *afp, int item_type,
                                       long data_length, char *data_pointer, 
                                       long *length)
 {
@@ -2019,7 +2019,7 @@ private Acr_Status write_unknown_item(Acr_File *afp, int item_type,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private void pdu_copy_uid(Acr_String string, char *buffer, int length)
+static void pdu_copy_uid(Acr_String string, char *buffer, int length)
 {
    int i;
 
@@ -2051,7 +2051,7 @@ private void pdu_copy_uid(Acr_String string, char *buffer, int length)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Acr_File *acr_initialize_dicom_input(void *io_data,
+ Acr_File *acr_initialize_dicom_input(void *io_data,
                                             int maxlength,
                                             Acr_Io_Routine io_routine)
 {
@@ -2074,7 +2074,7 @@ public Acr_File *acr_initialize_dicom_input(void *io_data,
 @CREATED    : May 17, 2000 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_dicom_set_ismore_function(Acr_File *afp, 
+ void acr_dicom_set_ismore_function(Acr_File *afp, 
                                           Acr_Ismore_Function ismore_function)
 {
    Acr_Dicom_IO *stream_data;
@@ -2112,7 +2112,7 @@ public void acr_dicom_set_ismore_function(Acr_File *afp,
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Acr_File *acr_initialize_dicom_output(void *io_data,
+ Acr_File *acr_initialize_dicom_output(void *io_data,
                                             int maxlength,
                                             Acr_Io_Routine io_routine)
 {
@@ -2132,7 +2132,7 @@ public Acr_File *acr_initialize_dicom_output(void *io_data,
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_close_dicom_file(Acr_File *afp)
+ void acr_close_dicom_file(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2168,7 +2168,7 @@ public void acr_close_dicom_file(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void *acr_dicom_get_io_data(Acr_File *afp)
+ void *acr_dicom_get_io_data(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2191,7 +2191,7 @@ public void *acr_dicom_get_io_data(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_dicom_enable_trace(Acr_File *afp)
+ void acr_dicom_enable_trace(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2202,7 +2202,7 @@ public void acr_dicom_enable_trace(Acr_File *afp)
 
 }
 
-public void acr_dicom_disable_trace(Acr_File *afp)
+ void acr_dicom_disable_trace(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2228,7 +2228,7 @@ public void acr_dicom_disable_trace(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_dicom_set_eof(Acr_File *afp)
+ void acr_dicom_set_eof(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2257,7 +2257,7 @@ public void acr_dicom_set_eof(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_File *initialize_dicom_stream(void *io_data, int maxlength,
+static Acr_File *initialize_dicom_stream(void *io_data, int maxlength,
                                           Acr_Io_Routine io_routine,
                                           Dicom_IO_stream_type stream_type)
 {
@@ -2306,7 +2306,7 @@ private Acr_File *initialize_dicom_stream(void *io_data, int maxlength,
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Dicom_IO *get_dicom_io_pointer(Acr_File *afp)
+static Acr_Dicom_IO *get_dicom_io_pointer(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2332,7 +2332,7 @@ private Acr_Dicom_IO *get_dicom_io_pointer(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_File *get_dicom_real_afp(Acr_File *afp)
+static Acr_File *get_dicom_real_afp(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2357,7 +2357,7 @@ private Acr_File *get_dicom_real_afp(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private long get_dicom_pdv_watchpoint(Acr_File *afp)
+static long get_dicom_pdv_watchpoint(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
    long current_watchpoint;
@@ -2388,7 +2388,7 @@ private long get_dicom_pdv_watchpoint(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private void set_dicom_pdv_watchpoint(Acr_File *afp, long pdv_watchpoint)
+static void set_dicom_pdv_watchpoint(Acr_File *afp, long pdv_watchpoint)
 {
    Acr_Dicom_IO *stream_data;
    long current_watchpoint;
@@ -2424,7 +2424,7 @@ private void set_dicom_pdv_watchpoint(Acr_File *afp, long pdv_watchpoint)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_set_dicom_maximum_length(Acr_File *afp, 
+ void acr_set_dicom_maximum_length(Acr_File *afp, 
                                          long maximum_length)
 {
    Acr_Dicom_IO *stream_data;
@@ -2454,7 +2454,7 @@ public void acr_set_dicom_maximum_length(Acr_File *afp,
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_set_dicom_pres_context_id(Acr_File *afp, 
+ void acr_set_dicom_pres_context_id(Acr_File *afp, 
                                           int presentation_context_id)
 {
    Acr_Dicom_IO *stream_data;
@@ -2479,7 +2479,7 @@ public void acr_set_dicom_pres_context_id(Acr_File *afp,
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_get_dicom_pres_context_id(Acr_File *afp)
+ int acr_get_dicom_pres_context_id(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2504,7 +2504,7 @@ public int acr_get_dicom_pres_context_id(Acr_File *afp)
 @CREATED    : November 11, 1998 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_set_dicom_client_data(Acr_File *afp, void *client_data)
+ void acr_set_dicom_client_data(Acr_File *afp, void *client_data)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2533,7 +2533,7 @@ public void acr_set_dicom_client_data(Acr_File *afp, void *client_data)
 @CREATED    : November 11, 1998 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void *acr_get_dicom_client_data(Acr_File *afp)
+ void *acr_get_dicom_client_data(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2557,7 +2557,7 @@ public void *acr_get_dicom_client_data(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private void dicom_reset(Acr_File *afp)
+static void dicom_reset(Acr_File *afp)
 {
    Acr_Dicom_IO *stream_data;
 
@@ -2584,7 +2584,7 @@ private void dicom_reset(Acr_File *afp)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private void dicom_setup_output(Acr_File *afp, 
+static void dicom_setup_output(Acr_File *afp, 
                                 long command_length, long data_length)
 {
    Acr_Dicom_IO *stream_data;
@@ -2634,7 +2634,7 @@ private void dicom_setup_output(Acr_File *afp,
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int dicom_input_routine(void *io_data, void *buffer, int nbytes)
+static int dicom_input_routine(void *io_data, void *buffer, int nbytes)
 {
    unsigned char header_buffer[DATA_TF_LEN];
    Acr_Dicom_IO *stream_data;
@@ -2731,7 +2731,7 @@ private int dicom_input_routine(void *io_data, void *buffer, int nbytes)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int dicom_output_routine(void *io_data, void *buffer, int nbytes)
+static int dicom_output_routine(void *io_data, void *buffer, int nbytes)
 {
    unsigned char pdu_buffer[PDU_HEADER_LEN];
    unsigned char header_buffer[DATA_TF_LEN];
@@ -2880,7 +2880,7 @@ private int dicom_output_routine(void *io_data, void *buffer, int nbytes)
 @CREATED    : May 17, 2000 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int dicom_ismore(void *io_data)
+static int dicom_ismore(void *io_data)
 {
    Acr_Dicom_IO *stream_data;
 

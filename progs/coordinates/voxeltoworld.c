@@ -93,10 +93,6 @@
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#ifndef public
-#  define public
-#  define private static
-#endif
 
 /* Function to print to stderr */
 void print_to_stderr(char *string)

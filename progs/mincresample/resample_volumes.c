@@ -163,7 +163,7 @@ void resample_volumes(Program_Flags *program_flags,
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
-   long mm_start[MAX_VAR_DIMS];   /* Vector for min/max variables */
+   long mm_start[MAX_VAR_DIMS];   /* VIO_Vector for min/max variables */
    long nslice, islice, slice_count;
    int idim, index, slice_index;
    double maximum, minimum, valid_range[2];
@@ -499,7 +499,7 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
    /* Check for complete linear transformation */
    all_linear = (get_transform_type(&total_transf) == LINEAR);
 
-   /* Transform vectors for linear transformation */
+   /* VIO_Transform vectors for linear transformation */
    start[SLICE] = slice_num;
    if (all_linear) {
       DO_TRANSFORM(zero, &total_transf, zero);

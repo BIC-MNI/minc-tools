@@ -10,7 +10,7 @@
  *  * large number of changes from Claude (64 bit and updates)
  *
  * Revision 6.4  2005/03/04 00:08:37  bert
- * Lose private and public
+ * Lose static and 
  *
  * Revision 6.3  2004/10/29 13:08:42  rotor
  *  * rewrote Makefile with no dependency on a minc distribution

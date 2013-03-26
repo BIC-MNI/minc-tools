@@ -134,32 +134,32 @@ typedef enum {
 } Ecat_which_header;
 
 /* Private functions */
-private Ecat_field_name ecat_list_fields(Ecat_file *file, 
+static Ecat_field_name ecat_list_fields(Ecat_file *file, 
                                          Ecat_which_header which_header, 
                                          int index);
-private int ecat_get_field_length(Ecat_file *file, 
+static int ecat_get_field_length(Ecat_file *file, 
                                   Ecat_which_header which_header, 
                                   Ecat_field_name field);
-private char *ecat_get_field_description(Ecat_file *file, 
+static char *ecat_get_field_description(Ecat_file *file, 
                                          Ecat_which_header which_header, 
                                          Ecat_field_name field);
-private int ecat_get_value(Ecat_file *file,
+static int ecat_get_value(Ecat_file *file,
                            Ecat_which_header which_header,
                            int volume_number, int slice_number,
                            Ecat_field_name field,
                            int index,
                            int *ivalue, double *fvalue, char *svalue);
-private int ecat_read_subhdr(Ecat_file *file, int volume, int slice);
-private int ecat_lookup_field(Ecat_header_table_type *table,
+static int ecat_read_subhdr(Ecat_file *file, int volume, int slice);
+static int ecat_lookup_field(Ecat_header_table_type *table,
                               Ecat_field_name field,
                               int *offset, int *length, Ecat_type *type, 
                               char **description);
-private void ecat_initialize_table(Ecat_header_table_type *table);
-private int ecat_table_entry_compare(const void *v1, const void *v2);
-private int ecat_table_offset_compare(const void *v1, const void *v2);
-private int ecat_read_directory(Ecat_file *file);
-private long get_dirblock(Ecat_file *file, int32_t *dirblock, int offset);
-private int ecat_get_subhdr_offset(Ecat_file *file, int volume, int slice, 
+static void ecat_initialize_table(Ecat_header_table_type *table);
+static int ecat_table_entry_compare(const void *v1, const void *v2);
+static int ecat_table_offset_compare(const void *v1, const void *v2);
+static int ecat_read_directory(Ecat_file *file);
+static long get_dirblock(Ecat_file *file, int32_t *dirblock, int offset);
+static int ecat_get_subhdr_offset(Ecat_file *file, int volume, int slice, 
                                    long *offset);
 
 
@@ -177,7 +177,7 @@ private int ecat_get_subhdr_offset(Ecat_file *file, int volume, int slice,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Ecat_file *ecat_open(char *filename)
+ Ecat_file *ecat_open(char *filename)
 {
    Ecat_file *file;
 
@@ -255,7 +255,7 @@ public Ecat_file *ecat_open(char *filename)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void ecat_close(Ecat_file *file)
+ void ecat_close(Ecat_file *file)
 {
    if (file==NULL) return;
    if (file->file_pointer != NULL) {
@@ -286,22 +286,22 @@ public void ecat_close(Ecat_file *file)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int ecat_get_num_planes(Ecat_file *file)
+ int ecat_get_num_planes(Ecat_file *file)
 {
    return file->num_planes;
 }
 
-public int ecat_get_num_frames(Ecat_file *file)
+ int ecat_get_num_frames(Ecat_file *file)
 {
    return file->num_frames;
 }
 
-public int ecat_get_num_bed_positions(Ecat_file *file)
+ int ecat_get_num_bed_positions(Ecat_file *file)
 {
    return file->num_bed_positions;
 }
 
-public int ecat_get_num_gates(Ecat_file *file)
+ int ecat_get_num_gates(Ecat_file *file)
 {
    return file->num_gates;
 }
@@ -321,7 +321,7 @@ public int ecat_get_num_gates(Ecat_file *file)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Ecat_field_name ecat_list_main(Ecat_file *file, int index)
+ Ecat_field_name ecat_list_main(Ecat_file *file, int index)
 {
    return ecat_list_fields(file, ECAT_MAIN_HEADER, index);
 }
@@ -341,7 +341,7 @@ public Ecat_field_name ecat_list_main(Ecat_file *file, int index)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Ecat_field_name ecat_list_subhdr(Ecat_file *file, int index)
+ Ecat_field_name ecat_list_subhdr(Ecat_file *file, int index)
 {
    return ecat_list_fields(file, ECAT_SUBHEADER, index);
 }
@@ -362,7 +362,7 @@ public Ecat_field_name ecat_list_subhdr(Ecat_file *file, int index)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Ecat_field_name ecat_list_fields(Ecat_file *file, 
+static Ecat_field_name ecat_list_fields(Ecat_file *file, 
                                          Ecat_which_header which_header, 
                                          int index)
 {
@@ -410,7 +410,7 @@ private Ecat_field_name ecat_list_fields(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int ecat_get_main_field_length(Ecat_file *file, 
+ int ecat_get_main_field_length(Ecat_file *file, 
                                       Ecat_field_name field)
 {
    return ecat_get_field_length(file, ECAT_MAIN_HEADER, field);
@@ -430,7 +430,7 @@ public int ecat_get_main_field_length(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int ecat_get_subhdr_field_length(Ecat_file *file, 
+ int ecat_get_subhdr_field_length(Ecat_file *file, 
                                         Ecat_field_name field)
 {
    return ecat_get_field_length(file, ECAT_SUBHEADER, field);
@@ -452,7 +452,7 @@ public int ecat_get_subhdr_field_length(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_get_field_length(Ecat_file *file, 
+static int ecat_get_field_length(Ecat_file *file, 
                                   Ecat_which_header which_header, 
                                   Ecat_field_name field)
 {
@@ -499,7 +499,7 @@ private int ecat_get_field_length(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public char *ecat_get_main_field_description(Ecat_file *file, 
+ char *ecat_get_main_field_description(Ecat_file *file, 
                                              Ecat_field_name field)
 {
    return ecat_get_field_description(file, ECAT_MAIN_HEADER, field);
@@ -519,7 +519,7 @@ public char *ecat_get_main_field_description(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public char *ecat_get_subhdr_field_description(Ecat_file *file, 
+ char *ecat_get_subhdr_field_description(Ecat_file *file, 
                                                Ecat_field_name field)
 {
    return ecat_get_field_description(file, ECAT_SUBHEADER, field);
@@ -540,7 +540,7 @@ public char *ecat_get_subhdr_field_description(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private char *ecat_get_field_description(Ecat_file *file, 
+static char *ecat_get_field_description(Ecat_file *file, 
                                          Ecat_which_header which_header, 
                                          Ecat_field_name field)
 {
@@ -584,7 +584,7 @@ private char *ecat_get_field_description(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int ecat_get_main_value(Ecat_file *file, 
+ int ecat_get_main_value(Ecat_file *file, 
                                Ecat_field_name field, int index,
                                int *ivalue, double *fvalue, char *svalue)
 {
@@ -611,7 +611,7 @@ public int ecat_get_main_value(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int ecat_get_subhdr_value(Ecat_file *file, int volume, int slice,
+ int ecat_get_subhdr_value(Ecat_file *file, int volume, int slice,
                                  Ecat_field_name field, int index,
                                  int *ivalue, double *fvalue, char *svalue)
 {
@@ -639,7 +639,7 @@ public int ecat_get_subhdr_value(Ecat_file *file, int volume, int slice,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_get_value(Ecat_file *file,
+static int ecat_get_value(Ecat_file *file,
                            Ecat_which_header which_header,
                            int volume_number, int slice_number,
                            Ecat_field_name field,
@@ -761,7 +761,7 @@ private int ecat_get_value(Ecat_file *file,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_read_subhdr(Ecat_file *file, int volume, int slice)
+static int ecat_read_subhdr(Ecat_file *file, int volume, int slice)
 {
    long offset;
 
@@ -806,7 +806,7 @@ private int ecat_read_subhdr(Ecat_file *file, int volume, int slice)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_lookup_field(Ecat_header_table_type *table,
+static int ecat_lookup_field(Ecat_header_table_type *table,
                               Ecat_field_name field,
                               int *offset, int *length, Ecat_type *type, 
                               char **description)
@@ -852,7 +852,7 @@ private int ecat_lookup_field(Ecat_header_table_type *table,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private void ecat_initialize_table(Ecat_header_table_type *table)
+static void ecat_initialize_table(Ecat_header_table_type *table)
 {
    Ecat_field_description_type *file_order_list;
    int iel;
@@ -897,7 +897,7 @@ private void ecat_initialize_table(Ecat_header_table_type *table)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_table_entry_compare(const void *v1, const void *v2)
+static int ecat_table_entry_compare(const void *v1, const void *v2)
 {
    Ecat_field_description_type *first, *second;
 
@@ -922,7 +922,7 @@ private int ecat_table_entry_compare(const void *v1, const void *v2)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_table_offset_compare(const void *v1, const void *v2)
+static int ecat_table_offset_compare(const void *v1, const void *v2)
 {
    Ecat_field_description_type *first, *second;
 
@@ -947,7 +947,7 @@ private int ecat_table_offset_compare(const void *v1, const void *v2)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_read_directory(Ecat_file *file)
+static int ecat_read_directory(Ecat_file *file)
 {
    int ientry, start_entry, num_alloc;
    long nextblock, num_used;
@@ -1014,7 +1014,7 @@ private int ecat_read_directory(Ecat_file *file)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private long get_dirblock(Ecat_file *file, int32_t *dirblock, int offset){
+static long get_dirblock(Ecat_file *file, int32_t *dirblock, int offset){
    long value;
 
    if (file->header_description == ECAT_VER_PRE7) {
@@ -1045,7 +1045,7 @@ private long get_dirblock(Ecat_file *file, int32_t *dirblock, int offset){
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int ecat_get_image(Ecat_file *file, int volume, int slice, 
+ int ecat_get_image(Ecat_file *file, int volume, int slice, 
                           short *image)
 {
    long file_offset;
@@ -1148,7 +1148,7 @@ public int ecat_get_image(Ecat_file *file, int volume, int slice,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int ecat_get_subhdr_offset(Ecat_file *file, int volume, int slice, 
+static int ecat_get_subhdr_offset(Ecat_file *file, int volume, int slice, 
                                    long *offset)
 {
    int subheader_number;
@@ -1195,7 +1195,7 @@ private int ecat_get_subhdr_offset(Ecat_file *file, int volume, int slice,
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void *malloc_check(size_t size)
+ void *malloc_check(size_t size)
 {
    void *ptr;
 
@@ -1221,7 +1221,7 @@ public void *malloc_check(size_t size)
 @CREATED    : January 4, 1996 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void *realloc_check(void *ptr, size_t size)
+ void *realloc_check(void *ptr, size_t size)
 {
    ptr = realloc(ptr, size);
    if (ptr == NULL) {

@@ -1298,7 +1298,7 @@ get_coordinate_info(Acr_Group group_list,
     double psize[IMAGE_NDIMS];
     double slice_thickness, slice_spacing;
 
-    double RowColVec[6]; /* row/column unit vectors in public dicom element */
+    double RowColVec[6]; /* row/column unit vectors in  dicom element */
 
     const Orientation orientation_list[WORLD_NDIMS] = {
         SAGITTAL, CORONAL, TRANSVERSE

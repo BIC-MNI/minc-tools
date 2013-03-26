@@ -523,8 +523,8 @@ fclose(fd);
     hdr.dime.glmin  = glmin;
     
     /*   Planar Orientation;
-         Movie flag OFF: 0 = transverse, 1 = coronal, 2 = sagittal
-         Movie flag ON:  3 = transverse, 4 = coronal, 5 = sagittal  */  
+         Movie flag FALSE: 0 = transverse, 1 = coronal, 2 = sagittal
+         Movie flag TRUE:  3 = transverse, 4 = coronal, 5 = sagittal  */  
     hdr.hist.orient     = 0;  
 
     /* origin */

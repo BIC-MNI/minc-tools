@@ -149,13 +149,6 @@
 #include <time.h>
 #include <acr_nema.h>
 
-/* Constants */
-#ifndef public
-#  define public
-#endif
-#ifndef private
-#  define private static
-#endif
 #ifndef INADDR_NONE
 #  define INADDR_NONE             0xffffffff
 #endif
@@ -222,20 +215,20 @@ static int Connection_timeout = FALSE;
 static Acr_File *Alarmed_afp = NULL;
 
 /* Private functions */
-private Dicom_client_data *get_client_data_ptr(Acr_File *afp);
-private Acr_Message compose_assoc_request(char *called_ae, char *calling_ae,
+static Dicom_client_data *get_client_data_ptr(Acr_File *afp);
+static Acr_Message compose_assoc_request(char *called_ae, char *calling_ae,
                                           char *abstract_syntax_list[],
                                           char *transfer_syntax_list[]);
-private int check_reply(Acr_Message message, 
+static int check_reply(Acr_Message message, 
                         int *presentation_context_id, 
                         char **transfer_syntax,
                         long *maximum_length);
-private Acr_Status receive_message(Acr_File *afpin, Acr_Message *message);
-private Acr_Status send_message(Acr_File *afpout, Acr_Message message);
-private void timeout_handler(int sig);
-private int read_replies(Acr_File *afpin);
-private int synchronize_input(Acr_File *afpin);
-private Acr_Message make_message(Acr_Group group_list);
+static Acr_Status receive_message(Acr_File *afpin, Acr_Message *message);
+static Acr_Status send_message(Acr_File *afpout, Acr_Message message);
+static void timeout_handler(int sig);
+static int read_replies(Acr_File *afpin);
+static int synchronize_input(Acr_File *afpin);
+static Acr_Message make_message(Acr_Group group_list);
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -251,7 +244,7 @@ private Acr_Message make_message(Acr_Group group_list);
 @CREATED    : November 11, 1998 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Dicom_client_data *get_client_data_ptr(Acr_File *afp)
+static Dicom_client_data *get_client_data_ptr(Acr_File *afp)
 {
    Dicom_client_data *client_data;
 
@@ -297,7 +290,7 @@ private Dicom_client_data *get_client_data_ptr(Acr_File *afp)
 @CREATED    : July 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_open_dicom_connection(char *host, char *port,
+ int acr_open_dicom_connection(char *host, char *port,
                                      char *called_ae, char *calling_ae,
                                      char *abstract_syntax,
                                      char *transfer_syntax,
@@ -352,7 +345,7 @@ public int acr_open_dicom_connection(char *host, char *port,
 @CREATED    : October 20, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_close_dicom_no_release(Acr_File *afpin, Acr_File *afpout)
+ void acr_close_dicom_no_release(Acr_File *afpin, Acr_File *afpout)
 {
    FILE *fpin, *fpout;
 
@@ -383,7 +376,7 @@ public void acr_close_dicom_no_release(Acr_File *afpin, Acr_File *afpout)
 @CREATED    : July 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_close_dicom_connection(Acr_File *afpin, Acr_File *afpout)
+ void acr_close_dicom_connection(Acr_File *afpin, Acr_File *afpout)
 {
    /* Release the association */
    (void) acr_release_dicom_association(afpin, afpout);
@@ -408,7 +401,7 @@ public void acr_close_dicom_connection(Acr_File *afpin, Acr_File *afpout)
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_connect_to_host(char *host, char *port,
+ int acr_connect_to_host(char *host, char *port,
                                FILE **fpin, FILE **fpout)
 {
    struct servent *sp;
@@ -533,7 +526,7 @@ public int acr_connect_to_host(char *host, char *port,
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public char *acr_make_dicom_association(Acr_File *afpin, Acr_File *afpout,
+ char *acr_make_dicom_association(Acr_File *afpin, Acr_File *afpout,
                                         char *called_ae, char *calling_ae,
                                         char *abstract_syntax_list[], 
                                         char *transfer_syntax_list[])
@@ -663,7 +656,7 @@ public char *acr_make_dicom_association(Acr_File *afpin, Acr_File *afpout,
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Message compose_assoc_request(char *called_ae, char *calling_ae,
+static Acr_Message compose_assoc_request(char *called_ae, char *calling_ae,
                                           char *abstract_syntax_list[],
                                           char *transfer_syntax_list[])
 {
@@ -782,7 +775,7 @@ private Acr_Message compose_assoc_request(char *called_ae, char *calling_ae,
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int check_reply(Acr_Message message, 
+static int check_reply(Acr_Message message, 
                         int *presentation_context_id, 
                         char **transfer_syntax,
                         long *maximum_length)
@@ -882,7 +875,7 @@ private int check_reply(Acr_Message message,
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status receive_message(Acr_File *afpin, Acr_Message *message)
+static Acr_Status receive_message(Acr_File *afpin, Acr_Message *message)
 {
    Acr_Status status;
    Dicom_client_data *client_data;
@@ -914,7 +907,7 @@ private Acr_Status receive_message(Acr_File *afpin, Acr_Message *message)
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Status send_message(Acr_File *afpout, Acr_Message message)
+static Acr_Status send_message(Acr_File *afpout, Acr_Message message)
 {
    Acr_Status status;
    Dicom_client_data *client_data;
@@ -950,7 +943,7 @@ private Acr_Status send_message(Acr_File *afpout, Acr_Message message)
 @CREATED    : September 15, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_set_client_timeout(Acr_File *afp, double seconds)
+ void acr_set_client_timeout(Acr_File *afp, double seconds)
 {
    Dicom_client_data *client_data;
 
@@ -975,7 +968,7 @@ public void acr_set_client_timeout(Acr_File *afp, double seconds)
 @CREATED    : September 15, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_set_client_initial_timeout(double seconds)
+ void acr_set_client_initial_timeout(double seconds)
 {
    Initial_timeout_length = (int) seconds;
 }
@@ -993,7 +986,7 @@ public void acr_set_client_initial_timeout(double seconds)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-private void timeout_handler(int sig)
+static void timeout_handler(int sig)
 {
    Connection_timeout = TRUE;
    if (Alarmed_afp != NULL) {
@@ -1028,7 +1021,7 @@ private void timeout_handler(int sig)
 @CREATED    : November 12, 1998 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_set_client_max_outstanding(Acr_File *afp, int max)
+ void acr_set_client_max_outstanding(Acr_File *afp, int max)
 {
    Dicom_client_data *client_data;
 
@@ -1051,7 +1044,7 @@ public void acr_set_client_max_outstanding(Acr_File *afp, int max)
 @CREATED    : November 12, 1998 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_get_client_max_outstanding(Acr_File *afp)
+ int acr_get_client_max_outstanding(Acr_File *afp)
 {
    Dicom_client_data *client_data;
 
@@ -1073,7 +1066,7 @@ public int acr_get_client_max_outstanding(Acr_File *afp)
 @CREATED    : February 21, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_dicom_error(Acr_Status status, char *string)
+ void acr_dicom_error(Acr_Status status, char *string)
 {
    char *error;
 
@@ -1099,7 +1092,7 @@ public void acr_dicom_error(Acr_Status status, char *string)
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_release_dicom_association(Acr_File *afpin, Acr_File *afpout)
+ int acr_release_dicom_association(Acr_File *afpin, Acr_File *afpout)
 {
    Acr_Message message;
    Acr_Group group;
@@ -1168,7 +1161,7 @@ public int acr_release_dicom_association(Acr_File *afpin, Acr_File *afpout)
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_send_group_list(Acr_File *afpin, Acr_File *afpout, 
+ int acr_send_group_list(Acr_File *afpin, Acr_File *afpout, 
                                Acr_Group group_list, 
                                char *sop_class_uid)
 {
@@ -1224,7 +1217,7 @@ public int acr_send_group_list(Acr_File *afpin, Acr_File *afpout,
 @CREATED    : November 12, 1998 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int read_replies(Acr_File *afpin)
+static int read_replies(Acr_File *afpin)
 {
    int result;
    Dicom_client_data *client_data;
@@ -1290,7 +1283,7 @@ private int read_replies(Acr_File *afpin)
 @CREATED    : November 12, 1998 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private int synchronize_input(Acr_File *afpin)
+static int synchronize_input(Acr_File *afpin)
 {
    int old_max_outstanding;
    int result;
@@ -1327,7 +1320,7 @@ private int synchronize_input(Acr_File *afpin)
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_transmit_group_list(Acr_File *afpout, 
+ int acr_transmit_group_list(Acr_File *afpout, 
                                    Acr_Group group_list, 
                                    char *sop_class_uid,
                                    int message_id)
@@ -1469,7 +1462,7 @@ public int acr_transmit_group_list(Acr_File *afpout,
 @CREATED    : May 9, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_receive_reply(Acr_File *afpin)
+ int acr_receive_reply(Acr_File *afpin)
 {
    Acr_Status status;
    Acr_Message message;
@@ -1519,7 +1512,7 @@ public int acr_receive_reply(Acr_File *afpin)
 @CREATED    : November 24, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private Acr_Message make_message(Acr_Group group_list)
+static Acr_Message make_message(Acr_Group group_list)
 {
    Acr_Group next_group, group;
    Acr_Message output_message;

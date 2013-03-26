@@ -48,12 +48,10 @@
 #include <convert_origin_to_start.h>
 
 /* Constant definition */
-#define public
-#define private static
 #define WORLD_NDIMS 3
 
 /* Function declarations */
-private void calculate_orthogonal_vector(double vector1[], 
+static void calculate_orthogonal_vector(double vector1[], 
                                          double vector2[],
                                          double result[]);
 
@@ -76,7 +74,7 @@ private void calculate_orthogonal_vector(double vector1[],
 @CREATED    : November 7, 1995 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int convert_origin_to_start(double origin[], 
+ int convert_origin_to_start(double origin[], 
                                     double xdircos[],
                                     double ydircos[], 
                                     double zdircos[],
@@ -158,7 +156,7 @@ public int convert_origin_to_start(double origin[],
 @CREATED    : November 7, 1995 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private void calculate_orthogonal_vector(double vector1[], 
+static void calculate_orthogonal_vector(double vector1[], 
                                          double vector2[],
                                          double result[])
 {

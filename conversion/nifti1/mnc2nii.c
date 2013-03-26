@@ -143,7 +143,7 @@ init_nifti_header(nifti_image *nii_ptr)
     nii_ptr->num_ext = 0;
 }    
 
-/* private function from from libminc2.  This function is private partially
+/* static function from from libminc2.  This function is static partially
  because it's parameters are somewhat bizarre.  It would be a good idea to
  rework them into a more rational and easily described form. 
 */

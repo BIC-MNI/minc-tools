@@ -105,7 +105,7 @@ DEFINE_ELEMENT(static, ACR_Message_length,
                ACR_GID_MESSLEN, ACR_EID_MESSLEN, UL);
 
 /* Private functions */
-private void update_message_length_element(Acr_Message message, 
+static void update_message_length_element(Acr_Message message, 
                                            Acr_VR_encoding_type vr_encoding);
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -121,7 +121,7 @@ private void update_message_length_element(Acr_Message message,
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Acr_Message acr_create_message(void)
+ Acr_Message acr_create_message(void)
 {
    Acr_Message message;
 
@@ -146,7 +146,7 @@ public Acr_Message acr_create_message(void)
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_delete_message(Acr_Message message)
+ void acr_delete_message(Acr_Message message)
 {
    if (message->list_head != NULL) {
       acr_delete_group_list(message->list_head);
@@ -171,7 +171,7 @@ public void acr_delete_message(Acr_Message message)
 @CREATED    : February 18, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_message_reset(Acr_Message message)
+ void acr_message_reset(Acr_Message message)
 {
    message->ngroups = 0;
    message->implicit_total_length = 0;
@@ -197,7 +197,7 @@ public void acr_message_reset(Acr_Message message)
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : February 7, 1997 (P.N.)
 ---------------------------------------------------------------------------- */
-public void acr_message_add_group(Acr_Message message, Acr_Group group)
+ void acr_message_add_group(Acr_Message message, Acr_Group group)
 {
    Acr_Element length_element;
    int element_id;
@@ -290,7 +290,7 @@ public void acr_message_add_group(Acr_Message message, Acr_Group group)
 @CREATED    : February 14, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private void update_message_length_element(Acr_Message message, 
+static void update_message_length_element(Acr_Message message, 
                                            Acr_VR_encoding_type vr_encoding)
 {
    Acr_Long message_length;
@@ -331,7 +331,7 @@ private void update_message_length_element(Acr_Message message,
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_message_add_group_list(Acr_Message message, 
+ void acr_message_add_group_list(Acr_Message message, 
                                        Acr_Group group_list)
 {
    Acr_Group next_group, group;
@@ -359,7 +359,7 @@ public void acr_message_add_group_list(Acr_Message message,
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Acr_Group acr_get_message_group_list(Acr_Message message)
+ Acr_Group acr_get_message_group_list(Acr_Message message)
 {
    return message->list_head;
 }
@@ -377,7 +377,7 @@ public Acr_Group acr_get_message_group_list(Acr_Message message)
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public long acr_get_message_total_length(Acr_Message message,
+ long acr_get_message_total_length(Acr_Message message,
                                          Acr_VR_encoding_type vr_encoding)
 {
    if (vr_encoding == ACR_IMPLICIT_VR) 
@@ -398,7 +398,7 @@ public long acr_get_message_total_length(Acr_Message message,
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public int acr_get_message_ngroups(Acr_Message message)
+ int acr_get_message_ngroups(Acr_Message message)
 {
    return message->ngroups;
 }
@@ -419,7 +419,7 @@ public int acr_get_message_ngroups(Acr_Message message)
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : February 7, 1997 (P.N.)
 ---------------------------------------------------------------------------- */
-public Acr_Status acr_input_message(Acr_File *afp, Acr_Message *message)
+ Acr_Status acr_input_message(Acr_File *afp, Acr_Message *message)
 {
    Acr_Status status;
    Acr_Group group;
@@ -541,7 +541,7 @@ public Acr_Status acr_input_message(Acr_File *afp, Acr_Message *message)
 @CREATED    : November 16, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Acr_Status acr_output_message(Acr_File *afp, Acr_Message message)
+ Acr_Status acr_output_message(Acr_File *afp, Acr_Message message)
 {
    long igroup, ngroups;
    Acr_Group cur, next;
@@ -592,7 +592,7 @@ public Acr_Status acr_output_message(Acr_File *afp, Acr_Message message)
 @CREATED    : November 24, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void acr_dump_message(FILE *file_pointer, Acr_Message message)
+ void acr_dump_message(FILE *file_pointer, Acr_Message message)
 {
 
    acr_dump_group_list(file_pointer, acr_get_message_group_list(message));

@@ -25,7 +25,7 @@
  * Initial checkin
  *
  * Revision 6.7  2005/03/04 00:09:00  bert
- * Lose private and public
+ * Lose static and 
  *
  * Revision 6.6  2005/02/16 19:22:32  bert
  * Autoconfiscation

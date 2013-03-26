@@ -127,7 +127,7 @@
    * time series sequences never sort properly on 'time'.
    *
    * Revision 1.17  2002/09/25 17:25:43  rhoge
-   * changed public void's to public int's
+   * changed  void's to  int's
    *
    * Revision 1.16  2002/05/08 19:32:40  rhoge
    * fixed handling of diffusion scans with separate series for each average
@@ -906,15 +906,15 @@ add_siemens_info(Acr_Group group_list)
      * and are not usually supplied in standard DICOM implementations.
      * We could do without them, except that the use of mosaics for
      * multi-slice data makes at least the number of slices necessary.
-     * For such elements, we will spoof our own `private' entries
+     * For such elements, we will spoof our own `static' entries
      * using Numaris 3.5 coordinates.  These should not be used elsewhere
      * in the code unless there's no other way!  Basically things
      * should be done as follows:
 
-     * 1) use actual element in public dicom group, if possible
+     * 1) use actual element in  dicom group, if possible
      * 2) if not, then get info from MrProt and insert as 
-     *    correct public dicom element
-     * 3) if no public element exists, use an SPI element (careful!)
+     *    correct  dicom element
+     * 3) if no  element exists, use an SPI element (careful!)
      * 4) if no SPI element exists, use and EXT element (careful!)
      */
 
@@ -1485,13 +1485,13 @@ add_philips_info(Acr_Group group_list)
     char str_buf[128];
 
     /* To use the Philips proprietary group, we have to figure out the
-     * DICOM private creator ID in use.  The group ID is always 0x2001,
+     * DICOM static creator ID in use.  The group ID is always 0x2001,
      * but the upper eight bits of the element ID are somewhat variable.
      * To tell what they are, we have to search through the element ID's
      * from 0x0001-0x00ff and find one that contains the text
      * "PHILIPS IMAGING DD 001" or "Philips Imaging DD 001".  The value
      * of this element is then used for the upper eight bits of all
-     * subsequent Philips private element ID's.
+     * subsequent Philips static element ID's.
      */
     pms_group = acr_find_group(group_list, PMS_PRIVATE_GROUP_ID);
     if (pms_group != NULL) {
@@ -1517,7 +1517,7 @@ add_philips_info(Acr_Group group_list)
         creator_id.element_id = 0;
     }
     if (creator_id.element_id > 0xff || creator_id.element_id < 0x01) {
-        printf("WARNING: Can't find Philips private creator ID.\n");
+        printf("WARNING: Can't find Philips static creator ID.\n");
 
         /* OK, this may be an old Philips file with the SPI stuff in it.
          */
@@ -1598,7 +1598,7 @@ add_philips_info(Acr_Group group_list)
     }
     else {
         if (G.Debug >= HI_LOGGING) {
-            printf("Found Philips private creator ID at %#x\n", 
+            printf("Found Philips static creator ID at %#x\n", 
                    creator_id.element_id);
         }
 
@@ -1781,7 +1781,7 @@ read_numa4_dicom(const char *filename, int max_group)
     }
 
     /* Check the manufacturer.  If it is one we know, try to interpret
-     * the private/proprietary data if present.  This is converted to
+     * the static/proprietary data if present.  This is converted to
      * standard DICOM fields whereever it makes sense to do so.
      */
     str_ptr = acr_find_string(group_list, ACR_Manufacturer, "");

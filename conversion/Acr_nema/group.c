@@ -19,7 +19,7 @@
  * Implement _acr_name_proc to allow printing of field names in dump_acr_nema
  *
  * Revision 6.8  2005/03/04 17:09:11  bert
- * Change several functions to return Acr_Status instead of void; lose public and private; Make insert_element() check the return value of acr_get_element_total_length()
+ * Change several functions to return Acr_Status instead of void; lose  and static; Make insert_element() check the return value of acr_get_element_total_length()
  *
  * Revision 6.7  2004/10/29 13:08:42  rotor
  *  * rewrote Makefile with no dependency on a minc distribution

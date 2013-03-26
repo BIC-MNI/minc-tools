@@ -93,8 +93,8 @@ main(int argc, char *argv[]){
     hdr.dime.vox_offset = 0.0; 
     
 /*   Planar Orientation;    */
-/*   Movie flag OFF: 0 = transverse, 1 = coronal, 2 = sagittal
-     Movie flag ON:  3 = transverse, 4 = coronal, 5 = sagittal  */  
+/*   Movie flag FALSE: 0 = transverse, 1 = coronal, 2 = sagittal
+     Movie flag TRUE:  3 = transverse, 4 = coronal, 5 = sagittal  */  
 
     hdr.hist.orient     = 0;  
     

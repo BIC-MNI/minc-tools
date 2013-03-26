@@ -694,7 +694,7 @@ vector_t eval_vector(int width, int *eval_flags, node_t n, sym_t sym){
 
       /* Merge the results */
       if (v2 != NULL && v->len != v2->len) {
-         eval_error(n, "Vector expressions in if-else do not have the same length");
+         eval_error(n, "VIO_Vector expressions in if-else do not have the same length");
       }
       if (eval_flags2 != NULL) {
          for (ivalue=0; ivalue < width; ivalue++) {

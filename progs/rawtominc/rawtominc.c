@@ -429,7 +429,7 @@ ArgvInfo argTable[] = {
    {"-range", ARGV_FLOAT, (char *) 2, (char *) valid_range, 
        "Valid range of input values (default = full range)."},
    {"-real_range", ARGV_FLOAT, (char *) 2, (char *) real_range, 
-       "Real range of input values (ignored for floating-point types)."},
+       "VIO_Real range of input values (ignored for floating-point types)."},
    {"-swap_bytes", ARGV_CONSTANT, (char *) TRUE, (char *)&swap_bytes,
        "Swap bytes on short, long integer, float or double input." },
    {NULL, ARGV_HELP, NULL, NULL,
