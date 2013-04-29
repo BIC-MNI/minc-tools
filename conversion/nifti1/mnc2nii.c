@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include <minc.h>
+#include <minc2.h>
 #include <ParseArgv.h>
 
 #include "nifti1_io.h"
@@ -143,7 +143,7 @@ init_nifti_header(nifti_image *nii_ptr)
     nii_ptr->num_ext = 0;
 }    
 
-/* static function from from libminc2.  This function is static partially
+/* private function from from libminc2.  This function is private partially
  because it's parameters are somewhat bizarre.  It would be a good idea to
  rework them into a more rational and easily described form. 
 */
@@ -635,7 +635,7 @@ main(int argc, char **argv)
                    i, nii_lens[i], nii_map[i], nii_dir[i]);
         }
         printf("bytes per voxel %d\n", nii_ptr->nbyper);
-        printf("# of voxels %d\n", nii_ptr->nvox);
+        printf("# of voxels %ld\n", nii_ptr->nvox);
     }
 
     /* Rearrange the data to correspond to the NIfTI dimension ordering.

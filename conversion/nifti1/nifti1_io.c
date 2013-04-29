@@ -5,7 +5,7 @@
 /*****===================================================================*****/
 /*****     Sample functions to deal with NIFTI-1 and ANALYZE files       *****/
 /*****...................................................................*****/
-/*****            This code is released to the  domain.            *****/
+/*****            This code is released to the public domain.            *****/
 /*****...................................................................*****/
 /*****  Author: Robert W Cox, SSCC/DIRP/NIMH/NIH/DHHS/USA/EARTH          *****/
 /*****  Date:   August 2003                                              *****/
@@ -1164,7 +1164,7 @@ char *nifti_intent_string( int ii )
      case NIFTI_INTENT_GENMATRIX:  return "General matrix" ;
      case NIFTI_INTENT_SYMMATRIX:  return "Symmetric matrix" ;
      case NIFTI_INTENT_DISPVECT:   return "Displacement vector" ;
-     case NIFTI_INTENT_VECTOR:     return "VIO_Vector" ;
+     case NIFTI_INTENT_VECTOR:     return "Vector" ;
      case NIFTI_INTENT_POINTSET:   return "Pointset" ;
      case NIFTI_INTENT_TRIANGLE:   return "Triangle" ;
      case NIFTI_INTENT_QUATERNION: return "Quaternion" ;
@@ -4187,7 +4187,7 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
    {
       if ( g_opts.debug > 0 ){
          if( !nim ) fprintf(stderr,"** ERROR: N_image_load: no nifti image\n");
-         else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,%d)\n",
+         else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,%ld)\n",
                       nim->iname, nim->nbyper, nim->nvox);
       }
       return NULL;
@@ -5386,7 +5386,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
    sprintf( buf+strlen(buf) , "  datatype_name = '%s'\n" ,
                               nifti_datatype_string(nim->datatype) ) ;
 
-   sprintf( buf+strlen(buf) , "  nvox = '%d'\n" , nim->nvox ) ;
+   sprintf( buf+strlen(buf) , "  nvox = '%ld'\n" , nim->nvox ) ;
    sprintf( buf+strlen(buf) , "  nbyper = '%d'\n" , nim->nbyper ) ;
 
    sprintf( buf+strlen(buf) , "  byteorder = '%s'\n" ,
@@ -5776,7 +5776,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
    nim->dim[6] = nim->nv ; nim->pixdim[6] = nim->dv ;
    nim->dim[7] = nim->nw ; nim->pixdim[7] = nim->dw ;
 
-   nim->nvox =  nim->nx * nim->ny * nim->nz
+   nim->nvox = (unsigned long)nim->nx * nim->ny * nim->nz
               * nim->nt * nim->nu * nim->nv * nim->nw ;
 
    if( nim->qform_code > 0 )
@@ -5842,7 +5842,8 @@ int nifti_nim_is_valid(nifti_image * nim, int complain)
 *//*-------------------------------------------------------------------------*/
 int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
 {
-   int c, prod, errs = 0;
+   int c, errs = 0;
+   unsigned long prod;
 
    /**- start with dim[0]: failure here is considered terminal */
    if( nim->dim[0] <= 0 || nim->dim[0] > 7 ){
@@ -5890,7 +5891,7 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    }
    if( prod != nim->nvox ){
       if( ! complain ) return 0;
-      fprintf(stderr,"** NVd: nvox does not match dimension product (%d, %d)\n",
+      fprintf(stderr,"** NVd: nvox does not match dimension product (%ld, %ld)\n",
               nim->nvox, prod);
       errs++;
    }

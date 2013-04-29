@@ -44,11 +44,11 @@ static int usage(void)
 }
 
 static void find_data_range(int datatype,
-                            long nvox,
+                            unsigned long nvox,
                             void *data,
                             double range[2])
 {
-    int i;
+    unsigned long i;
 
     range[0] = DBL_MAX;
     range[1] = -DBL_MAX;
@@ -217,7 +217,9 @@ main(int argc, char **argv)
 
         fp = fopen(argv[1], "rb");
         if (fp != NULL) {
-            fread(&ana_hdr, sizeof (ana_hdr), 1, fp);
+            if(!fread(&ana_hdr, sizeof (ana_hdr), 1, fp)){
+               fprintf(stderr,  "Failed reading in NIfTI header\n");
+               }
             fclose(fp);
 
             must_swap = 0;

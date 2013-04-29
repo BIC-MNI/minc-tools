@@ -26,7 +26,7 @@ NB: seeks for writable files with compression are quite restricted
 /*
 znzlib.c  (zipped or non-zipped library)
 
-*****            This code is released to the  domain.            *****
+*****            This code is released to the public domain.            *****
 
 *****  Author: Mark Jenkinson, FMRIB Centre, University of Oxford       *****
 *****  Date:   September 2004                                           *****
@@ -244,7 +244,6 @@ int znzgetc(znzFile file)
 #if !defined (WIN32)
 int znzprintf(znzFile stream, const char *format, ...)
 {
-  char *tmpstr;
   int retval=0;
   va_list va;
   if (stream==NULL) { return 0; }
