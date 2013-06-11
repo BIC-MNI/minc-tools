@@ -1142,8 +1142,8 @@ static void transform_volume_def(Transform_Info *transform_info,
                input_volume_def->dircos[jdim][idim];
 
       /* VIO_Transform origin vector */
-      DO_INVERSE_TRANSFORM(transformed_origin, 
-                           transform_info->transformation, origin);
+      DO_INVERSE_TRANSFORM_WITH_INPUT_STEPS(transformed_origin,
+                           transform_info->transformation, origin, input_volume_def->step);
 
       /* Loop over dimensions */
       for (idim=0; idim < WORLD_NDIMS; idim++) {
@@ -1156,7 +1156,7 @@ static void transform_volume_def(Transform_Info *transform_info,
          VECTOR_SCALAR_MULT(vector, input_volume_def->dircos[idim],
                             nelements * input_volume_def->step[idim]);
          VECTOR_ADD(vector, vector, origin);
-         DO_INVERSE_TRANSFORM(vector, transform_info->transformation, vector);
+         DO_INVERSE_TRANSFORM_WITH_INPUT_STEPS(vector, transform_info->transformation, vector, input_volume_def->step);
          VECTOR_DIFF(vector, vector, transformed_origin);
 
          /* Calculate length of transformed axis - new step value */

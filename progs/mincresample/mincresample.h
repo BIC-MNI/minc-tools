@@ -272,9 +272,19 @@ typedef struct {
       coord[XCOORD], coord[YCOORD], coord[ZCOORD], \
       &result[XCOORD], &result[YCOORD], &result[ZCOORD])
 
+#define DO_TRANSFORM_WITH_INPUT_STEPS(result, transformation, coord, input_volume_steps) \
+   general_transform_point_with_input_steps(transformation, \
+      coord[XCOORD], coord[YCOORD], coord[ZCOORD], input_volume_steps, \
+      &result[XCOORD], &result[YCOORD], &result[ZCOORD])
+
 #define DO_INVERSE_TRANSFORM(result, transformation, coord) \
    general_inverse_transform_point(transformation, \
       coord[XCOORD], coord[YCOORD], coord[ZCOORD], \
+      &result[XCOORD], &result[YCOORD], &result[ZCOORD])
+
+#define DO_INVERSE_TRANSFORM_WITH_INPUT_STEPS(result, transformation, coord, input_volume_steps) \
+   general_inverse_transform_point_with_input_steps(transformation, \
+      coord[XCOORD], coord[YCOORD], coord[ZCOORD], input_volume_steps, \
       &result[XCOORD], &result[YCOORD], &result[ZCOORD])
 
 #define IS_LINEAR(transformation) \
