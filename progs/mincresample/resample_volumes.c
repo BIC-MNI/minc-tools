@@ -474,6 +474,11 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
    long irow, icol;
    int all_linear;
    int idim;
+   
+   VIO_Real separations[WORLD_NDIMS];
+   int  idim_in;
+   char dimname[MAX_NC_NAME];
+   int  dim[MAX_VAR_DIMS], dimid;
 
    /* Coordinate vectors for stepping through slice */
    Coord_Vector zero = {0, 0, 0};
@@ -516,6 +521,26 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
    *maximum = -DBL_MAX;
    *minimum =  DBL_MAX;
 
+   /* Get the steps sizes (separations) of the input volume in order
+      to get an appropriate error margin (ftol) for the function
+      grid_inverse_transform_point */
+   for (idim_in=0; idim_in < in_vol->file->ndims; idim_in++) {
+           
+      /* Get size of dimension */
+      (void) ncdiminq(in_vol->file->mincid, dim[idim_in], dimname, 
+                      &in_vol->file->nelements[idim]);
+
+      /* Check for existence of variable */
+      dimid = ncvarid(in_vol->file->mincid, dimname);
+      if (dimid == MI_ERROR) continue;
+
+      /* Get attributes from variget_file_infoable */
+      (void) miattget1(in_vol->file->mincid, dimid, MIstep, 
+                       NC_DOUBLE, &separations[in_vol->file->world_axes[idim_in]]);
+      if (separations[in_vol->file->world_axes[idim_in]] == 0.0)
+         separations[in_vol->file->world_axes[idim_in]] = 1.0;
+   }
+
    /* Loop over rows of slice */
 
    for (irow=0; irow < slice->size[SLICE_ROW]; irow++) {
@@ -534,7 +559,7 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
          for (idim=0; idim<WORLD_NDIMS; idim++) 
             transf_coord[idim]=coord[idim];
          if (!all_linear) {
-            DO_TRANSFORM(transf_coord, &total_transf, transf_coord);
+            DO_TRANSFORM_WITH_INPUT_STEPS(transf_coord, &total_transf, transf_coord, separations);
          }
 
          /* Do interpolation */
