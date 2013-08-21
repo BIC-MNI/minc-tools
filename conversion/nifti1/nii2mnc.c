@@ -629,6 +629,9 @@ main(int argc, char **argv)
             miattputdbl(mnc_fd, mnc_vid, MIstart, 
                         mnc_starts[i]+((mnc_count[i]-1)*mnc_steps[i]));
             miattputdbl(mnc_fd, mnc_vid, MIstep, -mnc_steps[i]);
+            mnc_dircos[i][DIM_X] = -mnc_dircos[i][DIM_X];
+            mnc_dircos[i][DIM_Y] = -mnc_dircos[i][DIM_Y];
+            mnc_dircos[i][DIM_Z] = -mnc_dircos[i][DIM_Z];
         }
         else {
             miattputdbl(mnc_fd, mnc_vid, MIstart, mnc_starts[i]);
