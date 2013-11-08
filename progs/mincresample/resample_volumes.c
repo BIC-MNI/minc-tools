@@ -479,7 +479,8 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
    int  idim_in;
    char dimname[MAX_NC_NAME];
    int  dim[MAX_VAR_DIMS], dimid;
-
+   int  imgid;
+   int  ndims;
    /* Coordinate vectors for stepping through slice */
    Coord_Vector zero = {0, 0, 0};
    Coord_Vector column = {0, 0, 1};
@@ -520,6 +521,9 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
    /* Initialize maximum and minimum */
    *maximum = -DBL_MAX;
    *minimum =  DBL_MAX;
+   
+   imgid = ncvarid(in_vol->file->mincid, MIimage);
+   ncvarinq(in_vol->file->mincid, imgid, NULL, NULL, &ndims, dim, NULL);
 
    /* Get the steps sizes (separations) of the input volume in order
       to get an appropriate error margin (ftol) for the function
@@ -537,8 +541,9 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
       /* Get attributes from variget_file_infoable */
       (void) miattget1(in_vol->file->mincid, dimid, MIstep, 
                        NC_DOUBLE, &separations[in_vol->file->world_axes[idim_in]]);
+
       if (separations[in_vol->file->world_axes[idim_in]] == 0.0)
-         separations[in_vol->file->world_axes[idim_in]] = 1.0;
+          separations[in_vol->file->world_axes[idim_in]] = 1.0;
    }
 
    /* Loop over rows of slice */
