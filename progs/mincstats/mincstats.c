@@ -151,7 +151,7 @@ typedef struct {
 typedef struct {
    double   vol_range[2];
    double   mask_range[2];
-   float   *histogram;
+   double   *histogram;
    double   hvoxels;
    double   vvoxels;
    double   volume;
@@ -398,7 +398,7 @@ static ArgvInfo argTable[] = {
  */
 
 static double
-simple_threshold(float *histogram, float *hist_centre, int hist_bins)
+simple_threshold(double *histogram, double *hist_centre, int hist_bins)
 {
     double sum1, sum2;
     double mean1, mean2;
@@ -507,7 +507,7 @@ simple_threshold(float *histogram, float *hist_centre, int hist_bins)
  * No 1, pp 62-66, 1979.
  */
 static double
-otsu_threshold(float histo[], float hist_centre[], int hist_bins)
+otsu_threshold(double histo[], double hist_centre[], int hist_bins)
 {
     double threshold;
     double criterion;
@@ -579,7 +579,7 @@ otsu_threshold(float histo[], float hist_centre[], int hist_bins)
  * Recognition, vol 19, pp 41-47, 1986.
  */
 static double 
-kittler_threshold (float hist_bin[], float hist_centre[], int hist_size)
+kittler_threshold (double hist_bin[], double hist_centre[], int hist_size)
 {
     double threshold;
     double criterion;
@@ -678,7 +678,7 @@ kittler_threshold (float hist_bin[], float hist_centre[], int hist_size)
 #define BIN_TINY 1e-6
 
 static double
-kapur_threshold(float histo[], float hist_centre[], int hist_bins)
+kapur_threshold(double histo[], double hist_centre[], int hist_bins)
 {
     double threshold;
     double Phi, Phi_max;
@@ -996,9 +996,9 @@ int main(int argc, char *argv[])
          /* Do the histogram calculations */
          if(Hist) {
             int      c;
-            float   *hist_centre;
-            float   *pdf;              /* probability density Function */
-            float   *cdf;              /* cumulative density Function  */
+            double   *hist_centre;
+            double   *pdf;              /* probability density Function */
+            double   *cdf;              /* cumulative density Function  */
 
             int      majority_bin = 0;
             int      median_bin = 0;
@@ -1012,9 +1012,9 @@ int main(int argc, char *argv[])
             double   max_var = 0.0;
 
             /* Allocate space for histograms */
-            hist_centre = calloc(hist_bins, sizeof(float));
-            pdf = calloc(hist_bins, sizeof(float));
-            cdf = calloc(hist_bins, sizeof(float));
+            hist_centre = calloc(hist_bins, sizeof(double));
+            pdf = calloc(hist_bins, sizeof(double));
+            cdf = calloc(hist_bins, sizeof(double));
             if(hist_centre == NULL || pdf == NULL || cdf == NULL) {
                (void)fprintf(stderr, "Memory allocation error\n");
                exit(EXIT_FAILURE);
@@ -1130,8 +1130,8 @@ int main(int argc, char *argv[])
                (void)fprintf(FP, "#  entropy:      %g\n", stats->entropy);;
                (void)fprintf(FP, "# bin centres                 counts\n");
                for(c = 0; c < hist_bins; c++)
-                  (void)fprintf(FP, "  %-20.10g  %12g\n", hist_centre[c],
-                                stats->histogram[c]);
+                  (void)fprintf(FP, "  %-20.10g  %ld\n", hist_centre[c],
+                                (long)stats->histogram[c]);
                (void)fprintf(FP, "\n");
             }
 
@@ -1861,7 +1861,7 @@ void init_stats(Stats_Info * stats, int hist_bins)
    stats->mask_range[0] = -DBL_MAX;
    stats->mask_range[1] = DBL_MAX;
    if(Hist && hist_bins > 0) {
-      stats->histogram = calloc(hist_bins, sizeof(float));
+      stats->histogram = calloc(hist_bins, sizeof(double));
       if(stats->histogram == NULL) {
          (void)fprintf(stderr, "Memory allocation error\n");
          exit(EXIT_FAILURE);
