@@ -39,7 +39,6 @@ ENDIF(NOT MINC_TOOLS_EXTERNALLY_CONFIGURED)
 
 INCLUDE( ${LIBMINC_USE_FILE} )
 
-
 # check for prereqs
 INCLUDE(CheckFunctionExists)
 
@@ -87,9 +86,6 @@ SET(VERSION "${PACKAGE_VERSION}")
 
 # config files for build
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h @ONLY)
-
-# others
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/epm-header.in ${CMAKE_CURRENT_BINARY_DIR}/epm-header)
 
 # set the master INCLUDE directories
 INCLUDE_DIRECTORIES(

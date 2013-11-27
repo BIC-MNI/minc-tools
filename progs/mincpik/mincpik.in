@@ -518,7 +518,7 @@ Currently if there is a time dimension in the file the image will
 only produced from the first time point
 
 Problems or comments should be sent to: a.janke\@gmail.com
- 
+
 =head1 OPTIONS
 
 =over 4
@@ -576,9 +576,13 @@ font point size for the title
 
 create an annotated bar to match the image (use height of the output image)
 
+=back
 
-=head3 Image range and lookup table options
-   
+
+=head2 Image range and lookup table options
+
+=over 4
+
 =item B<--range>
 
 valid range of values for MINC file
@@ -595,9 +599,13 @@ automatically determine image range using a 5 and 95% PcT. (histogram)
 
 arguments to pass to minclookup
 
+=back
 
-=head3 Slicing options
-   
+
+=head2 Slicing options
+
+=over 4
+
 =item B<-s> B<--slice>
 
 slice number to get. (note this is in voxel co-ordinates)
@@ -614,9 +622,13 @@ get a coronal (y) slice
 
 get a sagital (x) slice
 
+=back
 
-=head3 Triplanar options
-   
+
+=head2 Triplanar options
+
+=over 4
+
 =item B<-t> B<--triplanar>
 
 create a triplanar view of the input file
@@ -641,8 +653,8 @@ create a vertical triplanar view (Default)
 
 create a horizontal triplanar view
 
-
 =back
+
 
 =head1 SEE ALSO
 
@@ -656,6 +668,4 @@ Andrew Janke - a.janke@gmail.com
 
 Copyright 2012 by Andrew L Janke
 
-=cuts
-
-
+=cut
