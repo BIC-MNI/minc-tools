@@ -529,11 +529,11 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
       to get an appropriate error margin (ftol) for the function
       grid_inverse_transform_point */
    for (idim_in=0; idim_in < in_vol->file->ndims; idim_in++) {
-           
+      
       /* Get size of dimension */
       (void) ncdiminq(in_vol->file->mincid, dim[idim_in], dimname, 
-                      &in_vol->file->nelements[idim]);
-
+               &in_vol->file->nelements[idim_in]);
+      
       /* Check for existence of variable */
       dimid = ncvarid(in_vol->file->mincid, dimname);
       if (dimid == MI_ERROR) continue;
