@@ -134,6 +134,8 @@ TARGET_LINK_LIBRARIES(xfminvert ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 ADD_EXECUTABLE(mincblob mincblob/mincblob.c)
 TARGET_LINK_LIBRARIES(mincblob ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 
+ADD_EXECUTABLE(minccmp minccmp/minccmp.c)
+TARGET_LINK_LIBRARIES(minccmp ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 
 # install progs
 INSTALL(TARGETS
@@ -146,6 +148,7 @@ INSTALL(TARGETS
 #   mincexample1
 #   mincexample2
    mincblob 
+   minccmp
    mincexpand
    mincextract
    mincinfo
