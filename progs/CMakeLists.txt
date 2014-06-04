@@ -137,8 +137,8 @@ TARGET_LINK_LIBRARIES(mincblob ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 ADD_EXECUTABLE(minccmp minccmp/minccmp.c)
 TARGET_LINK_LIBRARIES(minccmp ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 
-# install progs
-INSTALL(TARGETS
+
+SET(MINC_TOOLS
    invert_raw_image 
    mincaverage
    mincconcat
@@ -170,8 +170,18 @@ INSTALL(TARGETS
    transformtags
    xfmconcat
    xfminvert
+
+)
+
+# install progs
+INSTALL(TARGETS ${MINC_TOOLS}
    DESTINATION bin)
 
+add_custom_target (minc_tools 
+ DEPENDS
+ ${MINC_TOOLS}
+ )   
+   
 # perl and shell scripts
 INSTALL(PROGRAMS
    mincdiff/mincdiff  
