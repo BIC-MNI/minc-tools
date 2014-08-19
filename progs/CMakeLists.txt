@@ -18,6 +18,11 @@ ADD_EXECUTABLE(mincaverage mincaverage/mincaverage.c)
 TARGET_LINK_LIBRARIES(mincaverage m)
 
 IF(BISON_FOUND AND FLEX_FOUND)
+   IF(NOT FL_LIBRARY) # A HACK to fix missing FLEX library
+   SET(FLEX_LIBRARIES "")
+   ENDIF(NOT FL_LIBRARY)
+
+
   include_directories(${CMAKE_CURRENT_BINARY_DIR} minccalc)
   
   BISON_TARGET(gram ${CMAKE_CURRENT_SOURCE_DIR}/minccalc/gram.y ${CMAKE_CURRENT_BINARY_DIR}/gram.c COMPILE_FLAGS "--debug")
