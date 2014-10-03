@@ -700,6 +700,10 @@ static void get_concat_dim_name(Concat_Info *concat_info,
 
    /* Expand the file header and open the file */
    filename = miexpand_file(first_filename, NULL, TRUE, &created_tempfile);
+   if (!filename) {
+      fprintf(stderr, "Could not expand file \"%s\"!\n", first_filename);
+      exit(EXIT_FAILURE);
+   }
    input_mincid = miopen(filename, NC_NOWRITE);
    if (created_tempfile) {
       (void) remove(filename);
