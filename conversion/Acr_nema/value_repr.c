@@ -141,6 +141,7 @@ static Acr_VR_Entry VR_table[] = {
    {ACR_VR_UL, "UL",        get_long,           numeric_to_string },
    {ACR_VR_US, "US",        get_short,          numeric_to_string },
    {ACR_VR_UN, "UN",        return_zero,        return_empty_string },
+   {ACR_VR_UT, "UT",        return_zero,        return_empty_string },
    {ACR_VR_NUM_TYPES, NULL, NULL,               NULL}
 };
 
@@ -175,7 +176,7 @@ static void check_table_integrity()
 
    /* Check size of table */
    if (sizeof(VR_table)/sizeof(VR_table[0]) != ACR_VR_NUM_TYPES+1) {
-      (void) fprintf(stderr, "Internal error: VR table size is wrong!\n");
+     (void) fprintf(stderr, "Internal error: VR table size is wrong! %lu %lu %d\n", sizeof(VR_table), sizeof(VR_table[0]), ACR_VR_NUM_TYPES);
       exit(EXIT_FAILURE);
    }
 

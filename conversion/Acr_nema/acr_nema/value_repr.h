@@ -72,6 +72,7 @@ typedef enum {
    ACR_VR_UL,
    ACR_VR_US,
    ACR_VR_UN,
+   ACR_VR_UT,
    ACR_VR_NUM_TYPES
 } Acr_VR_Type;
 
