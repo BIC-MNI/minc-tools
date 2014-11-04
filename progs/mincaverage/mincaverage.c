@@ -105,6 +105,7 @@
 #include <ParseArgv.h>
 #include <time_stamp.h>
 #include <voxel_loop.h>
+#include "read_file_names.h"    /* Declaration of read_file_names() */
 
 /* Constants */
 
@@ -602,7 +603,7 @@ int main(int argc, char *argv[])
       else
          global_mean = 0.0;
       for (ifile=0; ifile < nfiles; ifile++) {
-         if (vol_mean[ifile] > 0.0)
+         if (vol_mean[ifile] != 0.0)
             average_data.norm_factor[ifile] = global_mean / vol_mean[ifile];
          else
             average_data.norm_factor[ifile] = 0.0;
