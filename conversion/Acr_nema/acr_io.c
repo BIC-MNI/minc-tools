@@ -178,7 +178,7 @@ static int is_sequence_vr(char vr_to_test[2])
 
 static int is_special_vr(char vr_to_test[2])
 {
-   static char *special_vrs[] = {"OB", "OW", "SQ", "UN", NULL};
+   static char *special_vrs[] = {"OB", "OW", "SQ", "UN", "UT", NULL};
    return test_vr(vr_to_test, special_vrs);
 }
 

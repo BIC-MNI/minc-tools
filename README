@@ -1,9 +1,8 @@
 MINC Tools
 
-This packages is a collection of tools that work on MINC format
-images
+This package is a collection of tools that work on MINC format
+images.
 
-Here's a list of some of the tools:
  * rawtominc, minctoraw, mincextract - format conversion
  * mincheader, mincdiff, mincinfo, minchistory - file information
  * mincedit, minc_modify_header - header manipulation
@@ -22,3 +21,35 @@ Here's a list of some of the tools:
  * xfmconcat, xfminvert - generalized transformation utilities
  * mincview - simple image display using xv or ImageMagick
  * mincpik - generate picture from slice through volume
+
+
+INSTALLATION
+
+Compilation and installation is now done with CMake. Use these steps:
+
+1. Compile
+
+   $ cmake CMakeLists.txt
+   $ make
+
+Note that if you have installed libminc in a non-standard location
+(in this case /opt/local/minc) you will have to tell CMake where to find 
+it as such:
+
+   $ export LIBMINC_DIR=/opt/local/minc
+   $ cmake CMakeLists.txt
+   $ make
+   
+Similarly if you'd like to install minc-tools in this same location you
+will need to do this:
+   
+   $ export LIBMINC_DIR=/opt/local/minc
+   $ cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt/local/minc CMakeLists.txt
+   $ make
+
+
+2. Install
+
+   $ sudo make install
+   
+
