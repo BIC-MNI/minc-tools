@@ -178,7 +178,7 @@ int main(int argc, char *argv[]){
    infiles = &argv[1];
 
    /* check arguments */
-   if(!do_rmse && !do_xcorr && !do_zscore && !do_vratio){
+   if(!do_rmse && !do_xcorr && !do_zscore && !do_vratio && !do_ssq){
       do_all = TRUE;
       }
    if(do_all){
@@ -273,25 +273,29 @@ int main(int argc, char *argv[]){
 
    /* calculate and print result(s) */
    if(do_all && !quiet){
-      fprintf(stdout, "file[0]:      %s\n", infiles[0]);
-      fprintf(stdout, "file[1]:      %s\n", infiles[1]);
-      fprintf(stdout, "mask file:    %s\n", mask_fname);
-      }
-   if(do_ssq){
-      print_result("ssq:          ", ld.vd[1].ssum_dif0);
-      }
-   if(do_rmse){
-      print_result("rmse:         ", ld.vd[1].rmse);
-      }
-   if(do_xcorr){
-      print_result("xcorr:        ", ld.vd[1].xcorr);
-      }
-   if(do_zscore){
-      print_result("zscore:       ", ld.vd[1].zscore);
-      }
-   if(!quiet){
-      fprintf(stdout, "\n");
-      }
+     fprintf(stdout, "file[0]:      %s\n", infiles[0]);
+     fprintf(stdout, "mask file:    %s\n", mask_fname);
+   }
+   for (i = 1; i < ld.n_datafiles; i++) {
+     if(do_all && !quiet){
+       fprintf(stdout, "file[%d]:      %s\n", i, infiles[i]);
+     }
+     if(do_ssq){
+       print_result("ssq:          ", ld.vd[i].ssum_dif0);
+     }
+     if(do_rmse){
+       print_result("rmse:         ", ld.vd[i].rmse);
+     }
+     if(do_xcorr){
+       print_result("xcorr:        ", ld.vd[i].xcorr);
+     }
+     if(do_zscore){
+       print_result("zscore:       ", ld.vd[i].zscore);
+     }
+     if(!quiet){
+       fprintf(stdout, "\n");
+     }
+   }
 
    return EXIT_SUCCESS;
    }
