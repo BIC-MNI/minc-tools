@@ -165,7 +165,7 @@ static int check_file_type_consistency(int num_files, const char *file_list[]);
 
 struct globals G;
 
-#define VERSION_STRING "2.0.07 built " __DATE__ " " __TIME__
+#define VERSION_STRING "2.01.01 built " __DATE__ " " __TIME__
 
 #ifndef S_ISDIR
 #define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
