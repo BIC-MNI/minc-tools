@@ -786,6 +786,24 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
     }
 
     acr_get_long(ACR_LITTLE_ENDIAN, 1, byte_ptr + byte_pos, &n_items);
+
+    /* I have recently received a PET-CT scan file which used yet
+     * another undocumented format for this tag. I have no idea how to
+     * read it, but it appears to be big-endian and to start with the
+     * byte length of the overall element data. For now I just ignore
+     * this element if it is not in a known format.
+     * 
+     * Since each element in the "known" format is 84 bytes in length,
+     * this test verifies that we don't have an impossible number of
+     * items (bert).
+     */
+
+#define CSA_ELEMENT_SIZE (84)
+
+    if (n_items * CSA_ELEMENT_SIZE >= byte_cnt) {
+      return group_list;        /* Return list unmodified. */
+    }
+
     byte_pos += 8;              /* Skip # items and 4 bytes of unknown junk */
 
     while (n_items-- > 0) {
