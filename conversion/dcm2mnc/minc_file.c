@@ -508,6 +508,11 @@ minc_set_spacing(int mincid, int varid, Mri_Index imri, General_Info *gi_ptr)
 
     length = gi_ptr->cur_size[imri];
 
+    if (length <= 1) {
+      fprintf(stderr, "minc_set_spacing called with length <= 1\n");
+      exit(-1);
+    }
+
     /* First, see if the widths were set, and if so, if they are consistent.
      */
     for (index = 1; index < length; index++) {
@@ -529,7 +534,11 @@ minc_set_spacing(int mincid, int varid, Mri_Index imri, General_Info *gi_ptr)
                 gi_ptr->coordinates[imri][index-1];
         }
 
-        avg = sum / length;     /* compute mean */
+        /* The previous loop sums "length - 1" numbers, so that is the
+         * correct divisor in this calculation. It used to be "length"
+         * (bert).
+         */
+        avg = sum / (length - 1);     /* compute mean */
 
         if (step != 0.0 && avg != step) {
             printf("WARNING: Sample width (%g) not equal to average delta (%g)\n",
