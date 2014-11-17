@@ -368,11 +368,19 @@ init_general_info(General_Info *gi_ptr, /* OUT */
                                                   def_val);
         }
         else {
-            gi_ptr->max_size[imri] = 1;
+            gi_ptr->max_size[imri] = 0;
         }
 
+        /* We alway specify a maximum size of one for an unknown dimension,
+         * but we want to keep track of those for which no valid value
+         * was actually discovered (bert).
+         */
         if (gi_ptr->max_size[imri] < 1) {
             gi_ptr->max_size[imri] = 1;
+            gi_ptr->size_isset[imri] = 0;
+        }
+        else {
+            gi_ptr->size_isset[imri] = 1;
         }
 
         /* Check for 3D partitions for slice dimensions */
@@ -626,10 +634,15 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
     /* For non-IMA files, use the time coordinate to order the time.
      * index.  IMA files do not seem to have a reliable slice time
      * indicator.
+     *
+     * Multiplying by 100 is done just to convert the coordinate
+     * (in seconds) to a unique integer value. This assumes that
+     * coordinates always differ by at least one hundredth of a second,
+     * which may not be universally true.
      */
-    /*if (G.file_type != IMA) {
+    if (G.file_type != IMA) {
         fi_ptr->index[TIME] = irnd(fi_ptr->coordinate[TIME] * 100.0);
-    }*/
+    }
 
     //ilana debug
     //int test = fi_ptr->coordinate[TIME];
@@ -700,12 +713,17 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
         for (imri = 0; imri < MRI_NDIMS; imri++) {
             /* If a dimension is known to have a maximum size of one
              * or less, we do NOT allow it to grow in any way.  An
-             * exception is made for the slice dimension, however,
-             * since it appears that it is common for it to be
-             * unspecified and can be guessed only by the number of
+             * exception is made for the slice and time dimensions,
+             * however, since it appears that it is common for them to
+             * be unspecified and can be guessed only by the number of
              * distinct locations discovered.
              */
-            if (imri != SLICE && gi_ptr->max_size[imri] <= 1) {
+            if (imri != SLICE && gi_ptr->max_size[imri] <= 1 && 
+                gi_ptr->size_isset[imri]) {
+                if (G.Debug) {
+                    printf("Warning: merging extra indices on %s axis.\n",
+                            Mri_Names[imri]);
+                }
                 continue;
             }
        
@@ -1638,6 +1656,24 @@ get_coordinate_info(Acr_Group group_list,
          */
         start_time = (double)acr_find_double(group_list, ACR_Series_time, 0.0);
         frame_time = (double)acr_find_double(group_list, ACR_Acquisition_time, 0.0);
+        if (frame_time == 0.0) {
+          /* See if the acquisition datetime contains anything useful. If so
+           * we will use it.
+           */
+          char *dt_str = acr_find_string(group_list, ACR_Acquisition_datetime, "");
+          if (dt_str[0] != 0) {
+            /* If we got the string, it is of the format:
+             *     YYYYMMDDHHMMSS.FFFFFF
+             * We skip the first eight characters because we don't
+             * care about the date.
+             */
+            frame_time = atof(dt_str + 8);
+            /* TODO: We would like a better way of getting the start time,
+             * but there don't seem to be other fields that are 100% reliable.
+             */
+            start_time = 0;
+          }
+        }
         start_time = convert_time_to_seconds(start_time);
         frame_time = convert_time_to_seconds(frame_time) - start_time;
 
