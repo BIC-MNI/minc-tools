@@ -49,10 +49,13 @@ GLOBAL_ELEMENT(ACR_Affected_SOP_instance_UID , 0x0000, 0x1000, UI);
 GLOBAL_ELEMENT(ACR_Move_originator_AE_title  , 0x0000, 0x1031, AE);
 
 GLOBAL_ELEMENT(ACR_Image_type            , 0x0008, 0x0008, CS);
+GLOBAL_ELEMENT(ACR_Instance_creation_date, 0x0008, 0x0013, DA);
+GLOBAL_ELEMENT(ACR_Instance_creation_time, 0x0008, 0x0013, TM);
 GLOBAL_ELEMENT(ACR_SOP_Class_UID         , 0x0008, 0x0016, UI);
 GLOBAL_ELEMENT(ACR_Study_date            , 0x0008, 0x0020, DA);
 GLOBAL_ELEMENT(ACR_Series_date           , 0x0008, 0x0021, DA);
 GLOBAL_ELEMENT(ACR_Acquisition_date      , 0x0008, 0x0022, DA);
+GLOBAL_ELEMENT(ACR_Acquisition_datetime  , 0x0008, 0x002a, DT);
 GLOBAL_ELEMENT(ACR_Study_time            , 0x0008, 0x0030, TM);
 GLOBAL_ELEMENT(ACR_Series_time           , 0x0008, 0x0031, TM);
 GLOBAL_ELEMENT(ACR_Acquisition_time      , 0x0008, 0x0032, TM);
