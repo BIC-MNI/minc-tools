@@ -141,6 +141,7 @@ typedef struct {
     int default_index[MRI_NDIMS]; /* Index for dimensions with size == 1 */
     int cur_size[MRI_NDIMS]; /* Size of dimension across these files */
     int max_size[MRI_NDIMS]; /* Size of dimension across acquisition */
+    int size_isset[MRI_NDIMS]; /* If non-zero, found a max_size value. */
     int *indices[MRI_NDIMS]; /* List of indices found for each dimension.
                                 Only allocated when size > 1 */ /*  */
     int search_start[MRI_NDIMS]; /* Indices into lists for starting searches */
