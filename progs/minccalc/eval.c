@@ -342,10 +342,14 @@ scalar_t eval_scalar(int width, int *eval_flags, node_t n, sym_t sym){
 
    case NODETYPE_IDENT:
       s = sym_lookup_scalar(n->ident, sym);
-      if (s) {
-         scalar_incr_ref(s);
+      if (s == NULL) {
+        return NULL;
       }
-      return s;
+      result = new_scalar(width);
+      for (ivalue = 0; ivalue < width; ivalue++) {
+        result->vals[ivalue] = s->vals[ivalue];
+      }
+      return result;
       
    case NODETYPE_REAL:
       s = new_scalar(width);
