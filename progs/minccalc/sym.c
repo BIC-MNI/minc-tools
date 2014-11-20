@@ -54,6 +54,9 @@ void sym_leave_scope(sym_t sym) {
       if (sym->type == SYM_VECTOR) {
          vector_free(sym->vector);
       }
+      else if (sym->type == SYM_SCALAR) {
+         scalar_free(sym->scalar);
+      }
       free(sym);
       sym = osym;
    } while ((sym != NULL) && (sym->ident != NEW_SCOPE));
