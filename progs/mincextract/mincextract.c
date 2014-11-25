@@ -114,6 +114,7 @@
 #include <float.h>
 #include <ctype.h>
 #include <ParseArgv.h>
+#include <minc_endian.h>
 
 /* Constants */
 #ifndef TRUE
@@ -140,6 +141,7 @@ static int get_arg_vector(char *dst, char *key, char *nextArg);
 static int arg_odatatype = TYPE_ASCII;
 static nc_type output_datatype = NC_DOUBLE;
 static int output_signed = INT_MAX;
+static int output_endian = MINC_NATIVE_ENDIAN;
 static double valid_range[2] = {DBL_MAX, DBL_MAX};
 static int normalize_output = TRUE;
 static double image_range[2] = {DBL_MAX, DBL_MAX};
@@ -178,6 +180,10 @@ ArgvInfo argTable[] = {
        "Normalize integer pixel values to file max and min (Default)"},
    {"-nonormalize", ARGV_CONSTANT, (char *) FALSE, (char *) &normalize_output,
        "Turn off pixel normalization"},
+   {"-big-endian", ARGV_CONSTANT, (char *) MINC_BIG_ENDIAN, (char *) &output_endian,
+       "Force big-endian output." },
+   {"-little-endian", ARGV_CONSTANT, (char *) MINC_LITTLE_ENDIAN, (char *) &output_endian,
+       "Force little-endian output." },
    {"-image_range", ARGV_FLOAT, (char *) 2, (char *) image_range,
        "Specify the range of real image values for normalization"},
    {"-image_minimum", ARGV_FLOAT, (char *) 1, (char *) &image_range[0],
@@ -245,6 +251,7 @@ int main(int argc, char *argv[])
    long nelements, ielement;
    double *dbl_data;
    int user_normalization;
+   minc_swap_fn_t swap_fn = NULL;
 
    /* Check arguments */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc != 2)) {
@@ -390,6 +397,8 @@ int main(int argc, char *argv[])
    /* Allocate space */
    data = malloc(element_size*nelements);
 
+   swap_fn = minc_get_swap_function(output_endian, element_size);
+
    /* Loop over input slices */
 
    while (cur[0] < end[0]) {
@@ -405,6 +414,9 @@ int main(int argc, char *argv[])
          }
       }
       else {
+         if (swap_fn != NULL) {
+            (*swap_fn)(data, element_size * nelements);
+         }
          if (fwrite(data, (size_t) element_size, (size_t) nelements, stdout)
                        != nelements) {
             (void) fprintf(stderr, "Error writing data.\n");

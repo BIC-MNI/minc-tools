@@ -107,6 +107,7 @@
 #include <limits.h>
 #include <float.h>
 #include <ParseArgv.h>
+#include <minc_endian.h>
 
 /* Constants */
 #ifndef TRUE
@@ -115,16 +116,10 @@
 #endif
 #define VIO_BOOL_DEFAULT -1
 
-#define NATIVE_ENDIAN 0         /* Use CPU-native format */
-#ifndef BIG_ENDIAN              /* May be defined in endian.h */
-#define BIG_ENDIAN 1            /* Force big-endian */
-#define LITTLE_ENDIAN 2         /* Force little-endian */
-#endif
-
 /* Variables used for argument parsing */
 static int output_datatype = INT_MAX;
 static int output_signed = INT_MAX;
-static int output_endian = NATIVE_ENDIAN;
+static int output_endian = MINC_NATIVE_ENDIAN;
 static double valid_range[2] = {DBL_MAX, DBL_MAX};
 static int normalize_output = VIO_BOOL_DEFAULT;
 
@@ -152,84 +147,13 @@ static ArgvInfo argTable[] = {
        "Normalize integer pixel values to file max and min"},
    {"-nonormalize", ARGV_CONSTANT, (char *) FALSE, (char *) &normalize_output,
        "Turn off pixel normalization"},
-   {"-big-endian", ARGV_CONSTANT, (char *) BIG_ENDIAN, (char *) &output_endian,
+   {"-big-endian", ARGV_CONSTANT, (char *) MINC_BIG_ENDIAN, (char *) &output_endian,
        "Force big-endian output." },
-   {"-little-endian", ARGV_CONSTANT, (char *) LITTLE_ENDIAN, (char *) &output_endian,
+   {"-little-endian", ARGV_CONSTANT, (char *) MINC_LITTLE_ENDIAN, (char *) &output_endian,
        "Force little-endian output." },
-   
    {NULL, ARGV_END, NULL, NULL, NULL}
 };
 
-int cpu_endian() {
-  union etest {
-    short s;
-    char b[sizeof(short)];
-  } x;
-
-  x.s = 1;
-
-  if (x.b[0] == 1 && x.b[sizeof(short) - 1] == 0) {
-    return LITTLE_ENDIAN;
-  }
-  if (x.b[0] == 0 && x.b[sizeof(short) - 1] == 1) {
-    return BIG_ENDIAN;
-  }
-
-  fprintf(stderr, "CPU is neither-endian??\n");
-  exit(-1);
-}
-
-void swap_8bytes(char *p_data, size_t n_bytes)
-{
-  char *p_last;
-  char tmp;
-
-  for (p_last = p_data + n_bytes; p_data < p_last; p_data += 8) {
-    tmp = p_data[0];
-    p_data[0] = p_data[7];
-    p_data[7] = tmp;
-    
-    tmp = p_data[5];
-    p_data[5] = p_data[2];
-    p_data[2] = tmp;
-
-    tmp = p_data[1];
-    p_data[1] = p_data[6];
-    p_data[6] = tmp;
-
-    tmp = p_data[3];
-    p_data[3] = p_data[4];
-    p_data[4] = tmp;
-  }
-}
-
-void swap_4bytes(char *p_data, size_t n_bytes)
-{
-  char *p_last;
-  char tmp;
-
-  for (p_last = p_data + n_bytes; p_data < p_last; p_data += 4) {
-    tmp = p_data[0];
-    p_data[0] = p_data[3];
-    p_data[3] = tmp;
-
-    tmp = p_data[2];
-    p_data[2] = p_data[1];
-    p_data[1] = tmp;
-  }
-}
-
-void swap_2bytes(char *p_data, size_t n_bytes)
-{
-  char *p_last;
-  char tmp;
-
-  for (p_last = p_data + n_bytes; p_data < p_last; p_data += 2) {
-    tmp = p_data[0];
-    p_data[0] = p_data[1];
-    p_data[1] = tmp;
-  }
-}
 
 /* Main program */
 
@@ -244,7 +168,7 @@ int main(int argc, char *argv[])
    int idim;
    void *data;
    double temp;
-   void (*swap_fn)(char *, size_t) = NULL;
+   minc_swap_fn_t swap_fn = NULL;
 
    /* Check arguments */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc != 2)) {
@@ -333,23 +257,7 @@ int main(int argc, char *argv[])
 
    /* Figure out if we have to swap bytes.
     */
-   if (output_endian != NATIVE_ENDIAN && output_endian != cpu_endian()) {
-     switch (nctypelen(output_datatype)) {
-     case 8:
-       swap_fn = swap_8bytes;
-       break;
-     case 4:
-       swap_fn = swap_4bytes;
-       break;
-     case 2:
-       swap_fn = swap_2bytes;
-       break;
-     default:
-       (void) fprintf(stderr, "I can't change the endianness of data of length %d\n", nctypelen(output_datatype));
-       swap_fn = NULL;
-       break;
-     }
-   }
+   swap_fn = minc_get_swap_function(output_endian, nctypelen(output_datatype));
 
    /* Loop over input slices */
 

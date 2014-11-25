@@ -75,7 +75,8 @@ ADD_EXECUTABLE(mincdump mincdump/mincdump.c
 ADD_EXECUTABLE(mincexample1 mincexample/mincexample1.c)
 ADD_EXECUTABLE(mincexample2 mincexample/mincexample2.c)
 ADD_EXECUTABLE(mincexpand mincexpand/mincexpand.c)
-ADD_EXECUTABLE(mincextract mincextract/mincextract.c)
+ADD_EXECUTABLE(mincextract mincextract/mincextract.c
+                            Proglib/minc_endian.c)
 ADD_EXECUTABLE(mincinfo mincinfo/mincinfo.c)
 ADD_EXECUTABLE(minclookup minclookup/minclookup.c)
 TARGET_LINK_LIBRARIES(minclookup m)
@@ -100,7 +101,9 @@ ADD_EXECUTABLE(mincreshape mincreshape/mincreshape.c
 ADD_EXECUTABLE(mincstats mincstats/mincstats.c)
 TARGET_LINK_LIBRARIES(mincstats m)
 
-ADD_EXECUTABLE(minctoraw minctoraw/minctoraw.c)
+ADD_EXECUTABLE(minctoraw minctoraw/minctoraw.c
+                            Proglib/minc_endian.c)
+
 ADD_EXECUTABLE(mincwindow mincwindow/mincwindow.c)
 
 

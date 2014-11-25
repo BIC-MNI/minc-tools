@@ -50,6 +50,12 @@ Normalize integer pixel values to file max and min (Default)
 \fB\-nonormalize\fR
 Turn off pixel normalization
 .TP
+\fB\-big-endian\fR
+Request big-endian (most significant byte first) format.
+.TP
+\fB\-little-endian\fR
+Request little-endian (least significant byte first) format.
+.TP
 \fB\-help\fR
 Print summary of command-line options and exit.
 .TP
