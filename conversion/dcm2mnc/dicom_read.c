@@ -564,7 +564,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
    mri_index_list[SLICE] = SPI_Current_slice_number;
    mri_index_list[ECHO] = ACR_Echo_number;
    // dicom time element may be different on old systems
-   mri_index_list[TIME] = ACR_Acquisition;
+   mri_index_list[TIME] = ACR_Temporal_position_identifier;
    mri_index_list[PHASE] = NULL;
    mri_index_list[CHEM_SHIFT] = NULL;
    mri_total_list[SLICE] = SPI_Number_of_slices_nominal;
@@ -609,10 +609,40 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
    for (imri=0; imri < MRI_NDIMS; imri++) {
      
      if (mri_index_list[imri] != NULL) {
-       fi_ptr->index[imri] = 
-	 /* note that for TIME this will use ACR_Acqusition,
-	    which does not work for measurement loop scans */
-	 acr_find_int(group_list, mri_index_list[imri], 1);
+       int tmp_index = acr_find_int(group_list, mri_index_list[imri], -1);
+
+       /* Use alternative index fields for time, if needed.
+        */
+       if (imri == TIME && tmp_index <= 0) {
+         tmp_index = acr_find_int(group_list, ACR_Acquisition, -1);
+
+         if (tmp_index <= 0) {
+           tmp_index = acr_find_int(group_list, ACR_Image, -1);
+         }
+
+         /* Yet another alternative field from some PET scans.
+          */
+         if (tmp_index <= 0) {
+           tmp_index = acr_find_int(group_list, ACR_PET_Image_index, -1);
+
+           /* Force the index to remain inside the established range of the
+            * dimension, if known. Often these values will vary from 1-N
+            * where N is the total number of slices in an acquisition.
+            */
+           if (tmp_index >= 1 && 
+               gi_ptr->max_size[SLICE] > 1 &&
+               gi_ptr->max_size[TIME] > 1) {
+             /* Keep the index inside the proper range, if known.
+              */
+             tmp_index = (((tmp_index - 1) / gi_ptr->max_size[SLICE]) % gi_ptr->max_size[TIME]) + 1;
+           }
+         }
+       }
+
+       if (tmp_index <= 0) {
+         tmp_index = 1;
+       }
+       fi_ptr->index[imri] = tmp_index;
      }
      else {
        fi_ptr->index[imri] = 1;
@@ -630,7 +660,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
      */
 
     fi_ptr->index[SLICE] = irnd(fi_ptr->coordinate[SLICE] * 100.0);
-    
+
     /* For non-IMA files, use the time coordinate to order the time.
      * index.  IMA files do not seem to have a reliable slice time
      * indicator.
@@ -638,11 +668,13 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
      * Multiplying by 100 is done just to convert the coordinate
      * (in seconds) to a unique integer value. This assumes that
      * coordinates always differ by at least one hundredth of a second,
-     * which may not be universally true.
+     * which may not be universally true.pwd
      */
+    /*
     if (G.file_type != IMA) {
         fi_ptr->index[TIME] = irnd(fi_ptr->coordinate[TIME] * 100.0);
     }
+    */
 
     //ilana debug
     //int test = fi_ptr->coordinate[TIME];
@@ -720,7 +752,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
              */
             if (imri != SLICE && gi_ptr->max_size[imri] <= 1 && 
                 gi_ptr->size_isset[imri]) {
-                if (G.Debug) {
+                if (G.Debug && fi_ptr->index[imri] > 1) {
                     printf("Warning: merging extra indices on %s axis.\n",
                             Mri_Names[imri]);
                 }
@@ -741,7 +773,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
             else {
                 /* Search list of indices for 'cur_index'.  Search is 
                    started at search_start[] and has maximum length of
-                   size[imri].
+                   cur_size[imri].
                 */
                 index = search_list(cur_index, 
                                     gi_ptr->indices[imri],
@@ -1645,12 +1677,18 @@ get_coordinate_info(Acr_Group group_list,
 
     /* PET scan times (bert)
      */
-    start_time = (double)acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
-    frame_time = (double)acr_find_double(group_list, ACR_Actual_frame_duration, -1.0);
-    if (start_time > 0.0 && frame_time > 0.0) {
-        frame_time = start_time / 1000.0; /* Convert msec to seconds. */
+    frame_time = acr_find_double(group_list, ACR_Trigger_time, -1.0);
+    if (frame_time >= 0.0) {
+      frame_time /= 1000.0;
+      start_time = 0;
     }
     else {
+      start_time = (double)acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
+      frame_time = (double)acr_find_double(group_list, ACR_Actual_frame_duration, -1.0);
+      if (start_time > 0.0 && frame_time > 0.0) {
+        frame_time = start_time / 1000.0; /* Convert msec to seconds. */
+      }
+      else {
         /* time section (rhoge)
          * now assume that time has been fixed when file was read
          */
@@ -1683,6 +1721,7 @@ get_coordinate_info(Acr_Group group_list,
         if (frame_time < 0.0) {
             frame_time += SECONDS_PER_DAY;
         }
+      }
     }
     fi_ptr->coordinate[TIME] = frame_time;
 

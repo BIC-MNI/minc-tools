@@ -240,6 +240,7 @@ typedef struct {
     double normal[WORLD_NDIMS];
     double step[WORLD_NDIMS];
     double position[WORLD_NDIMS];
+    int slice_inverted;
 } Mosaic_Info;
 
 /* DICOM Multiframe information.  NOTE: This represents at best a very
@@ -910,6 +911,7 @@ add_siemens_info(Acr_Group group_list)
     int interpolation_flag;
     int enc_ix, num_encodings, num_b0; 
     int EXT=0; /*special handling when an external diffusion vector file is used*/
+    int temp;
 
     element = acr_find_group_element(group_list, SPI_Protocol2);
     if (element != NULL) {
@@ -950,7 +952,7 @@ add_siemens_info(Acr_Group group_list)
          */
         prot_find_string(protocol, "lRepetitions", str_buf);
         
-        if(atoi(str_buf)==0){ /*lRepetitions not found in ASCONV header*/
+        if (strtol(str_buf, NULL, 0) == 0){ /* lRepetitions not found in ASCONV header*/
             int frames = acr_find_int(group_list,
                                       ACR_Cardiac_number_of_images,0);
             /* this seems to give number of dynamic 
@@ -958,13 +960,13 @@ add_siemens_info(Acr_Group group_list)
             acr_insert_numeric(&group_list, ACR_Acquisitions_in_series, frames);
         } else {
             acr_insert_numeric(&group_list, ACR_Acquisitions_in_series, 
-                               atoi(str_buf) + 1); 
+                               strtol(str_buf, NULL, 0) + 1); 
         }    
 
         /* add number of echoes:
          */
         prot_find_string(protocol, "lContrasts", str_buf);
-        acr_insert_numeric(&group_list, SPI_Number_of_echoes, (double)atoi(str_buf));
+        acr_insert_numeric(&group_list, SPI_Number_of_echoes, (double)strtol(str_buf, NULL, 0));
 
         /* Add receiving coil (for some reason this isn't in generic groups)
          */
@@ -973,7 +975,7 @@ add_siemens_info(Acr_Group group_list)
                          str_buf);
 
         /*Adjust for change in naming convention (VB15 VA30)*/
-        if(atoi(str_buf)==0){
+        if (strtol(str_buf, NULL, 0) == 0) {
             prot_find_string(protocol,
                              "sCoilSelectMeas[0].asList[0].sCoilElementID.tCoilID",
                              str_buf);
@@ -988,10 +990,10 @@ add_siemens_info(Acr_Group group_list)
 
         /* add number of slices: (called `Partitions' for 3D) */
         prot_find_string(protocol, "sSliceArray.lSize", str_buf);
-        num_slices = atoi(str_buf);
+        num_slices = strtol(str_buf, NULL, 0);
         
         prot_find_string(protocol, "sKSpace.lPartitions", str_buf);
-        num_partitions = atoi(str_buf);
+        num_partitions = strtol(str_buf, NULL, 0);
 
         /* This is a hack based upon the observation that for at least some
          * conversions, this value seems to give the true number of slices
@@ -999,7 +1001,7 @@ add_siemens_info(Acr_Group group_list)
          */
         prot_find_string(protocol, "sKSpace.lImagesPerSlab", str_buf);
         if (str_buf[0] != '\0') {
-            int num_images_per_slab = atoi(str_buf);
+            int num_images_per_slab = strtol(str_buf, NULL, 0);
             if (num_images_per_slab > num_partitions) {
                 num_partitions = num_images_per_slab;
             }
@@ -1039,10 +1041,19 @@ add_siemens_info(Acr_Group group_list)
             prot_find_string(protocol, "sSliceArray.asSlice[0].sReadoutFOV",
                              str_buf);
             if (str_buf[0] != '\0') {
-                int fov = atoi(str_buf);
+                int fov = strtol(str_buf, NULL, 0);
 
                 sprintf(str_buf, "%d\\%d", fov, fov);
                 acr_insert_string(&group_list, SPI_Field_of_view, str_buf);
+            }
+            else {
+                prot_find_string(protocol, "sSliceArray.asSlice[0].dReadoutFOV",
+                                 str_buf);
+                if (str_buf[0] != '\0') {
+                    double fov = atof(str_buf);
+                    sprintf(str_buf, "%f\\%f", fov, fov);
+                   acr_insert_string(&group_list, SPI_Field_of_view, str_buf);
+                }
             }
         }
 
@@ -1061,7 +1072,30 @@ add_siemens_info(Acr_Group group_list)
            0x2 means DESCENDING
            0x4 means INTERLEAVED */
         prot_find_string(protocol, "sSliceArray.ucMode", str_buf);
-        acr_insert_string(&group_list,EXT_Slice_order,str_buf);
+        if (str_buf[0] != '\0') {
+          int mode = strtol(str_buf, NULL, 0);
+          sprintf(str_buf, "0x%x", mode);
+          acr_insert_string(&group_list,EXT_Slice_order,str_buf);
+        }
+
+        prot_find_string(protocol, "sSliceArray.ucImageNumbTra", str_buf);
+        if (str_buf[0] != '\0') {
+          if (strtol(str_buf, NULL, 0) > 0) {
+            acr_insert_string(&group_list, EXT_Slice_inverted, "1");
+          }
+        }
+        prot_find_string(protocol, "sSliceArray.ucImageNumbSag", str_buf);
+        if (str_buf[0] != '\0') {
+          if (strtol(str_buf, NULL, 0) > 0) {
+            acr_insert_string(&group_list, EXT_Slice_inverted, "1");
+          }
+        }
+        prot_find_string(protocol, "sSliceArray.ucImageNumbCor", str_buf);
+        if (str_buf[0] != '\0') {
+          if (strtol(str_buf, NULL, 0) > 0) {
+            acr_insert_string(&group_list, EXT_Slice_inverted, "1");
+          }
+        }
 
         /*Modified by ilana to handle the common types of diffusion scans (ref: siemens_dicom_to_minc for dicomserver)
 
@@ -1113,33 +1147,41 @@ add_siemens_info(Acr_Group group_list)
          */
 
 	prot_find_string(protocol, "sDiffusion.ulMode", str_buf);
+        if (str_buf[0] != '\0') {
+            unsigned long mode = strtol(str_buf, NULL, 0);
+            sprintf(str_buf, "0x%lx", mode);
+        }
 	if (!strcmp(str_buf, "0x100") | !strcmp(str_buf, "0x80")) { 
           /*we have a diffusion scan; flag it*/
           acr_insert_string(&group_list, ACR_Acquisition_contrast, "DIFFUSION");
 	  /*----MGH-----*/
 	  prot_find_string(protocol,"sWiPMemBlock.alFree[8]", str_buf);
-	  if ((atoi ((char*)str_buf))!= 0 ) { /*num b0 images for MGH sequence*/
+	  if (strtol(str_buf, NULL, 0) != 0) { /*num b0 images for MGH sequence*/
 		  
 	    /* get number of b=0 images*/
-            num_b0 = atoi ((char*)str_buf);
+            num_b0 = strtol(str_buf, NULL, 0);
 		  
 	    /* try to get b value */
             prot_find_string(protocol, "sDiffusion.alBValue[1]", str_buf);
 
 	    acr_insert_numeric(&group_list, EXT_Diffusion_b_value,
-                               (double)atoi(str_buf));
+                               (double)strtol(str_buf, NULL, 0));
 
           }
 	  else
 	  {
 		prot_find_string(protocol, "sDiffusion.ulMode", str_buf);
+                if (str_buf[0] != '\0') {
+                    unsigned long mode = strtol(str_buf, NULL, 0);
+                    sprintf(str_buf, "0x%lx", mode);
+                }
 	  	/*-----ep2d_diff-----OR-----
 		ep2d_diff_WIP_ICBM with "Diffusion mode"=MDDW & DiffusionWeightings=2-----------*/
 		if (!strcmp(str_buf, "0x100")) { 
 	            	/* try to get b value */
         	    	prot_find_string(protocol, "sDiffusion.alBValue[1]", str_buf);
             		acr_insert_numeric(&group_list, EXT_Diffusion_b_value,
-                                           (double)atoi(str_buf));
+                                           (double)strtol(str_buf, NULL, 0));
 		    	num_b0=1;
 	  
           	}
@@ -1149,7 +1191,7 @@ add_siemens_info(Acr_Group group_list)
         	    	/* try to get b value */
             		prot_find_string(protocol, "sDiffusion.alBValue[0]", str_buf);
 	            	acr_insert_numeric(&group_list, EXT_Diffusion_b_value,
-                                           (double)atoi(str_buf));
+                                           (double)strtol(str_buf, NULL, 0));
 		    	num_b0=0; 
 			/*For ICBM there are 5 b=0 scans but they are not identified 
 			any differently than the diffusion weighted images, 
@@ -1161,9 +1203,10 @@ add_siemens_info(Acr_Group group_list)
 	    
           /* if all averages in one series: */
 	  prot_find_string(protocol,"ucDixon",str_buf);
-          if (!strcmp(str_buf,"0x1")) {
+          temp = strtol(str_buf, NULL, 0);
+          if (temp == 1) {
             prot_find_string(protocol, "sDiffusion.lDiffDirections", str_buf);
-            num_encodings = atoi ((char*)str_buf) + num_b0;
+            num_encodings = strtol(str_buf, NULL, 0) + num_b0;
              
 	    /* number of 'time points' */
             acr_insert_numeric(&group_list, ACR_Acquisitions_in_series, 
@@ -1185,11 +1228,11 @@ add_siemens_info(Acr_Group group_list)
             if (str_ptr == NULL || str_ptr2 == NULL) {
                 enc_ix = 0;
             }
-	    else if(atoi(str_ptr +1) == 0){ /*a 0 after the b means b=0 image*/
-			enc_ix = atoi(str_ptr2 + 1);
-			}
-	    else{
-		enc_ix = atoi(str_ptr2 + 1) + num_b0; /*should be in diffusion weighted images now*/
+	    else if(strtol(str_ptr + 1, NULL, 0) == 0) { /*a 0 after the b means b=0 image*/
+                enc_ix = strtol(str_ptr2 + 1, NULL, 0);
+            }
+	    else {
+                enc_ix = strtol(str_ptr2 + 1, NULL, 0) + num_b0; /*should be in diffusion weighted images now*/
             }  
 	    /* however with the current sequence, we get usable
             * time indices from floor(global_image_num/num_slices)*/ /*i'm not sure that works here*/
@@ -1203,7 +1246,7 @@ add_siemens_info(Acr_Group group_list)
           else { /* averages in different series - no special handling needed? */
 	    
             prot_find_string(protocol, "sDiffusion.lDiffDirections", str_buf);
-            num_encodings = atoi((char*)str_buf) + num_b0; 
+            num_encodings = strtol(str_buf, NULL, 0) + num_b0; 
             //num_encodings = 7; /* for now assume 7 shots in diffusion scan */
 
              /* number of 'time points' */
@@ -1221,11 +1264,11 @@ add_siemens_info(Acr_Group group_list)
             if (str_ptr == NULL || str_ptr2 == NULL){
                 enc_ix = 0;
             } 
-            else if(atoi(str_ptr +1) == 0){ /*a 0 after the b means b=0 image*/
-		enc_ix = atoi(str_ptr2 + 1);
+            else if(strtol(str_ptr + 1, NULL, 0) == 0){ /*a 0 after the b means b=0 image*/
+                enc_ix = strtol(str_ptr2 + 1, NULL, 0);
 	    }
 	    else{
-		enc_ix = atoi(str_ptr2 + 1) + num_b0; /*should be in diffusion weighted images now*/
+                enc_ix = strtol(str_ptr2 + 1, NULL, 0) + num_b0; /*should be in diffusion weighted images now*/
             }
                 
 	    acr_insert_numeric(&group_list, ACR_Acquisition, (double)enc_ix);
@@ -2148,7 +2191,7 @@ dimension_sort_function(const void *v1, const void *v2)
 int
 prot_find_string(Acr_Element elem_ptr, const char *name_str, char *value)
 {
-    static const char prot_head[] = "### ASCCONV BEGIN ###";
+    static const char prot_head[] = "### ASCCONV BEGIN ";
     long cur_offset,tmp_offset;
     long max_offset;
     char *field_ptr;
@@ -2198,7 +2241,7 @@ prot_find_string(Acr_Element elem_ptr, const char *name_str, char *value)
 static char *
 dump_protocol_text(Acr_Element elem_ptr)
 {
-    const char prot_head[] = "### ASCCONV BEGIN ###";
+    const char prot_head[] = "### ASCCONV BEGIN ";
     const char prot_tail[] = "### ASCCONV END ###";
     char *output = malloc(elem_ptr->data_length);
     int prot_found = FALSE;
@@ -2253,6 +2296,39 @@ copy_element_properties(Acr_Element new_element, Acr_Element old_element)
                                 acr_get_element_vr_encoding(old_element));
 }
 
+
+/* Since at least software version VA25 (and thus VA30, VB15), 
+ * the mosaic sequencing in the file is the same, regardless
+ * of the acquisition (always ascending). 
+ * Also, the following code is based on a field that is 
+ * deprecated (0x0021 0x123f)... still keep old behavior in case
+ * its an older image type.
+ */
+static int
+old_mosaic_ordering(Acr_Group group_list)
+{
+    Acr_String str_tmp;
+    Acr_String str_ver;
+    int is_old = 1;
+
+    str_ver = acr_find_string(group_list, ACR_Software_versions, "");
+    str_tmp = strstr(str_ver, "syngo MR A");
+    if (str_tmp != NULL && atoi(str_tmp + 10) >= 25) {
+      /* software version >= VA25 */
+      is_old = 0;
+    }
+    str_tmp = strstr(str_ver, "syngo MR B");
+    if (str_tmp != NULL && atoi(str_tmp + 10) >= 11) {
+      /* software version >= VB11 */
+      is_old = 0;
+    }
+    str_tmp = strstr(str_ver, "syngo MR D");
+    if (str_tmp != NULL) {
+      is_old = 0;
+    }
+    return is_old;
+}
+
 static int 
 mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
 {
@@ -2266,7 +2342,7 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
     Acr_Double separation;
     double RowColVec[6];
     double dircos[VOL_NDIMS][WORLD_NDIMS];
-    Acr_String str_tmp,str_tmp2;
+    Acr_String str_tmp, str_tmp2;
     int old = 1;
 
     if (G.Debug >= HI_LOGGING) {
@@ -2274,6 +2350,9 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
                (unsigned long) group_list, (unsigned long) mi_ptr,
                load_image);
     }
+
+    str_tmp = acr_find_string(group_list, EXT_Slice_inverted, "0");
+    mi_ptr->slice_inverted = strtol(str_tmp, NULL, 0) > 0;
 
     str_tmp = acr_find_string(group_list, SPI_Order_of_slices, "");
     /* Seems like this field is often not found, 
@@ -2283,7 +2362,7 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
      * 0x2 means DESCENDING
      * 0x4 means INTERLEAVED*/
     str_tmp2 = acr_find_string(group_list, EXT_Slice_order, "");
-    
+
     if (!strncmp(str_tmp, "INTERLEAVED", 11) || !strncmp(str_tmp2, "0x4", 3)) {
         mi_ptr->mosaic_seq = MOSAIC_SEQ_INTERLEAVED;
         str_tmp="interleaved";
@@ -2428,23 +2507,9 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
                );
     }
 
-    /* Treat slice ordering differently depending on software version
-       - for newer software versions(>VA25 or >VB), the mosaic images seem to
-       always be ordered ascending, regardless of acquisition order.*/
-    
-    str_tmp=strstr(acr_find_string(group_list, ACR_Software_versions, ""), 
-                   "syngo MR A");
-    str_tmp2=strstr(acr_find_string(group_list, ACR_Software_versions, ""), 
-                   "syngo MR B");
-        
-    if(str_tmp !=NULL){
-        if(atoi(str_tmp + 10) >= 25) old=0; /*software version >= VA25*/
-    }
-    else if(str_tmp2 !=NULL){
-          if(atoi(str_tmp2 + 10) >= 11) old=0; /*software version >= VB11*/ 
-    }
-    
-    if(old==1){ /*old behavior*/
+    old = old_mosaic_ordering(group_list);
+
+    if (old) { /*old behavior*/
       if (mi_ptr->mosaic_seq != MOSAIC_SEQ_INTERLEAVED) {
         if (is_numaris3(group_list)) {
             for (i = 0; i < WORLD_NDIMS; i++) {
@@ -2606,8 +2671,8 @@ mosaic_insert_subframe(Acr_Group group_list, Mosaic_Info *mi_ptr,
     double position[WORLD_NDIMS];
     string_t string;
     int islice;
-    char *str_tmp, *str_tmp2;
-    int oldb=1;  
+    char *str_tmp;
+    int oldb=1;
 
     if (G.Debug >= HI_LOGGING) {
         printf("mosaic_insert_subframe(%lx, %lx, %d, %d)\n",
@@ -2615,27 +2680,10 @@ mosaic_insert_subframe(Acr_Group group_list, Mosaic_Info *mi_ptr,
                iimage, load_image);
     }
 
- /* Figure out what to do based upon the mosaic sequencing.
+    /* Figure out what to do based upon the mosaic sequencing.
      */
-    /* Since at least software version VA25 (and thus VA30, VB15), 
-     * the mosaic sequencing in the file is the same, regardless
-     * of the acquisition (always ascending). 
-     * Also, the following code is based on a field that is 
-     * deprecated (0x0021 0x123f)... still keep old behavior in case
-     * its an older image type*/
-    
-    str_tmp=strstr(acr_find_string(group_list, ACR_Software_versions, ""), 
-                   "syngo MR A");
-    str_tmp2=strstr(acr_find_string(group_list, ACR_Software_versions, ""), 
-                   "syngo MR B");
-        
-    if(str_tmp !=NULL){
-        if(atoi(str_tmp + 10) >= 25) oldb=0; /*software version >= VA25*/
-    }
-    else if(str_tmp2 !=NULL){
-        if(atoi(str_tmp2 + 10) >= 11) oldb=0; /*software version >= VB11*/ 
-    }
-    
+    oldb = old_mosaic_ordering(group_list);
+
     if(mi_ptr->mosaic_seq == MOSAIC_SEQ_INTERLEAVED && oldb==1){ //old behavior
     /*case MOSAIC_SEQ_INTERLEAVED:*/
         /* For interleaved sequences, we have to map the odd slices to
@@ -2653,11 +2701,15 @@ mosaic_insert_subframe(Acr_Group group_list, Mosaic_Info *mi_ptr,
     }
     else{
     /*default:*/
-
-      /* Otherwise, just use the image number without modification for
-      * ascending or unknown slice ordering.
-      */
-      islice = iimage;
+      if (mi_ptr->slice_inverted) {
+        islice = mi_ptr->slice_count - iimage;
+      }
+      else {
+        /* Otherwise, just use the image number without modification for
+         * ascending or unknown slice ordering.
+         */
+        islice = iimage;
+      }
     }
 
 #if 0

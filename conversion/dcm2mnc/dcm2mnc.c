@@ -153,9 +153,9 @@
 
 /* Function Prototypes */
 static int dcm_sort_function(const void *entry1, const void *entry2);
-static void use_the_files(int num_files, 
-                          Data_Object_Info *data_info[],
-                          const char *out_dir);
+static int use_the_files(int num_files, 
+                         Data_Object_Info *data_info[],
+                         const char *out_dir);
 static void usage(void);
 static void free_list(int num_files, 
                       const char **file_list, 
@@ -257,6 +257,7 @@ main(int argc, char *argv[])
     int num_files_ok;           /* Actual number of DICOM/IMA files */
     struct stat st;
     int length;
+    int exit_status;
 
     G.mosaic_seq = MOSAIC_SEQ_ASCENDING; /* Assume ascending by default. */
     G.splitDynScan = FALSE;     /* Don't split dynamic scans by default */
@@ -539,7 +540,7 @@ main(int argc, char *argv[])
         printf("Processing files, one series at a time...\n");
     }
 
-    use_the_files(num_files, file_info_list, out_dir);
+    exit_status = use_the_files(num_files, file_info_list, out_dir);
 
     if (G.List) {
         printf("Done listing files.\n");
@@ -554,7 +555,7 @@ main(int argc, char *argv[])
     free(file_info_list);
 
     
-    exit(EXIT_SUCCESS);
+    exit(exit_status);
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -659,7 +660,7 @@ usage(void)
     exit(EXIT_FAILURE);
 }
 
-static void
+static int
 use_the_files(int num_files, 
               Data_Object_Info *di_ptr[],
               const char *out_dir)
@@ -905,6 +906,7 @@ use_the_files(int num_files,
     free(acq_file_index);
     free(used_file);
 
+    return exit_status;
 }
 
 static int

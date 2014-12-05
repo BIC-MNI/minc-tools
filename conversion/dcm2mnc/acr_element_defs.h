@@ -104,6 +104,7 @@ GLOBAL_ELEMENT(ACR_Pixel_bandwidth       , 0x0018, 0x0095, DS);
 GLOBAL_ELEMENT(ACR_Device_serial_number  , 0x0018, 0x1000, LO);
 GLOBAL_ELEMENT(ACR_Software_versions     , 0x0018, 0x1020, LO);
 GLOBAL_ELEMENT(ACR_Protocol_name         , 0x0018, 0x1030, LO);
+GLOBAL_ELEMENT(ACR_Trigger_time          , 0x0018, 0x1060, DS);
 GLOBAL_ELEMENT(ACR_Cardiac_number_of_images  , 0x0018, 0x1090, IS); /*added ilana*/
 GLOBAL_ELEMENT(ACR_Calibration_date      , 0x0018, 0x1200, DA);
 GLOBAL_ELEMENT(ACR_Calibration_time      , 0x0018, 0x1201, TM); /*added ilana*/
@@ -136,6 +137,8 @@ GLOBAL_ELEMENT(ACR_Image_orientation_patient_old,
 	                                   0x0020, 0x0035, DS);
 GLOBAL_ELEMENT(ACR_Image_orientation_patient,
 	                                   0x0020, 0x0037, DS);
+GLOBAL_ELEMENT(ACR_Temporal_position_identifier,
+                                           0x0020, 0x0100, IS);
 GLOBAL_ELEMENT(ACR_Number_of_temporal_positions,
                                            0x0020, 0x0105, IS);
 GLOBAL_ELEMENT(ACR_Acquisitions_in_series, 0x0020, 0x1001, IS);
@@ -165,7 +168,7 @@ GLOBAL_ELEMENT(ACR_Number_of_slices      , 0x0054, 0x0081, US);
 GLOBAL_ELEMENT(ACR_Number_of_time_slices , 0x0054, 0x0101, US);
 GLOBAL_ELEMENT(ACR_Units                 , 0x0054, 0x1001, CS);
 GLOBAL_ELEMENT(ACR_Frame_reference_time  , 0x0054, 0x1300, DS);
-
+GLOBAL_ELEMENT(ACR_PET_Image_index       , 0x0054, 0x1330, US);
 GLOBAL_ELEMENT(ACR_Shared_func_groups_seq, 0x5200, 0x9229, SQ);
 GLOBAL_ELEMENT(ACR_Plane_orientation_seq , 0x0020, 0x9116, SQ);
 GLOBAL_ELEMENT(ACR_Pixel_measurement_seq , 0x0020, 0x9118, SQ);

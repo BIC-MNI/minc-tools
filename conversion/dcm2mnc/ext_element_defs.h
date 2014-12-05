@@ -36,3 +36,4 @@ GLOBAL_ELEMENT(EXT_Delay_in_TR                        , 0x0023, 0x0008, LO); /*a
 /*Can't find slice acquisition in any standard fields; using ASCONV header sSliceArray.ucMode  ilana*/
 /*0x1 ascending 0x2 descending 0x3 interleaved*/
 GLOBAL_ELEMENT(EXT_Slice_order		      , 0x0023, 0x0009, LO); 
+GLOBAL_ELEMENT(EXT_Slice_inverted             , 0x0023, 0x000A, LO);
