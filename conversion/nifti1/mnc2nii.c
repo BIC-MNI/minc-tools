@@ -155,6 +155,17 @@ extern void restructure_array(int ndims,
                               const int *map,
                               const int *dir);
 
+/* Calculate the first power of two greater than or equal to "value".
+ */
+double nearest_power_of_two(double value)
+{
+    double r = 1.0;
+    while (r < value) {
+        r *= 2.0;
+    }
+    return r;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -182,8 +193,13 @@ main(int argc, char **argv)
     long mnc_start[MAX_VAR_DIMS]; /* MINC data starts */
     long mnc_count[MAX_VAR_DIMS]; /* MINC data counts */
     int mnc_signed;             /* MINC if output voxels are signed */
-    double mnc_rrange[2];       /* MINC real range (min, max) */
-    double mnc_vrange[2];       /* MINC valid range (min, max) */
+    double real_range[2];       /* MINC real range (min, max) */
+    double input_valid_range[2]; /* MINC valid range (min, max) */
+    double output_valid_range[2]; /* Valid range of output data. */
+    double nifti_slope;         /* Slope to be applied to output voxels. */
+    double nifti_inter;         /* Intercept to be applied to output voxels. */
+    double total_valid_range;   /* Overall valid range (max - min). */
+    double total_real_range;    /* Overall real range (max - min). */
 
     /* Other stuff */
     char out_str[1024];         /* Big string for filename */
@@ -192,7 +208,7 @@ main(int argc, char **argv)
     int j;                      /* Generic loop counter the second */
     char *str_ptr;              /* Generic ASCIZ string pointer */
     int r;                      /* Result code. */
-    static int qflag = 0;       /* Quiet flag (default is non-quiet) */
+    static int vflag = 0;       /* Verbose flag (default is quiet) */
 
     static ArgvInfo argTable[] = {
         {NULL, ARGV_HELP, NULL, NULL,
@@ -228,7 +244,10 @@ main(int argc, char **argv)
         {NULL, ARGV_HELP, NULL, NULL,
          "Other options"},
         {"-quiet", ARGV_CONSTANT, (char *)0, 
-         (char *)&qflag,
+         (char *)&vflag,
+         "Quiet operation"},
+        {"-verbose", ARGV_CONSTANT, (char *)1, 
+         (char *)&vflag,
          "Quiet operation"},
         {NULL, ARGV_END, NULL, NULL, NULL}
     };
@@ -410,17 +429,117 @@ main(int argc, char **argv)
         return (-1);
     }
 
-    miget_image_range(mnc_fd, mnc_rrange); /* Get real range */
-    miget_valid_range(mnc_fd, mnc_vid, mnc_vrange); /* Get voxel range */
+    /* Get real voxel range for the input file.
+     */
+    miget_image_range(mnc_fd, real_range);
 
-    if (mnc_vrange[1] != mnc_vrange[0] && mnc_rrange[1] != mnc_rrange[0]) {
-        nii_ptr->scl_slope = ((mnc_rrange[1] - mnc_rrange[0]) / 
-                              (mnc_vrange[1] - mnc_vrange[0]));
-        nii_ptr->scl_inter = mnc_rrange[0] - (mnc_vrange[0] * nii_ptr->scl_slope);
+    /* Get the actual valid voxel value range.
+     */
+    miget_valid_range(mnc_fd, mnc_vid, input_valid_range);
+
+    /* Find the default range for the output type. Our output file
+     * will use the full legal range of the output type if it is
+     * an integer.
+     */
+
+    if (nifti_datatype == DT_UNKNOWN) {
+        nii_ptr->datatype = DT_FLOAT32; /* Default */
+        mnc_type = NC_FLOAT;
+        mnc_signed = 1;
     }
     else {
-        nii_ptr->scl_slope = 0.0;
+        nii_ptr->datatype = nifti_datatype;
+        mnc_signed = nifti_signed;
     }
+
+    if (vflag) {
+        fprintf(stderr, "MINC type %d signed %d\n", mnc_type, mnc_signed);
+    }
+
+    miget_default_range(mnc_type, mnc_signed, output_valid_range);
+
+    total_valid_range = input_valid_range[1] - input_valid_range[0];
+    total_real_range = real_range[1] - real_range[0];
+
+    if ((output_valid_range[1] - output_valid_range[0]) > total_valid_range) {
+        /* Empirically, forcing the valid range to be the nearest power
+         * of two greater than the existing valid range seems to improve
+         * the behavior of the conversion. This is at least in part because
+         * of the limited precision of the NIfTI-1 voxel scaling fields.
+         */
+        double new_range = nearest_power_of_two(total_valid_range);
+        if (new_range - 1.0 >= total_valid_range) {
+            new_range -= 1.0;
+        }
+
+        if (output_valid_range[1] > total_valid_range) {
+            output_valid_range[0] = 0;
+            output_valid_range[1] = new_range;
+        }
+        else {
+            output_valid_range[1] = output_valid_range[0] + new_range;
+        }
+    }
+    else {
+        /* The new range can't fully represent the input range. Use the 
+         * full available range, and warn the user that they may have a
+         * problem.
+         */
+        printf("WARNING: Range of input exceeds range of output format.\n");
+    }
+
+    if (vflag) {
+        printf("Real range: %f %f Input valid range: %f %f Output valid range: %f %f\n",
+               real_range[0], real_range[1],
+               input_valid_range[0], input_valid_range[1],
+               output_valid_range[0], output_valid_range[1]);
+    }
+
+    /* If the output type is not floating point, we may need to scale the
+     * voxel values.
+     */
+
+    if (mnc_type != NC_FLOAT && mnc_type != NC_DOUBLE) {
+
+        /* Figure out how to map pixel values into the range of the 
+         * output datatype.
+         */
+        nifti_slope = ((real_range[1] - real_range[0]) / 
+                       (output_valid_range[1] - output_valid_range[0]));
+
+        if (nifti_slope == 0.0) {
+            nifti_slope = 1.0;
+        }
+        nifti_inter = real_range[0] - (output_valid_range[0] * nifti_slope);
+
+        /* One problem with NIfTI-1 is the limited precision of the 
+         * scl_slope and scl_inter fields (they are just 32-bits). So
+         * we look for possible issues and warn about that here.
+         */
+        if (nifti_inter != (float) nifti_inter || 
+            nifti_slope != (float) nifti_slope) {
+            double epsilon_i = nifti_inter - (float) nifti_inter;
+            double epsilon_s = nifti_slope - (float) nifti_slope;
+
+            /* If the loss in precision is more than one part per thousand
+             * of the real range, flag this as a problem!
+             */
+            if ((epsilon_i > total_real_range / 1.0e3) ||
+                (epsilon_s > total_real_range / 1.0e3)) {
+                fprintf(stderr, "ERROR: Slope and intercept cannot be represented in the NIfTI-1 header.\n");
+                fprintf(stderr, "      slope %f (%f), intercept %f (%f)\n", 
+                        nifti_slope, (float) nifti_slope,
+                        nifti_inter, (float) nifti_inter);
+                return (-1);
+            }
+        }
+    }
+    else {
+        nifti_slope = 0.0;
+    }
+
+    nii_ptr->scl_slope = nifti_slope;
+    nii_ptr->scl_inter = nifti_inter;
 
     nii_ptr->nvox = 1;          /* Initial value for voxel count */
 
@@ -504,16 +623,6 @@ main(int argc, char **argv)
 
     nii_ptr->nifti_type = nifti_filetype;
 
-    if (nifti_datatype == DT_UNKNOWN) {
-        nii_ptr->datatype = DT_FLOAT32; /* Default */
-        mnc_type = NC_FLOAT;
-        mnc_signed = 1;
-    }
-    else {
-        nii_ptr->datatype = nifti_datatype;
-    }
-
-
     /* Load the direction_cosines and start values into the NIfTI-1 
      * sform structure.
      *
@@ -583,7 +692,7 @@ main(int argc, char **argv)
                          &nii_ptr->nbyper, &nii_ptr->swapsize);
 
 
-    if (!qflag) {
+    if (vflag) {
         nifti_image_infodump(nii_ptr);
     }
 
@@ -595,16 +704,15 @@ main(int argc, char **argv)
         return (-1);
     }
 
-    if (!qflag) {
-        fprintf(stderr, "MINC type %d signed %d\n", mnc_type, mnc_signed);
-    }
-
     mnc_icv = miicv_create();
     miicv_setint(mnc_icv, MI_ICV_TYPE, mnc_type);
     miicv_setstr(mnc_icv, MI_ICV_SIGN, (mnc_signed) ? MI_SIGNED : MI_UNSIGNED);
-    miicv_setdbl(mnc_icv, MI_ICV_VALID_MAX, mnc_vrange[1]);
-    miicv_setdbl(mnc_icv, MI_ICV_VALID_MIN, mnc_vrange[0]);
-    miicv_setint(mnc_icv, MI_ICV_DO_NORM, 1);
+    miicv_setdbl(mnc_icv, MI_ICV_VALID_MAX, output_valid_range[1]);
+    miicv_setdbl(mnc_icv, MI_ICV_VALID_MIN, output_valid_range[0]);
+    miicv_setdbl(mnc_icv, MI_ICV_IMAGE_MAX, real_range[1]);
+    miicv_setdbl(mnc_icv, MI_ICV_IMAGE_MIN, real_range[0]);
+    miicv_setdbl(mnc_icv, MI_ICV_DO_NORM, TRUE);
+    miicv_setdbl(mnc_icv, MI_ICV_USER_NORM, TRUE);
 
     miicv_attach(mnc_icv, mnc_fd, mnc_vid);
 
@@ -627,7 +735,7 @@ main(int argc, char **argv)
     miicv_free(mnc_icv);
     miclose(mnc_fd);
 
-    if (!qflag) {
+    if (vflag) {
         /* Debugging stuff - just to check the contents of these arrays.
          */
         for (i = 0; i < nii_ndims; i++) {
@@ -647,7 +755,7 @@ main(int argc, char **argv)
                       nii_map,
                       nii_dir);
 
-    if (!qflag) {
+    if (vflag) {
         /* More debugging stuff - check coordinate transform.
          */
         test_xform(nii_ptr->sto_xyz, 0, 0, 0);
@@ -656,9 +764,14 @@ main(int argc, char **argv)
         test_xform(nii_ptr->sto_xyz, 0, 0, 10);
         test_xform(nii_ptr->sto_xyz, 10, 10, 10);
     }
-    
-    fprintf(stdout, "Calling NIFTI-1 Write routine\n");
+
+    if (vflag) {
+        fprintf(stdout, "Writing NIfTI-1 file...");
+    }
     nifti_image_write(nii_ptr);
+    if (vflag) {
+        fprintf(stdout, "done.\n");
+    }
 
     return (0);
 }
