@@ -411,13 +411,19 @@ void load_volume(File_Info *file, long start[], long count[],
    }        /* If max/min variables both exist */
 
    /* Get the real range of this volume (offset is min, scale is max) */
-   volume->real_range[0] = volume->offset[0];
-   volume->real_range[1] = volume->scale[0];
-   for (islice=1; islice < volume->size[SLC_AXIS]; islice++) {
-      if (volume->offset[islice] < volume->real_range[0])
-         volume->real_range[0] = volume->offset[islice];
-      if (volume->scale[islice] > volume->real_range[1])
-         volume->real_range[1] = volume->scale[islice];
+   if (volume->datatype == NC_FLOAT || volume->datatype == NC_DOUBLE) {
+      volume->real_range[0] = file->vrange[0];
+      volume->real_range[1] = file->vrange[1];
+   }
+   else {
+      volume->real_range[0] = volume->offset[0];
+      volume->real_range[1] = volume->scale[0];
+      for (islice=1; islice < volume->size[SLC_AXIS]; islice++) {
+         if (volume->offset[islice] < volume->real_range[0])
+            volume->real_range[0] = volume->offset[islice];
+         if (volume->scale[islice] > volume->real_range[1])
+            volume->real_range[1] = volume->scale[islice];
+     }
    }
 
    /* Calculate the scale and offset */

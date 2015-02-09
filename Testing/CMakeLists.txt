@@ -7,6 +7,9 @@ GET_PROPERTY(mincstats_bin TARGET mincstats PROPERTY LOCATION)
 # Get path to mincaverage binary.
 GET_PROPERTY(mincaverage_bin TARGET mincaverage PROPERTY LOCATION)
 
+# Get path to mincaverage binary.
+GET_PROPERTY(mincresample_bin TARGET mincresample PROPERTY LOCATION)
+
 # Copy files used by mincaverage-test
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincaverage-in0.mnc" "${CMAKE_CURRENT_BINARY_DIR}/mincaverage-in0.mnc" COPYONLY)
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincaverage-in1.mnc" "${CMAKE_CURRENT_BINARY_DIR}/mincaverage-in1.mnc" COPYONLY)
@@ -33,5 +36,12 @@ ADD_TEST(minccalc-test ${CMAKE_CURRENT_SOURCE_DIR}/minccalc-test.sh)
 # Set the test's environment.
 SET_TESTS_PROPERTIES(minccalc-test
     PROPERTIES ENVIRONMENT "MINCCALC_BIN=${minccalc_bin};MINCSTATS_BIN=${mincstats_bin}")
+
+# Add the test itself.
+ADD_TEST(mincresample-test ${CMAKE_CURRENT_SOURCE_DIR}/mincresample-test.sh)
+
+# Set its environment variables.
+SET_TESTS_PROPERTIES(mincresample-test
+    PROPERTIES ENVIRONMENT "MINCRESAMPLE_BIN=${mincresample_bin};MINCSTATS_BIN=${mincstats_bin}")
 
 #TODO: add more tests?
