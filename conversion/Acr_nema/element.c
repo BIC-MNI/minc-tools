@@ -454,9 +454,8 @@ void acr_set_element_data(Acr_Element element,
       for (item = (Acr_Element) data_pointer; 
            item != NULL; 
            item=acr_get_element_next(item)) {
-         last_length = acr_get_element_total_length(item, ACR_IMPLICIT_VR);
+         last_length = acr_get_element_total_length(item, acr_get_element_vr_encoding(item));
          data_length += last_length;
-         acr_set_element_vr_encoding(item, ACR_IMPLICIT_VR);
          last2 = last;
          last = item;
       }
@@ -1373,6 +1372,7 @@ Acr_Long acr_get_element_long(Acr_Element element)
    return value;
 }
 
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : acr_get_element_numeric
 @INPUT      : element
@@ -1635,17 +1635,17 @@ maybe_print_as_string(FILE *file_pointer, Acr_Element cur_element,
     int j;
 
     string = acr_get_element_string(cur_element);
-    string_length = element_length;
+    string_length = strlen(string);
     while ((string_length > 0) && (string[string_length-1] == '\0')) {
         string_length--;
     }
 
     /* Print string if short enough and is printable */
     if (element_length > 0 &&
-		  !(acr_get_element_group(cur_element) == 0x7fe0 &&
+        !(acr_get_element_group(cur_element) == 0x7fe0 &&
         acr_get_element_element(cur_element) == 0x0010)) {
         copy = malloc(string_length + 1);
-        printable = (string_length > 0);
+        printable = (string_length > 1);
         for (i=0; i < string_length; i++) {
             if (! isprint((int) string[i])) {
                 printable = FALSE;
@@ -1668,7 +1668,7 @@ maybe_print_as_string(FILE *file_pointer, Acr_Element cur_element,
              */
             string = acr_get_element_data(cur_element);
             fprintf(file_pointer, " byte = ");
-            if (element_length < 1000) {
+            if (element_length < 16) {
                 for (i = 0; i < element_length; i++) {
                     fprintf(file_pointer, "%#x", 
                             (unsigned char)string[i]);
@@ -1800,6 +1800,20 @@ void acr_dump_element_list(FILE *file_pointer,
          case ACR_VR_OW:
             maybe_print_as_string(file_pointer, cur_element,
                                   element_length, 0);
+            break;
+         case ACR_VR_FD:
+            fprintf(file_pointer, "double = ");
+            {
+              double array[1000];
+              long n = acr_get_element_double_array(cur_element, 1000, array);
+              long i;
+              for (i = 0; i < n; i++) {
+                fprintf(file_pointer, "%f", array[i]);
+                if (i != n - 1) {
+                  fprintf(file_pointer, ", ");
+                }
+              }
+            }
             break;
          default:
             (void) fprintf(file_pointer, "value = \"%s\"",

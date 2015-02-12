@@ -1109,7 +1109,7 @@ Acr_Status acr_read_one_element(Acr_File *afp,
    *data_length = (long)datalen;
 
    /* Check for sequence VR */
-   if (is_sequence_vr(vr_name)) {
+   if (is_sequence_vr(vr_name) || grpid == ACR_ITEM_GROUP) {
       *data_pointer = NULL;
       return ACR_OK;
    }
