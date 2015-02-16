@@ -626,6 +626,7 @@ void setup_minc_variables(int mincid, General_Info *general_info,
     nc_type datatype;
     int is_char;
     int ich;
+    int is_flattened;
 
     /* Define the spatial dimension names */
     static char *spatial_dimnames[WORLD_NDIMS] = {MIxspace, MIyspace, MIzspace};
@@ -1057,6 +1058,39 @@ void setup_minc_variables(int mincid, General_Info *general_info,
             if (data == NULL) {
                 length = 0;
             }
+
+            /* If the element is a sequence, we need to flatten out the
+             * data so that we store the actual DICOM data rather than
+             * our internal representation of it. We allocate a 
+             * data buffer to hold the output, because we can't safely 
+             * modify the memory returned by acr_get_element_data().
+             */
+            if (acr_element_is_sequence(cur_element) &&
+                (data = malloc(length)) != NULL) {
+                /* Create a file to store the output. */
+                FILE *fp = tmpfile();
+                Acr_File *afp = acr_file_initialize(fp, 0, acr_stdio_write);
+                Acr_Element item;
+                for (item = (Acr_Element) acr_get_element_data(cur_element);
+                     item != NULL;
+                     item = acr_get_element_next(item)) {
+                    acr_output_element(afp, item);
+                }
+                acr_file_flush(afp);
+                /* Now seek back to the beginning of the temporary file,
+                 * and read in the data we wrote.
+                 */
+                fseek(fp, 0, SEEK_SET);
+                fread(data, 1, length, fp);
+                acr_file_free(afp);
+                fclose(fp);
+                /* Set flag so that we will free() the pointer later on. */
+                is_flattened = 1;
+            }
+            else {
+                is_flattened = 0;
+            }
+
             for (ich=0; ich < length; ich++) {
                 if (!isprint((int) data[ich])) {
                     is_char = FALSE;
@@ -1073,6 +1107,13 @@ void setup_minc_variables(int mincid, General_Info *general_info,
                 ncattput(mincid, varid, name, datatype, length, data);
          
             cur_element = acr_get_element_next(cur_element);
+
+            /* If we had to "flatten" the element because it is a sequence,
+             * remove the resources used to accomplish this.
+             */
+            if (is_flattened) {
+              free(data);
+            }
         }
         cur_group = acr_get_group_next(cur_group);
     }
