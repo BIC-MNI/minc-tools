@@ -124,7 +124,6 @@ GLOBAL_ELEMENT(ACR_Diffusion_b_value     , 0x0018, 0x9087, FD);
 GLOBAL_ELEMENT(ACR_Diffusion_gradient_orientation, 0x0018, 0x9089, FD);
 GLOBAL_ELEMENT(ACR_MR_Diffusion_seq      , 0x0018, 0x9117, SQ);
 GLOBAL_ELEMENT(ACR_Diffusion_anisotropy_type, 0x0018, 0x9147, CS);
-GLOBAL_ELEMENT(ACR_B_matrix, 0x0019, 0x1027, FD); /*added by ilana, seems to exits for software >= VB*/
 
 GLOBAL_ELEMENT(ACR_Series_instance_UID   , 0x0020, 0x000E, UI);
 GLOBAL_ELEMENT(ACR_Study                 , 0x0020, 0x0010, SH);

@@ -249,6 +249,17 @@ is_numaris3(Acr_Group group_list)
                    "VB33") != NULL);
 }
 
+
+int
+get_subimage_count(const Acr_Group group_list)
+{
+  int result = acr_find_int(group_list, ACR_Number_of_frames, 0);
+  if (result <= 0) {
+    result = acr_find_int(group_list, EXT_Slices_in_file, 1);
+  }
+  return result;
+}
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : init_general_info
    @INPUT      : fi_ptr - file-specific info
@@ -287,21 +298,12 @@ init_general_info(General_Info *gi_ptr, /* OUT */
                   int acq_id,   /* IN */
                   int rec_num)  /* IN */
 {
-    Acr_Element_Id mri_total_list[MRI_NDIMS];
     int ivalue;                 /* For pixel representation value. */
     World_Index iworld; /* World coordinate index (XCOORD, YCOORD...) */
     World_Index jworld;         /* World coordinate index */
     Volume_Index ivolume; /* Voxel coordinate index (VROW, VCOLUMN...) */
     Mri_Index imri;
     int index;
-
-    // Initialize array for MRI dimension lengths
-    //
-    mri_total_list[SLICE] = ACR_Images_in_acquisition;
-    mri_total_list[ECHO] = ACR_Echo_train_length;
-    mri_total_list[TIME] = ACR_Acquisitions_in_series;
-    mri_total_list[PHASE] = NULL;
-    mri_total_list[CHEM_SHIFT] = NULL;
 
     // Get row and columns sizes
     gi_ptr->nrows = spatial_sizes[VROW];
@@ -316,117 +318,6 @@ init_general_info(General_Info *gi_ptr, /* OUT */
     strcpy(gi_ptr->image_type_string, acr_find_string(group_list,
                                                       ACR_Image_type,
                                                       ""));
-
-    /* Get dimension information 
-     */
-    for (imri = 0; imri < MRI_NDIMS; imri++) {
-
-        /* Get sizes along "MRI" dimensions... 
-         */
-        gi_ptr->cur_size[imri] = 1;
-
-        if (mri_total_list[imri] != NULL) {
-            int def_val = 1;
-
-            /* Special case for slice index - need to look at the 
-             * new standard element 0x0020:0x1002 "Images in 
-             * Acquisition".  We use this as a default, but override
-             * it with the Siemens-specific value if present.
-             */
-            if (imri == SLICE) {
-                /* Look for the standard slice count fields first. We
-                 * start with the (0054, 0081) first, and if that fails
-                 * we retry with (0020, 1002).
-                 */
-                def_val = acr_find_int(group_list, ACR_Number_of_slices, 0);
-                if (def_val == 0) {
-                    def_val = acr_find_int(group_list,
-                                           ACR_Images_in_acquisition,
-                                           1);
-                }
-            }
-
-            if (imri == TIME) {
-                /* Look for the official time slice count field first.
-                 */
-                def_val = acr_find_int(group_list,
-                                       ACR_Number_of_temporal_positions,
-                                       0);
-
-                def_val = acr_find_int(group_list,
-                                       ACR_Number_of_time_slices,
-                                       def_val);
-		
-		/*Sometimes need to look further for time count (ex:segmented FLASH)*/
-		def_val = acr_find_int(group_list,
-                                       ACR_Cardiac_number_of_images,
-                                       def_val);
-
-            }
-            gi_ptr->max_size[imri] = acr_find_int(group_list,
-                                                  mri_total_list[imri],
-                                                  def_val);
-        }
-        else {
-            gi_ptr->max_size[imri] = 0;
-        }
-
-        /* We alway specify a maximum size of one for an unknown dimension,
-         * but we want to keep track of those for which no valid value
-         * was actually discovered (bert).
-         */
-        if (gi_ptr->max_size[imri] < 1) {
-            gi_ptr->max_size[imri] = 1;
-            gi_ptr->size_isset[imri] = 0;
-        }
-        else {
-            gi_ptr->size_isset[imri] = 1;
-        }
-
-        /* Check for 3D partitions for slice dimensions */
-        if (imri == SLICE) {
-            /* Get number of 3D partitions for working out number of
-             * slices
-             */
-            int number_of_3D_partitions =  
-                acr_find_int(group_list, SPI_Number_of_3D_raw_partitions_nominal, 1);
-            if (number_of_3D_partitions < 1) {
-                number_of_3D_partitions = 1;
-            }
-
-            gi_ptr->max_size[imri] *= number_of_3D_partitions;
-        }
-
-        gi_ptr->default_index[imri] = fi_ptr->index[imri];
-        gi_ptr->image_index[imri] = -1;
-	
-        /* Allocate space for index and coordinate arrays.
-         * Set the first values.
-         */
-
-        gi_ptr->indices[imri] = malloc(gi_ptr->max_size[imri] * sizeof(int));
-
-        gi_ptr->coordinates[imri] = 
-            malloc(gi_ptr->max_size[imri] * sizeof(double));
-
-        gi_ptr->widths[imri] = 
-            malloc(gi_ptr->max_size[imri] * sizeof(double));
-
-        for (index = 0; index < gi_ptr->max_size[imri]; index++) {
-            gi_ptr->indices[imri][index] = -1;
-            gi_ptr->coordinates[imri][index] = 0;
-            gi_ptr->widths[imri][index] = 0; /* default */
-        }
-        gi_ptr->search_start[imri] = 0;
-        gi_ptr->indices[imri][0] = fi_ptr->index[imri];
-        gi_ptr->coordinates[imri][0] = fi_ptr->coordinate[imri];
-        gi_ptr->widths[imri][0] = fi_ptr->width[imri];
-
-        if (G.Debug) {
-            printf("%2d. %s axis length %d\n",
-                   imri, Mri_Names[imri], gi_ptr->max_size[imri]);
-        }
-    } /* Loop over dimensions */
 
     /* Get spatial coordinate information */
     gi_ptr->slice_world = volume_to_world[VSLICE];
@@ -523,6 +414,268 @@ init_general_info(General_Info *gi_ptr, /* OUT */
     }
 }
 
+void
+get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_Info *fi_ptr)
+{
+  Acr_Element_Id mri_total_list[MRI_NDIMS];
+  int imri;
+  int index;
+
+  // Initialize array for MRI dimension lengths
+  //
+  mri_total_list[SLICE] = ACR_Images_in_acquisition;
+  mri_total_list[ECHO] = ACR_Echo_train_length;
+  mri_total_list[TIME] = ACR_Acquisitions_in_series;
+  mri_total_list[PHASE] = NULL;
+  mri_total_list[CHEM_SHIFT] = NULL;
+
+  /* Get dimension information 
+   */
+  for (imri = 0; imri < MRI_NDIMS; imri++) {
+
+    /* Get sizes along "MRI" dimensions... 
+     */
+    gi_ptr->cur_size[imri] = 1;
+    
+    if (mri_total_list[imri] != NULL) {
+      int def_val = 1;
+
+      if (imri == SLICE) {
+        /* Look for the standard slice count fields first. We
+         * start with the (0054, 0081) first, and if that fails
+         * we retry with (0020, 1002).
+         */
+        def_val = acr_find_int(group_list, ACR_Number_of_slices, 0);
+
+        /* If we have a multiframe image (MOSAIC), use the number of 
+         * frames. This may not be present in some MOSAIC files.
+         */
+        if (def_val == 0) {
+          def_val = acr_find_int(group_list, ACR_Number_of_frames, 0);
+        }
+        if (def_val == 0) {
+          def_val = acr_find_int(group_list, mri_total_list[imri], 0);
+        }
+        gi_ptr->max_size[imri] = def_val;
+      }
+      else if (imri == TIME) {
+        /* Look for the official time slice count field first.
+         */
+        def_val = acr_find_int(group_list,
+                               ACR_Number_of_temporal_positions,
+                               -1);
+        printf("W: %d\n", def_val);
+
+        /* Now look in the equally official but different field.
+         */
+        if (def_val < 0) {
+          def_val = acr_find_int(group_list,
+                                 ACR_Number_of_time_slices,
+                                 def_val);
+          printf("X: %d\n", def_val);
+        }
+
+        if (def_val < 0) {
+          /* Sometimes need to look further for time count (ex:segmented FLASH)
+           */
+          def_val = acr_find_int(group_list,
+                                 ACR_Cardiac_number_of_images,
+                                 def_val);
+          printf("Y: %d\n", def_val);
+          
+        }
+
+        if (def_val <= 0) {
+          def_val = acr_find_int(group_list,
+                                 mri_total_list[imri],
+                                 def_val);
+          printf("Z: %d\n", def_val);
+        }
+
+        if (def_val < 0) {
+          /* As our last resort, we try to determine this by seeing how many
+             files we have, and dividing by the number of slices.
+          */
+          if (gi_ptr->max_size[SLICE] > 1) {
+            int num_per_file = get_subimage_count(group_list);
+            int num_images = gi_ptr->num_files * num_per_file;
+            printf("%d images (%d, %d)\n", num_images, gi_ptr->num_files, 
+                   num_per_file);
+            if ((num_images % gi_ptr->max_size[SLICE]) == 0) {
+              def_val = num_images / gi_ptr->max_size[SLICE];
+            }
+          }
+        }
+
+        gi_ptr->max_size[imri] = def_val;
+
+      }
+      else {
+        gi_ptr->max_size[imri] = acr_find_int(group_list,
+                                              mri_total_list[imri],
+                                              def_val);
+      }
+    }
+    else {
+      gi_ptr->max_size[imri] = 0;
+    }
+
+    /* We alway specify a maximum size of one for an unknown dimension,
+     * but we want to keep track of those for which no valid value
+     * was actually discovered (bert).
+     */
+    if (gi_ptr->max_size[imri] < 1) {
+      gi_ptr->max_size[imri] = 1;
+      gi_ptr->size_isset[imri] = 0;
+    }
+    else {
+      gi_ptr->size_isset[imri] = 1;
+    }
+
+    /* Check for 3D partitions for slice dimensions */
+    if (imri == SLICE) {
+      /* Get number of 3D partitions for working out number of
+       * slices
+       */
+      int number_of_3D_partitions =  
+        acr_find_int(group_list, SPI_Number_of_3D_raw_partitions_nominal, 1);
+      if (number_of_3D_partitions < 1) {
+        number_of_3D_partitions = 1;
+      }
+      /* Do this only if there is a plausible reason to think we need it.
+       */
+      if (gi_ptr->size_isset[imri]) {
+        gi_ptr->max_size[imri] *= number_of_3D_partitions;
+      }
+    }
+
+    gi_ptr->image_index[imri] = -1;
+	
+    /* Allocate space for index and coordinate arrays.
+     * Set the first values.
+     */
+
+    gi_ptr->indices[imri] = malloc(gi_ptr->max_size[imri] * sizeof(int));
+    
+    gi_ptr->coordinates[imri] = 
+      malloc(gi_ptr->max_size[imri] * sizeof(double));
+    
+    gi_ptr->widths[imri] = 
+      malloc(gi_ptr->max_size[imri] * sizeof(double));
+
+    for (index = 0; index < gi_ptr->max_size[imri]; index++) {
+      gi_ptr->indices[imri][index] = -1;
+      gi_ptr->coordinates[imri][index] = 0;
+      gi_ptr->widths[imri][index] = 0; /* default */
+    }
+    gi_ptr->search_start[imri] = 0;
+    
+    if (G.Debug) {
+      printf("%2d. %s axis length %d\n",
+             imri, Mri_Names[imri], gi_ptr->max_size[imri]);
+    }
+  } /* Loop over dimensions */
+}
+
+void
+get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_Info *fi_ptr)
+{
+  Acr_Element_Id mri_index_list[MRI_NDIMS];
+  int imri;
+
+  // Array of elements for mri dimensions
+  mri_index_list[SLICE] = SPI_Current_slice_number;
+  mri_index_list[ECHO] = ACR_Echo_number;
+  // dicom time element may be different on old systems
+  mri_index_list[TIME] = ACR_Temporal_position_identifier;
+  mri_index_list[PHASE] = NULL;
+  mri_index_list[CHEM_SHIFT] = NULL;
+
+  /* Get indices for image in current file
+   */
+  for (imri = 0; imri < MRI_NDIMS; imri++) {
+    if (mri_index_list[imri] != NULL) {
+      int tmp_index = acr_find_int(group_list, mri_index_list[imri], -1);
+
+      if (imri == SLICE) {
+        if (tmp_index < 0) {
+          /* Non-MOSAIC only? */
+          tmp_index = acr_find_int(group_list, ACR_Image, -1);
+        }
+        if (tmp_index < 0) {
+          tmp_index = acr_find_int(group_list, ACR_PET_Image_index, -1);
+        }
+        /* Perform this range check only if absolutely needed.
+         */
+        if (tmp_index >= 1 && 
+            gi_ptr->max_size[SLICE] > 1 &&
+            gi_ptr->max_size[TIME] > 1) {
+          tmp_index = ((tmp_index - 1) % gi_ptr->max_size[SLICE]) + 1;
+        }
+      }
+
+      /* Use alternative index fields for time, if needed.
+       */
+      if (imri == TIME && tmp_index < 0) {
+        int range_check = 1;
+        /* Only use the acquisition number if we've determined it is 
+         * not constant.
+         */
+        if (G.min_acq_num != G.max_acq_num) {
+          tmp_index = acr_find_int(group_list, ACR_Acquisition, -1);
+          /* If the acquisition number corresponds to the time axis,
+           * we DON'T want to perform the range check below.
+           */
+          if (G.max_acq_num == gi_ptr->max_size[TIME]) {
+            range_check = 0;
+          }
+        }
+
+        if (tmp_index < 0) {
+          /* Yet another alternative field from some PET scans.
+           * Generally needs to be range-checked.
+           */
+          tmp_index = acr_find_int(group_list, ACR_PET_Image_index, -1);
+        }
+
+        if (tmp_index < 0) {
+          /* If all else fails, try this. Will almost certainly need
+           * to be range-checked.
+           */
+          tmp_index = acr_find_int(group_list, ACR_Image, -1);
+        }
+
+        /* Force the index to remain inside the established range of the
+         * dimension, if known. Often these values will vary from 1-N
+         * where N is the total number of slices in an acquisition.
+         * We do NOT perform this check if we're dealing with
+         * a mosaic or multiframe image.
+         */
+
+        if (range_check &&
+            tmp_index >= 1 &&
+            gi_ptr->max_size[SLICE] > 1 &&
+            gi_ptr->max_size[TIME] > 1 &&
+            gi_ptr->subimage_type == SUBIMAGE_TYPE_NONE) {
+          /* Keep the index inside the proper range, if known.
+           */
+          tmp_index = ((tmp_index - 1) / gi_ptr->max_size[SLICE]) + 1;
+          //printf("D: %d ", tmp_index);
+        }
+      }
+      if (tmp_index < 0) {
+        tmp_index = 1;
+      }
+      fi_ptr->index[imri] = tmp_index;
+    }
+    else {
+      fi_ptr->index[imri] = 1;
+    }
+    //printf("%s: %d ", Mri_Names[imri], fi_ptr->index[imri]);
+  }
+  //printf("\n");
+}
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : get_file_info
    @INPUT      : group_list - input data
@@ -539,7 +692,7 @@ init_general_info(General_Info *gi_ptr, /* OUT */
    : matter 
    ---------------------------------------------------------------------------- */
 void 
-get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
+get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, const char *file_name)
 {
     Mri_Index imri;             /* MRI index (SLICE, ECHO, TIME, PHASE...) */
     int nrows;                  /* Row count in this file */
@@ -556,17 +709,9 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
     double dircos[VOL_NDIMS][WORLD_NDIMS]; /* Direction cosines */
     double steps[VOL_NDIMS];    /* Step (spacing) coordinates */
     double starts[VOL_NDIMS];   /* Start (origin) coordinates */
-    Acr_Element_Id mri_index_list[MRI_NDIMS];
     Acr_Element_Id mri_total_list[MRI_NDIMS]; /*added by ilana*/
     Acr_Element element;
 
-   // Array of elements for mri dimensions
-   mri_index_list[SLICE] = SPI_Current_slice_number;
-   mri_index_list[ECHO] = ACR_Echo_number;
-   // dicom time element may be different on old systems
-   mri_index_list[TIME] = ACR_Temporal_position_identifier;
-   mri_index_list[PHASE] = NULL;
-   mri_index_list[CHEM_SHIFT] = NULL;
    mri_total_list[SLICE] = SPI_Number_of_slices_nominal;
    mri_total_list[ECHO] = SPI_Number_of_echoes;
    mri_total_list[TIME] = ACR_Acquisitions_in_series;
@@ -583,6 +728,14 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
 
     spatial_sizes[VSLICE] = acr_find_int(group_list, ACR_Images_in_acquisition,
                                          1);
+
+    /* Initialize fields in the File_Info structure.
+     */
+    for (imri = 0; imri < MRI_NDIMS; imri++) {
+      fi_ptr->index[imri] = 0;
+      fi_ptr->width[imri] = 0.0;
+      fi_ptr->coordinate[imri] = 0.0;
+    }
 
     /* Get intensity information
      */
@@ -604,82 +757,34 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
      */
     get_identification_info(group_list, &study_id, &acq_id, &rec_num, NULL);
 
-    /* Get indices for image in current file
-     */
-   for (imri=0; imri < MRI_NDIMS; imri++) {
-     
-     if (mri_index_list[imri] != NULL) {
-       int tmp_index = acr_find_int(group_list, mri_index_list[imri], -1);
+    if (!gi_ptr->initialized) {
+      get_axis_lengths(group_list, gi_ptr, fi_ptr);
+      spatial_sizes[VSLICE] = gi_ptr->max_size[SLICE];
+    }
 
-       /* Use alternative index fields for time, if needed.
-        */
-       if (imri == TIME && tmp_index <= 0) {
-         tmp_index = acr_find_int(group_list, ACR_Acquisition, -1);
+    get_file_indices(group_list, gi_ptr, fi_ptr);
+    
+    if (!gi_ptr->initialized) {
+      for (imri = 0; imri < MRI_NDIMS; imri++) {
+        gi_ptr->default_index[imri] = fi_ptr->index[imri];
+      }
+    }
 
-         if (tmp_index <= 0) {
-           tmp_index = acr_find_int(group_list, ACR_Image, -1);
-         }
-
-         /* Yet another alternative field from some PET scans.
-          */
-         if (tmp_index <= 0) {
-           tmp_index = acr_find_int(group_list, ACR_PET_Image_index, -1);
-
-           /* Force the index to remain inside the established range of the
-            * dimension, if known. Often these values will vary from 1-N
-            * where N is the total number of slices in an acquisition.
-            */
-           if (tmp_index >= 1 && 
-               gi_ptr->max_size[SLICE] > 1 &&
-               gi_ptr->max_size[TIME] > 1) {
-             /* Keep the index inside the proper range, if known.
-              */
-             tmp_index = (((tmp_index - 1) / gi_ptr->max_size[SLICE]) % gi_ptr->max_size[TIME]) + 1;
-           }
-         }
-       }
-
-       if (tmp_index <= 0) {
-         tmp_index = 1;
-       }
-       fi_ptr->index[imri] = tmp_index;
-     }
-     else {
-       fi_ptr->index[imri] = 1;
-     }
-   }
-
-    /* Get coordinate information
+    /* Get coordinate information. This needs to be done before we call
+     * init_general_info().
      */
     get_coordinate_info(group_list, fi_ptr, &orientation, volume_to_world,
                         spatial_sizes, dircos, steps, starts, coordinate);
 
     /*
      * Use the coordinate information rather than the slice or time
-     * position derived above.  This seems to be much more reliable.
+     * position derived above.  This seems to be much more reliable with
+     * IMA files, but not for real DICOM.
      */
-
-    fi_ptr->index[SLICE] = irnd(fi_ptr->coordinate[SLICE] * 100.0);
-
-    /* For non-IMA files, use the time coordinate to order the time.
-     * index.  IMA files do not seem to have a reliable slice time
-     * indicator.
-     *
-     * Multiplying by 100 is done just to convert the coordinate
-     * (in seconds) to a unique integer value. This assumes that
-     * coordinates always differ by at least one hundredth of a second,
-     * which may not be universally true.pwd
-     */
-    /*
-    if (G.file_type != IMA) {
-        fi_ptr->index[TIME] = irnd(fi_ptr->coordinate[TIME] * 100.0);
+    if (G.file_type == IMA) {
+      fi_ptr->index[SLICE] = irnd(fi_ptr->coordinate[SLICE] * 100.0);
     }
-    */
 
-    //ilana debug
-    //int test = fi_ptr->coordinate[TIME];
-    //print ("*******Time coordinate IS: %i\n\n",test);
-    
     /* Set up general info on first pass
      */
     if (!gi_ptr->initialized) {
@@ -694,10 +799,18 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
                           study_id, 
                           acq_id, 
                           rec_num);
+
+        for (imri = 0; imri < MRI_NDIMS; imri++) {
+          gi_ptr->indices[imri][0] = fi_ptr->index[imri];
+          gi_ptr->coordinates[imri][0] = fi_ptr->coordinate[imri];
+          gi_ptr->widths[imri][0] = fi_ptr->width[imri];
+
+          printf("First %s at %d,%f,%f\n", Mri_Names[imri], 
+                 fi_ptr->index[imri],
+                 fi_ptr->coordinate[imri],
+                 fi_ptr->width[imri]);
+        }
     }
-
-    /* Set up file info */
-
     /* Update general info and validate file on later passes 
      */
     else {
@@ -741,90 +854,109 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
             return;
         }
 
-        /* Look to see if indices have changed */
-        for (imri = 0; imri < MRI_NDIMS; imri++) {
-            /* If a dimension is known to have a maximum size of one
-             * or less, we do NOT allow it to grow in any way.  An
-             * exception is made for the slice and time dimensions,
-             * however, since it appears that it is common for them to
-             * be unspecified and can be guessed only by the number of
-             * distinct locations discovered.
-             */
-            if (imri != SLICE && gi_ptr->max_size[imri] <= 1 && 
-                gi_ptr->size_isset[imri]) {
-                if (G.Debug && fi_ptr->index[imri] > 1) {
-                    printf("Warning: merging extra indices on %s axis.\n",
-                            Mri_Names[imri]);
-                }
-                continue;
-            }
-       
-            /* Get current index */
-            cur_index = fi_ptr->index[imri];
-       
-	    //ilana debug
-	    //print ("************CURRENT INDEX IS: %i\n\n",cur_index);
-	    
-            /* Check whether this index is in the list.
-             */
-            if (gi_ptr->cur_size[imri] == 1) {
-                index = ((cur_index == gi_ptr->default_index[imri]) ? 0 : -1);
-            }
-            else {
-                /* Search list of indices for 'cur_index'.  Search is 
-                   started at search_start[] and has maximum length of
-                   cur_size[imri].
-                */
-                index = search_list(cur_index, 
-                                    gi_ptr->indices[imri],
-                                    gi_ptr->cur_size[imri],
-                                    gi_ptr->search_start[imri]);
-            }
-
-            /* If it is not, then add it */
-            if (index < 0) {
-                if (G.Debug >= HI_LOGGING) {
-                    printf("Need to add index %d to %s list, %d/%d\n",
-                           cur_index, Mri_Names[imri],
-                           gi_ptr->cur_size[imri],
-                           gi_ptr->max_size[imri]);
-                }
-
-                /* Check whether we can add a new index */
-                if (gi_ptr->cur_size[imri] >= gi_ptr->max_size[imri]) {
-                    gi_ptr->max_size[imri]++;
-                    gi_ptr->indices[imri] = 
-                        realloc(gi_ptr->indices[imri],
-                                gi_ptr->max_size[imri] * sizeof(int));
-
-                    gi_ptr->coordinates[imri] = 
-                        realloc(gi_ptr->coordinates[imri],
-                                gi_ptr->max_size[imri] * sizeof(double));
-
-                    gi_ptr->widths[imri] = 
-                        realloc(gi_ptr->widths[imri],
-                                gi_ptr->max_size[imri] * sizeof(double));
-                }
-
-	 
-                /* Add the index and coordinate to the lists */
-                index = gi_ptr->cur_size[imri];
-                gi_ptr->search_start[imri] = index;
-                gi_ptr->indices[imri][index] = cur_index;
-                gi_ptr->coordinates[imri][index] = fi_ptr->coordinate[imri];
-                gi_ptr->widths[imri][index] = fi_ptr->width[imri];
-                gi_ptr->cur_size[imri]++;
-	 
-            }
-        }              /* Loop over Mri_Index */
-
         // Update display window info
         if (gi_ptr->window_min > fi_ptr->window_min) 
-            gi_ptr->window_min = fi_ptr->window_min;
+          gi_ptr->window_min = fi_ptr->window_min;
         if (gi_ptr->window_max < fi_ptr->window_max)
-            gi_ptr->window_max = fi_ptr->window_max;
+          gi_ptr->window_max = fi_ptr->window_max;
      
-    }  // Update general info for this file
+
+        /* Look to see if indices have changed */
+        for (imri = 0; imri < MRI_NDIMS; imri++) {
+          /* If a dimension is known to have a maximum size of one
+           * or less, we do NOT allow it to grow in any way.  An
+           * exception is made for the slice and time dimensions,
+           * however, since it appears that it is common for them to
+           * be unspecified and can be guessed only by the number of
+           * distinct locations discovered.
+           */
+          if (imri != SLICE && gi_ptr->max_size[imri] <= 1) {
+            if (/* G.Debug && */ fi_ptr->index[imri] > 1) {
+              printf("Warning: merging extra indices on %s axis: ",
+                     Mri_Names[imri]);
+              printf("  %d %d\n", gi_ptr->max_size[imri],
+                     fi_ptr->index[imri]);
+            }
+            continue;
+          }
+       
+          /* Get current index */
+          cur_index = fi_ptr->index[imri];
+       
+          /* Check whether this index is in the list.
+           */
+          if (gi_ptr->cur_size[imri] == 1) {
+            index = ((cur_index == gi_ptr->default_index[imri]) ? 0 : -1);
+          }
+          else {
+            /* Search list of indices for 'cur_index'.  Search is 
+               started at search_start[] and has maximum length of
+               cur_size[imri].
+            */
+            index = search_list(cur_index, 
+                                gi_ptr->indices[imri],
+                                gi_ptr->cur_size[imri],
+                                gi_ptr->search_start[imri]);
+          }
+
+          /* If it is not, then add it */
+          if (index < 0) {
+            if (G.Debug >= HI_LOGGING) {
+              printf("Need to add index %d to %s list, %d/%d\n",
+                     cur_index, Mri_Names[imri],
+                     gi_ptr->cur_size[imri],
+                     gi_ptr->max_size[imri]);
+            }
+
+            /* Check whether we can add a new index */
+            if (gi_ptr->cur_size[imri] >= gi_ptr->max_size[imri]) {
+              gi_ptr->max_size[imri]++;
+              gi_ptr->indices[imri] = 
+                realloc(gi_ptr->indices[imri],
+                        gi_ptr->max_size[imri] * sizeof(int));
+          
+              gi_ptr->coordinates[imri] = 
+                realloc(gi_ptr->coordinates[imri],
+                        gi_ptr->max_size[imri] * sizeof(double));
+
+              gi_ptr->widths[imri] = 
+                realloc(gi_ptr->widths[imri],
+                        gi_ptr->max_size[imri] * sizeof(double));
+            }
+
+        
+            /* Add the index and coordinate to the lists */
+            index = gi_ptr->cur_size[imri];
+            gi_ptr->search_start[imri] = index;
+            gi_ptr->indices[imri][index] = cur_index;
+            gi_ptr->coordinates[imri][index] = fi_ptr->coordinate[imri];
+            gi_ptr->widths[imri][index] = fi_ptr->width[imri];
+            gi_ptr->cur_size[imri]++;
+
+            if (G.Debug) {
+              printf("Added %s coordinate %f at %d %f %f %f\n", 
+                     Mri_Names[imri], gi_ptr->coordinates[imri][index],
+                     cur_index, coordinate[0], coordinate[1], coordinate[2]);
+            }
+          }
+          else if (G.Debug) {
+            /*
+            printf("%s: %s index %d is already on the list.\n", 
+                   file_name,
+                   Mri_Names[imri], 
+                   cur_index);
+            printf("Existing coordinate: %f, file coordinate: %f\n", 
+                   gi_ptr->coordinates[imri][index],
+                   fi_ptr->coordinate[imri]);
+            */
+          }
+        }              /* Loop over Mri_Index */
+
+
+        //ilana debug
+        //int test = fi_ptr->coordinate[TIME];
+        //print ("*******Time coordinate IS: %i\n\n",test);
+    }
 
     /* Get DTI information if available. 
      */
@@ -844,19 +976,19 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
     fi_ptr->grad_direction[YCOORD] = (double)grad_direction[YCOORD];
     fi_ptr->grad_direction[ZCOORD] = (double)grad_direction[ZCOORD];
 
-    /*Want to add B-matrix if it exists, the problem is that
-    the b=0 image does not even have the field (0019x1027) while
-    the other directions might (AND b=0 is ofen the first image!).
-    Initialize to all 0s and decide later whether to include in header? */
+    /* Want to add B-matrix if it exists, the problem is that
+       the b=0 image does not even have the field while
+       the other directions might (AND b=0 is ofen the first image!).
+       Initialize to all 0s and decide later whether to include in header? 
+    */
     if (gi_ptr->acq.dti) {
-        element = acr_find_group_element(group_list, ACR_B_matrix);
-        int num_bmatrix_elements=6;/*bmatrix should have 6 values*/
+        element = acr_find_group_element(group_list, SPI_B_matrix);
         if (element == NULL ||
-            acr_get_element_double_array(element, num_bmatrix_elements, 
-                                         fi_ptr->b_matrix) != num_bmatrix_elements) {
-            int i=0;
-            for(i;i<num_bmatrix_elements;i++){ 
-                fi_ptr->b_matrix[i]=0; /*bmatrix for b=0 should be 0*/
+            acr_get_element_double_array(element, B_MATRIX_COUNT, 
+                                         fi_ptr->b_matrix) != B_MATRIX_COUNT) {
+            int i;
+            for (i = 0; i < B_MATRIX_COUNT; i++) {
+              fi_ptr->b_matrix[i] = 0; /* bmatrix for b=0 should be 0*/
             }
         }
     }
@@ -1355,7 +1487,7 @@ get_coordinate_info(Acr_Group group_list,
     };
 
     if (G.Debug >= HI_LOGGING) {
-        printf("get_coordinate_info(%lx, ...)\n", (unsigned long) group_list);
+        printf("get_coordinate_info\n");
     }
 
     /* Initialize a few things... */
@@ -1477,8 +1609,8 @@ get_coordinate_info(Acr_Group group_list,
 
     /* If we don't find direction cosines, then assume transverse volume
      */
-    if (!found_dircos[VSLICE] || 
-        !found_dircos[VROW] || 
+    if (!found_dircos[VSLICE] ||
+        !found_dircos[VROW] ||
         !found_dircos[VCOLUMN]) {
 
         if (G.Debug) {

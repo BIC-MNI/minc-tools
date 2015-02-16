@@ -33,6 +33,11 @@ GLOBAL_ELEMENT(GEMS_Fast_phases            , 0x0019, 0x10f2, SS);
 GLOBAL_ELEMENT(GEMS_Sers_private_creator_id, 0x0025, 0x0010, SH);
 GLOBAL_ELEMENT(GEMS_Images_in_series       , 0x0025, 0x1007, SL);
 
+/* From GEHC-DICOM-Conformance_DV231_DOC1143469_Rev1.pdf */
+
+GLOBAL_ELEMENT(GEMS_Rela_private_creator_id, 0x0021, 0x0010, SH);
+GLOBAL_ELEMENT(GEMS_Locations_in_acquisition, 0x0021, 0x104f, SS);
+
 /* not yet fully defined */
 /* from http://www.gehealthcare.com/usen/interoperability/dicom/docs/5162373r1.pdf */
 #if 0

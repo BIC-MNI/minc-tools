@@ -204,6 +204,12 @@ ArgvInfo argTable[] = {
      (char *) &G.mosaic_seq,
      "Mosaic sequence is in descending slice order."},
 
+    {"-ascending", 
+     ARGV_CONSTANT, 
+     (char *) MOSAIC_SEQ_ASCENDING, 
+     (char *) &G.mosaic_seq,
+     "Mosaic sequence is in ascending slice order."},
+
     {"-interleaved", 
      ARGV_CONSTANT, 
      (char *) MOSAIC_SEQ_INTERLEAVED, 
@@ -259,7 +265,7 @@ main(int argc, char *argv[])
     int length;
     int exit_status;
 
-    G.mosaic_seq = MOSAIC_SEQ_ASCENDING; /* Assume ascending by default. */
+    G.mosaic_seq = MOSAIC_SEQ_UNKNOWN; /* Assume ascending by default. */
     G.splitDynScan = FALSE;     /* Don't split dynamic scans by default */
     G.splitEcho = TRUE;         /* Do split by echo by default */
     G.use_stdin = FALSE;        /* Do not read file list from stdin */
@@ -775,8 +781,7 @@ use_the_files(int num_files,
                      (di_ptr[ifile]->dyn_scan_number == cur_dyn_scan_number ||
                       !G.splitDynScan) &&
                      !strcmp(cur_patient_name, di_ptr[ifile]->patient_name) &&
-                     !strcmp(cur_patient_id, di_ptr[ifile]->patient_id) &&
-                     !strcmp(cur_sequence_name, di_ptr[ifile]->sequence_name)) {
+                     !strcmp(cur_patient_id, di_ptr[ifile]->patient_id)) {
 
                 used_file[ifile] = TRUE;
             }
@@ -843,6 +848,35 @@ use_the_files(int num_files,
             }
         }
 
+        /* We also check whether the acquisition number (0x0020, 0x0012) 
+         * and image number (0x0020, 0x0013) are informative or not. 
+         * They are sometimes absent, constant, or otherwise strange.
+         * Determining this ahead of time helps us make good decisions
+         * about how to treat these fields later.
+         */
+        G.max_acq_num = INT_MIN;
+        G.min_acq_num = INT_MAX;
+        G.max_img_num = INT_MIN;
+        G.min_img_num = INT_MAX;
+
+        for (ifile = 0; ifile < acq_num_files; ifile++) {
+          int ix = acq_file_index[ifile];
+
+          if (di_ptr[ix]->dyn_scan_number < G.min_acq_num) {
+            G.min_acq_num = di_ptr[ix]->dyn_scan_number;
+          }
+          if (di_ptr[ix]->dyn_scan_number > G.max_acq_num) {
+            G.max_acq_num = di_ptr[ix]->dyn_scan_number;
+          }
+
+          if (di_ptr[ix]->global_image_number < G.min_img_num) {
+            G.min_img_num = di_ptr[ix]->global_image_number;
+          }
+          if (di_ptr[ix]->global_image_number > G.max_img_num) {
+            G.max_img_num = di_ptr[ix]->global_image_number;
+          }
+        }
+
         user_opts = G.opts;
 
         if (!trust_coord) {
@@ -852,6 +886,56 @@ use_the_files(int num_files,
                 G.opts |= OPTS_NO_LOCATION;
             }
         }
+
+        if (G.min_acq_num == G.max_acq_num) {
+          printf("WARNING: Acquisition number is not informative.\n");
+        }
+        else {
+          int ix = acq_file_index[0];
+          if (G.max_acq_num == di_ptr[ix]->num_dyn_scans) {
+            /* Acquisition number is per scan (e.g. time).
+             */
+            printf("WARNING: Acquisition number is per scan.\n");
+          }
+          else if (G.max_acq_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
+            printf("WARNING: Acquisition number is global.\n");
+          }
+          else {
+            printf("WARNING: Acquisition number is a mystery.\n");
+          }
+              
+        }
+
+        if (G.min_img_num == G.max_img_num) {
+          /* Acquisition number is uninformative.
+           */
+          printf("WARNING: Image number is not informative.\n");
+        }
+        else {
+          int ix = acq_file_index[0];
+
+          if (G.max_img_num == di_ptr[ix]->num_slices_nominal) {
+            printf("WARNING: Image number is per slice.\n");
+          }
+          else if (G.max_img_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
+            printf("WARNING: Image number is global.\n");
+          }
+          else {
+            printf("WARNING: Image number is a mystery.\n");
+          }
+        }
+
+        if (G.min_acq_num < 0 || G.min_acq_num > 1) {
+          printf("WARNING: Minimum acquisition number is %d\n", G.min_acq_num);
+        }
+
+        if (G.min_img_num < 0 || G.min_img_num > 1) {
+          printf("WARNING: Minimum image number is %d\n", G.min_img_num);
+        }
+        
+        printf("INFO: Acquisition number ranges from %d to %d\n", G.min_acq_num, G.max_acq_num);
+        printf("INFO: Image number ranges from %d to %d\n", G.min_img_num, G.max_img_num);
+
 
         /* Create minc file
          */

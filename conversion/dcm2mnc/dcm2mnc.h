@@ -260,6 +260,10 @@ struct globals {
     int prefer_coords;           /* In event of slice thickness conflict, 
                                     use the coordinate information rather 
                                     than the slice thickness or spacing. */
+    int min_acq_num;            /* Minimum acquisition number (0020,0012). */
+    int max_acq_num;            /* Maximum acquisition number. */
+    int min_img_num;            /* Minimum image number (0020,0013). */
+    int max_img_num;            /* Maximum image number. */
 };
 
 /* Values for options flags */

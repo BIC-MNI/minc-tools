@@ -129,9 +129,19 @@ extern const char *Volume_Names[VOL_NDIMS];
 /* Orientations */
 typedef enum {TRANSVERSE = 0, SAGITTAL, CORONAL, NUM_ORIENTATIONS} Orientation;
 
+/* For dicom_to_minc(), these codes specify whether we are dealing
+ * with a "normal" DICOM sequence, a Siemens mosaic sequence, or a
+ * DICOM multiframe sequence.
+ */
+#define SUBIMAGE_TYPE_NONE 0
+#define SUBIMAGE_TYPE_MOSAIC 1
+#define SUBIMAGE_TYPE_MULTIFRAME 2
+
 /* Structure for general info about files */
 typedef struct {
     int initialized;
+    int num_files;
+    int subimage_type;
     double study_id;
     int acq_id;                 /* Time of scan */
     int rec_num;
@@ -239,9 +249,13 @@ typedef struct {
     Acr_Group group_list;
 } General_Info;
 
+#define B_MATRIX_COUNT 6
+
 /* Structure for file-specific info */
 typedef struct {
    int valid;
+   const char *name;
+   Acr_Group group_list;
    int bits_alloc;
    int bits_stored;
    int index[MRI_NDIMS];
@@ -255,7 +269,7 @@ typedef struct {
    double width[MRI_NDIMS];     /* Sample width along each MRI dimension */
    double b_value;              /* DTI b-value, if present */
    double grad_direction[WORLD_NDIMS]; /* DTI gradient direction */
-   double b_matrix[6]; 
+   double b_matrix[B_MATRIX_COUNT]; 
 } File_Info;
 
 /* Structure for storing the actual image data */

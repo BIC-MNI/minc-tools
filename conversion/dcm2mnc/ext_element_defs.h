@@ -34,6 +34,12 @@ GLOBAL_ELEMENT(EXT_MrProt_dump                        , 0x0023, 0x0006, LO);
 GLOBAL_ELEMENT(EXT_Diffusion_b_value                  , 0x0023, 0x0007, LO);
 GLOBAL_ELEMENT(EXT_Delay_in_TR                        , 0x0023, 0x0008, LO); /*add for fMRI scans*/
 /*Can't find slice acquisition in any standard fields; using ASCONV header sSliceArray.ucMode  ilana*/
+
 /*0x1 ascending 0x2 descending 0x3 interleaved*/
-GLOBAL_ELEMENT(EXT_Slice_order		      , 0x0023, 0x0009, LO); 
+GLOBAL_ELEMENT(EXT_Slice_order		      , 0x0023, 0x0009, LO);
+
+/* Non-zero if slice order is inverted. */ 
 GLOBAL_ELEMENT(EXT_Slice_inverted             , 0x0023, 0x000A, LO);
+
+/* Slice orientation: 1 -> SAGITTAL, 2 -> CORONAL, 0 -> TRANSVERSE */
+GLOBAL_ELEMENT(EXT_Slice_orientation          , 0x0023, 0x000B, LO);

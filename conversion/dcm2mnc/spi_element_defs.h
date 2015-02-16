@@ -61,6 +61,13 @@ GLOBAL_ELEMENT(SPI_PMS_cc_position2                   , 0x0019, 0x110c, DS);
 /* left-right position (MINC Z) */
 GLOBAL_ELEMENT(SPI_PMS_ap_position2                   , 0x0019, 0x110d, DS);
 
+/* These are the actual Siemens values. */
+GLOBAL_ELEMENT(SPI_Private_creator                    , 0x0019, 0x0010, LO);
+GLOBAL_ELEMENT(SPI_Image_header_type                  , 0x0019, 0x1008, CS);
+GLOBAL_ELEMENT(SPI_Diffusion_b_value                  , 0x0019, 0x100c, IS);
+GLOBAL_ELEMENT(SPI_Diffusion_gradient_direction       , 0x0019, 0x100e, FD);
+GLOBAL_ELEMENT(SPI_B_matrix                           , 0x0019, 0x1027, FD); /*added by ilana, seems to exits for software >= VB*/
+
 GLOBAL_ELEMENT(SPI_Number_of_data_bytes               , 0x0019, 0x1060, IS);
 GLOBAL_ELEMENT(SPI_Fourier_lines_nominal              , 0x0019, 0x1220, IS);
 GLOBAL_ELEMENT(SPI_Fourier_lines_after_zero           , 0x0019, 0x1226, IS);
