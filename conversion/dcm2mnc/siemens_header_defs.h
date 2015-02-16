@@ -255,18 +255,18 @@ struct ima_siemens_0021
     ima_orientation_t OrientationSet1; /* 1170 0F28 */
     ima_orientation_t OrientationSet2; /* 1171 0F34 */
     char StudyName[N_STRING + 1]; /* 1180 0F40 */
-    int32_t StudyType;          /* 1182 */
-    flt64_t ImageMagnificationFactor; /* 1122 */
-    char pad4[40];
-    int32_t NumberOf3DRawPartNom; /* 1330 */
-    int32_t NumberOf3DRawPartCur; /* 1331 */
-    int32_t NumberOf3DImaPart;  /* 1334 */
-    int32_t Actual3DImaPartNumber; /* 1336 */
+    int32_t StudyType;          /* 1182 0F5C */
+    flt64_t ImageMagnificationFactor; /* 1122 0F60 */
+    char pad4[40];                    /* XXXX 0F68 */
+    int32_t NumberOf3DRawPartNom; /* 1330 0F90 */
+    int32_t NumberOf3DRawPartCur; /* 1331 0F94 */
+    int32_t NumberOf3DImaPart;  /* 1334 0F98 */
+    int32_t Actual3DImaPartNumber; /* 1336 0F9C */
     char pad5[4];
-    int32_t NumberOfSlicesNom;  /* 1340 */
-    int32_t NumberOfSlicesCur;  /* 1341 */
-    int32_t CurrentSliceNumber; /* 1342 */
-    int32_t CurrentGroupNumber; /* 1343 */
+    int32_t NumberOfSlicesNom;  /* 1340 0FA4 */
+    int32_t NumberOfSlicesCur;  /* 1341 0FA8 */
+    int32_t CurrentSliceNumber; /* 1342 0FAC */
+    int32_t CurrentGroupNumber; /* 1343 0FB0 */
     char pad7[88];              /* Dummy padding */
     int32_t NumberOfEchoes;     /* 1370 */
     char pad9[32];              /* Dummy padding */
