@@ -862,6 +862,58 @@ static void check_imageminmax(File_Info *fp, Volume_Data *volume)
 
 }
 
+/**
+ * Scans through an array of values from an irregular dimension and
+ * verifies that they seem reasonable.
+ *
+ * \todo Should this sort the values or otherwise perform a more robust
+ * check for repeated values? We could probably afford the O(N^2) check
+ * of searching the list for every element, but it is probably overkill.
+ *
+ * \param coord_ptr Pointer to the array of coordinate values.
+ * \param length The length of the coord_ptr array.
+ * \returns TRUE if the array seems correct.
+ */
+int
+check_irregular_dimension(double *coord_ptr, int length)
+{
+  int i;
+  double first_delta;
+
+  if (length <= 1) {
+    /* No further checking is possible. */
+    return TRUE;
+  }
+
+  if (length == 2) {
+    /* Just verify that the values are distinct. */
+    return coord_ptr[0] != coord_ptr[1];
+  }
+
+  /* Else check the beginning of the array. 
+   */
+  first_delta = coord_ptr[1] - coord_ptr[0];
+  if (first_delta == 0.0) {
+    return FALSE;
+  }
+
+  /* Then check the rest.
+   */
+  for (i = 2; i < length; i++) {
+    double temp_delta = coord_ptr[i] - coord_ptr[i - 1];
+    /* If the delta is zero, we have a repeated value, which is
+     * bad. Alternatively, if the sign changes, we have a non-monotonic
+     * irregular dimension. This is also probably bad.
+     */
+    if (temp_delta == 0.0 ||
+        temp_delta < 0.0 && first_delta > 0.0 ||
+        temp_delta > 0.0 && first_delta < 0.0) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : get_file_info
 @INPUT      : filename - name of file to read
@@ -1033,14 +1085,20 @@ static void get_file_info(char *filename, int initialized_volume_def,
             volume_def->coords[cur_axis] = NULL;
             continue;
          }
+         if (!check_irregular_dimension(volume_def->coords[cur_axis], dimlength)) {
+           (void) fprintf(stderr, "WARN: Irregular dimension in file %s contains non-monotonic or repeated values.\n", filename);
+         }
          volume_def->start[cur_axis] = volume_def->coords[cur_axis][0];
          if (dimlength > 1) {
             volume_def->step[cur_axis] = 
                (volume_def->coords[cur_axis][dimlength-1] - 
                             volume_def->coords[cur_axis][0]) /
                                (dimlength - 1);
-            if (volume_def->step[cur_axis] == 0.0)
+            if (volume_def->step[cur_axis] == 0.0) {
+               (void) fprintf(stderr, "WARN: Something is wrong with the irregular dimension in file %s.\n", filename);
+               (void) fprintf(stderr, "      Substituting a step size of 1.0.\n");
                volume_def->step[cur_axis] = 1.0;
+            }
          }
       }
       ncopts = NC_VERBOSE | NC_FATAL;
