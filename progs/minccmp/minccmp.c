@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <math.h>
 #include <float.h>
+#include <string.h>
+
 #include <voxel_loop.h>
 #include <ParseArgv.h>
 
@@ -38,6 +40,23 @@
 #endif
 
 #define SQR2(x) ((x) * (x))
+
+/* For Dice statistics, this defines the largest label value on which
+ * we can report. We don't bother to report statistics for labels that
+ * are not present in the file.
+ */
+#define MAX_CMATRIX 10
+
+/* Structure which is used to accumulate the overall similarity
+ * measures.
+ */
+struct aggregate_similarity {
+  double dice_num, dice_den;    /* Dice. */
+  double sens_num, sens_den;    /* Sensitivity. */
+  double spec_num, spec_den;    /* Specificity. */
+  double acc_num, acc_den;      /* Accuracy. */
+  double kappa_num, kappa_den;  /* Kappa. */
+};
 
 typedef struct {
    double   nvox;
@@ -62,6 +81,8 @@ typedef struct {
    double   xcorr;
    double   zscore;
    double   vratio;
+
+   size_t   cmatrix[MAX_CMATRIX][MAX_CMATRIX]; /* Confusion matrix */
    } Vol_Data;
 
 typedef struct {
@@ -86,6 +107,7 @@ void     pass_1(void *caller_data, long num_voxels,
                 int output_num_buffers, int output_vector_length,
                 double *output_data[], Loop_Info * loop_info);
 void     print_result(char *title, double result);
+void     print_id_result(char *title, int id, double result);
 void     dump_stats(Loop_Data * ld);
 void     do_int_calcs(Loop_Data * ld);
 void     do_final_calcs(Loop_Data * ld);
@@ -106,6 +128,7 @@ static int do_rmse = FALSE;
 static int do_xcorr = FALSE;
 static int do_zscore = FALSE;
 static int do_vratio = FALSE;
+static int do_sim = FALSE;
 
 ArgvInfo argTable[] = {
    {"-verbose", ARGV_CONSTANT, (char *)TRUE, (char *)&verbose,
@@ -147,6 +170,8 @@ ArgvInfo argTable[] = {
     "cross correlation (2 volumes)"},
    {"-zscore", ARGV_CONSTANT, (char *)TRUE, (char *)&do_zscore,
     "z-score (2 volumes)"},
+   {"-similarity", ARGV_CONSTANT, (char *)TRUE, (char *)&do_sim,
+    "Similarity measures for labeled volumes (2 volumes)"},
 //   {"-vr", ARGV_CONSTANT, (char *)TRUE, (char *)&do_vratio,
 //    "variance ratio (2 volumes)"},
 
@@ -178,7 +203,7 @@ int main(int argc, char *argv[]){
    infiles = &argv[1];
 
    /* check arguments */
-   if(!do_rmse && !do_xcorr && !do_zscore && !do_vratio && !do_ssq){
+   if(!do_rmse && !do_xcorr && !do_zscore && !do_vratio && !do_ssq && !do_sim){
       do_all = TRUE;
       }
    if(do_all){
@@ -243,6 +268,8 @@ int main(int argc, char *argv[]){
       ld.vd[i].xcorr = 0.0;
       ld.vd[i].zscore = 0.0;
       ld.vd[i].vratio = 0.0;
+
+      memset(ld.vd[i].cmatrix, 0, sizeof(ld.vd[i].cmatrix));
       }
 
    /* set up and do voxel_loop(s) */
@@ -291,6 +318,89 @@ int main(int argc, char *argv[]){
      }
      if(do_zscore){
        print_result("zscore:       ", ld.vd[i].zscore);
+     }
+     if (do_sim) {
+       double nvox = ld.vd[i].nvox;
+       int j, k;
+       struct aggregate_similarity agg_sim = { 0 };
+
+       if (!quiet) {
+         printf("id  dice    sens.   spec.   acc.    kappa\n");
+       }
+
+       /* Calculate the Jaccard or Dice coefficients */
+       for (j = 0; j < MAX_CMATRIX; j++) {
+         size_t true_pos = ld.vd[i].cmatrix[j][j];
+         size_t false_pos = 0;
+         size_t true_neg = 0;
+         size_t false_neg = 0;
+         size_t ab_total = 0; /* Total voxels with this label. */
+         size_t a_total = 0;
+         size_t b_total = 0;
+         double dice_similarity_coefficient;
+         double sensitivity;
+         double specificity;
+         double accuracy;
+         double kappa;
+
+         /* Sum all voxels either correctly or incorrectly classified as
+          * class 'j':
+          */
+         for (k = 0; k < MAX_CMATRIX; k++) {
+           a_total += ld.vd[i].cmatrix[j][k];
+           b_total += ld.vd[i].cmatrix[k][j];
+         }
+         ab_total = a_total + b_total;
+         false_pos = b_total - true_pos;
+         false_neg = a_total - true_pos;
+         true_neg = nvox - (true_pos + false_pos + false_neg);
+
+         if (ab_total == 0) {
+           continue;
+         }
+         dice_similarity_coefficient =  (2.0 * true_pos) / ab_total;
+         sensitivity = (double) true_pos / (true_pos + false_neg);
+         specificity = (double) true_neg / (true_neg + false_pos);
+         accuracy = (double) (true_pos + true_neg) / nvox;
+         kappa = (double) (nvox * true_pos - a_total * b_total) / (nvox * a_total - a_total * b_total);
+         printf("%2d  %.4f  %.4f  %.4f  %.4f  %.4f\n",
+                j, 
+                dice_similarity_coefficient,
+                sensitivity,
+                specificity,
+                accuracy,
+                kappa);
+
+         agg_sim.sens_num += true_pos;
+         agg_sim.sens_den += (true_pos + false_neg);
+         agg_sim.spec_num += true_neg;
+         agg_sim.spec_den += (true_neg + false_pos);
+         agg_sim.acc_num += (true_pos + true_neg);
+         agg_sim.acc_den += nvox;
+         agg_sim.kappa_num += nvox * true_pos - a_total * b_total;
+         agg_sim.kappa_den += nvox * a_total - a_total * b_total;
+       }
+
+       /* This code for the overall Dice statistic is copied more-or-less
+        * exactly from voldiff.c
+        */
+       for (j = 1; j < MAX_CMATRIX; j++) {
+         for (k = 1; k < MAX_CMATRIX; k++) {
+           agg_sim.dice_num += ld.vd[i].cmatrix[j][k];
+         }
+       }
+       agg_sim.dice_den = 2.0 * agg_sim.dice_num;
+       for (j = 1; j < MAX_CMATRIX; j++) {
+         agg_sim.dice_num += ld.vd[i].cmatrix[j][j];
+         agg_sim.dice_den += ld.vd[i].cmatrix[0][j];
+         agg_sim.dice_den += ld.vd[i].cmatrix[j][0];
+       }
+       printf(" X  %.4f  %.4f  %.4f  %.4f  %.4f\n",
+              agg_sim.dice_num / agg_sim.dice_den,
+              agg_sim.sens_num / agg_sim.sens_den,
+              agg_sim.spec_num / agg_sim.spec_den,
+              agg_sim.acc_num / agg_sim.acc_den,
+              agg_sim.kappa_num / agg_sim.kappa_den);
      }
      if(!quiet){
        fprintf(stdout, "\n");
@@ -345,6 +455,22 @@ void pass_0(void *caller_data, long num_voxels,
             ld->vd[i].nvox++;
             ld->vd[i].sum += valuei;
             ld->vd[i].ssum += SQR2(valuei);
+
+            if (do_sim) {
+              unsigned int iv0 = floor(value0);
+              unsigned int ivi = floor(valuei);
+              if (fabs(iv0 - value0) > 0.01 || fabs(ivi - valuei) > 0.01) {
+                fprintf(stderr, "ERROR: This does not appear to be an integer volume, Dice or Jaccard statistics will not be useful.\n");
+                exit(EXIT_FAILURE);
+              }
+              if (iv0 < MAX_CMATRIX && ivi < MAX_CMATRIX) {
+                ld->vd[i].cmatrix[iv0][ivi]++;
+              }
+              else {
+                fprintf(stderr, "ERROR: Can only compute Dice or Jaccard statistics for labeled volumes with a maximum label value of %d.\n", MAX_CMATRIX - 1);
+              }
+
+            }
 
             if(i != 0){
                ld->vd[i].sum_prd0 += valuei * value0;
@@ -465,6 +591,13 @@ void print_result(char *title, double result){
       fprintf(stdout, "%s", title);
       }
    fprintf(stdout, "%.10g\n", result);
+   }
+
+void print_id_result(char *title, int id, double result){
+   if(!quiet){
+      fprintf(stdout, "%s", title);
+      }
+   fprintf(stdout, "%d %.10g\n", id, result);
    }
 
 /* debug function to dump stats structure */
