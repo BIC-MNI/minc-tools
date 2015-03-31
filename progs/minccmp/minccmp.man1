@@ -104,6 +104,13 @@ Print the z-score difference between two input files
    ZSCORE = Sum( |((A - mean(A)) / stdev(A)) -
                   ((B - mean(B)) / stdev(B))| ) / n
 
+.TP
+\fB\-similarity\fR
+Calculate the confusion matrix, assuming that the volume values represent a 
+discrete class of possible values. The maximum label value is currently limited
+to ten (10). Prints the Dice similarity statistic as well as specificity, 
+sensitivity, accuracy, and kappa for each class and for the overall volumes.
+
 .SH Generic options for all commands:
 .TP
 \fB\-help\fR
