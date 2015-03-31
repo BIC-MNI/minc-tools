@@ -36,22 +36,6 @@ char *progname;
 static void
 usage(void)
 {
-#define USAGE   "\
-  [-c]             Coordinate variable data and header information\n\
-  [-h]             Header information only, no data\n\
-  [-v var1[,...]]  Data for variable(s) <var1>,... only\n\
-  [-b [c|f]]       Brief annotations for C or Fortran indices in data\n\
-  [-f [c|f]]       Full annotations for C or Fortran indices in data\n\
-  [-l len]         Line length maximum in data section (default 80)\n\
-  [-n name]        Name for netCDF (default derived from file name)\n\
-  [-p n[,n]]       Display floating-point values with less precision\n\
-  file             File name of input netCDF file\n"
-
-    (void) fprintf(stderr,
-		   "%s [-c|-h] [-v ...] [[-b|-f] [c|f]] [-l len] [-n name] [-p n[,n]] file\n%s",
-		   progname,
-		   USAGE);
-    
     (void) fprintf(stderr,
                  "netcdf library version %s\n",
                  nc_inq_libvers());
@@ -235,7 +219,7 @@ pr_att_vals(
         if (isprint(ch) || ch == '\0' || ch == '\n') {
             for (iel = 0; iel < len-1; iel++) {
                 ch = ((signed char *)vals)[iel];
-                if (!isprint(ch) && ch != '\n') {
+                if (!isprint(ch) && ch != '\n' && ch != '\t' && (ch & 0xff) != 0xa0) {
                     isstring = 0;
                     break;
                 }
@@ -710,7 +694,7 @@ main(int argc, char *argv[])
         {"-h", ARGV_CONSTANT, (char *) true, (char *) &fspec.header_only, 
          "Header information only, no data" }, 
         {"-l", ARGV_INT, (char *) 1, (char *) &max_len, 
-         "Line length maximum in data section (default 80)" },
+         "Line length maximum in data section" },
         {"-n", ARGV_STRING, (char *) 1, (char *) &fspec.name,
          "Name for netCDF (default derived from file name)" },
         {"-p", ARGV_FUNC, (char *) set_precision, (char *) NULL,
