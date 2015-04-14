@@ -1499,6 +1499,13 @@ add_siemens_info(Acr_Group group_list)
              */
 
             if (!strncmp(str_ptr, "2D", 2)) {
+                if (num_slices == 0) {
+                  /* Aw hell. We got all the way here, and there was
+                   * no prior indication of the number of slices in
+                   * the file. We'll have to make it up.
+                   */
+                  num_slices = mosaic_rows * mosaic_cols;
+                }
                 acr_insert_numeric(&group_list, EXT_Slices_in_file, (double)num_slices);
                 acr_insert_numeric(&group_list, 
                                    SPI_Number_of_slices_nominal, (double)num_slices);

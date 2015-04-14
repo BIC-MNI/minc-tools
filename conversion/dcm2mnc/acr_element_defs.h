@@ -84,6 +84,7 @@ GLOBAL_ELEMENT(ACR_Patient_age           , 0x0010, 0x1010, AS);
 GLOBAL_ELEMENT(ACR_Patient_weight        , 0x0010, 0x1030, DS);
 
 GLOBAL_ELEMENT(ACR_Scanning_sequence     , 0x0018, 0x0020, CS);
+GLOBAL_ELEMENT(ACR_Sequence_variant      , 0x0018, 0x0021, CS);
 GLOBAL_ELEMENT(ACR_MR_acquisition_type   , 0x0018, 0x0023, CS);
 GLOBAL_ELEMENT(ACR_Sequence_name         , 0x0018, 0x0024, CS);
 GLOBAL_ELEMENT(ACR_Slice_thickness       , 0x0018, 0x0050, DS);

@@ -1821,37 +1821,49 @@ get_coordinate_info(Acr_Group group_list,
         frame_time = start_time / 1000.0; /* Convert msec to seconds. */
       }
       else {
-        /* time section (rhoge)
-         * now assume that time has been fixed when file was read
+        /* Try to use the repetition time if it is legit. For now we 
+         * make this test very restrictive.
          */
-        start_time = (double)acr_find_double(group_list, ACR_Series_time, 0.0);
-        frame_time = (double)acr_find_double(group_list, ACR_Acquisition_time, 0.0);
-        if (frame_time == 0.0) {
-          /* See if the acquisition datetime contains anything useful. If so
-           * we will use it.
-           */
-          char *dt_str = acr_find_string(group_list, ACR_Acquisition_datetime, "");
-          if (dt_str[0] != 0) {
-            /* If we got the string, it is of the format:
-             *     YYYYMMDDHHMMSS.FFFFFF
-             * We skip the first eight characters because we don't
-             * care about the date.
-             */
-            frame_time = atof(dt_str + 8);
-            /* TODO: We would like a better way of getting the start time,
-             * but there don't seem to be other fields that are 100% reliable.
-             */
-            start_time = 0;
-          }
+        double tr = acr_find_double(group_list, ACR_Repetition_time, -1.0);
+        char *str_seq = acr_find_string(group_list, ACR_Scanning_sequence, "");
+        char *str_var = acr_find_string(group_list, ACR_Sequence_variant, "");
+        if (tr > 0.0 && !strcmp(str_seq, "EP") && !strcmp(str_var, "SK")) {
+          frame_time = (fi_ptr->index[TIME] - 1) * tr / 1000.0;
         }
-        start_time = convert_time_to_seconds(start_time);
-        frame_time = convert_time_to_seconds(frame_time) - start_time;
+        else {
+          /* time section (rhoge)
+           * now assume that time has been fixed when file was read
+           */
+          start_time = (double)acr_find_double(group_list, ACR_Series_time, 0.0);
+          frame_time = (double)acr_find_double(group_list, ACR_Acquisition_time, 0.0);
+          if (frame_time == 0.0) {
+            /* See if the acquisition datetime contains anything useful. If so
+             * we will use it.
+             */
+            char *dt_str = acr_find_string(group_list, ACR_Acquisition_datetime, "");
+            if (dt_str[0] != 0) {
+              /* If we got the string, it is of the format:
+               *     YYYYMMDDHHMMSS.FFFFFF
+               * We skip the first eight characters because we don't
+               * care about the date.
+               */
+              frame_time = atof(dt_str + 8);
+              /* TODO: We would like a better way of getting the start time,
+               * but there don't seem to be other fields that are 100% reliable.
+               */
+              start_time = 0;
+            }
+          }
+          
+          start_time = convert_time_to_seconds(start_time);
+          frame_time = convert_time_to_seconds(frame_time) - start_time;
 
-        /* check for case where scan starts right before midnight,
-         * but frame is after midnight
-         */
-        if (frame_time < 0.0) {
+          /* check for case where scan starts right before midnight,
+           * but frame is after midnight
+           */
+          if (start_time < 600.0 && frame_time < 0.0) {
             frame_time += SECONDS_PER_DAY;
+          }
         }
       }
     }
