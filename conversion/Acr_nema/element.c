@@ -1490,6 +1490,7 @@ long acr_get_element_double_array(Acr_Element element, long max_values,
    /* Check VR of element */
    switch (acr_get_element_vr(element)) {
    case ACR_VR_FD:
+   case ACR_VR_UN:
    case ACR_VR_UNKNOWN:
       break;
    default:
