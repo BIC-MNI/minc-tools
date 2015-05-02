@@ -979,10 +979,10 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
      */
     str_ptr = acr_find_string(group_list, ACR_Acquisition_contrast, "");
     if (strcmp(str_ptr, "DIFFUSION") == 0) {
-      printf("Acquisition contrast properly set.\n");
+      if (G.Debug) printf("Acquisition contrast properly set.\n");
     }
     else {
-      printf("Inserting acquisition contrast\n");
+      if (G.Debug) printf("Inserting acquisition contrast\n");
       acr_insert_string(&group_list, ACR_Acquisition_contrast, "DIFFUSION");
     }
   }
@@ -1081,7 +1081,7 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
       str_ptr2 = strstr(acr_find_string(group_list, ACR_Sequence_name, ""), "#");
 
       if (str_ptr == NULL || str_ptr2 == NULL) {
-        printf("WARNING: Failing to get acquisition number from sequence name.\n");
+        printf("WARNING: Failing to get acquisition number from sequence name '%s'.\n", acr_find_string(group_list, ACR_Sequence_name, ""));
         enc_ix = 0;
       }
       else if(strtol(str_ptr + 1, NULL, 0) == 0) { /*a 0 after the b means b=0 image*/
