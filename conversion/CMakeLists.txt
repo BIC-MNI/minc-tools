@@ -49,15 +49,11 @@ TARGET_LINK_LIBRARIES(minctoecat ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 
 ADD_EXECUTABLE(mnc2nii
    nifti1/mnc2nii.c
-   nifti1/nifti1_io.c
-   nifti1/znzlib.c
    )
 TARGET_LINK_LIBRARIES(mnc2nii ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 
 ADD_EXECUTABLE(nii2mnc
    nifti1/nii2mnc.c
-   nifti1/nifti1_io.c
-   nifti1/znzlib.c
    )
 TARGET_LINK_LIBRARIES(nii2mnc ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 
