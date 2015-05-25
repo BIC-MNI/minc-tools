@@ -4,6 +4,12 @@
 # Get path to mincstats binary.
 GET_PROPERTY(mincstats_bin TARGET mincstats PROPERTY LOCATION)
 
+# Get path to mincinfo binary.
+GET_PROPERTY(mincinfo_bin TARGET mincinfo PROPERTY LOCATION)
+
+# Get path to mincextract binary
+GET_PROPERTY(mincextract_bin TARGET mincextract PROPERTY_LOCATION)
+
 # Get path to mincaverage binary.
 GET_PROPERTY(mincaverage_bin TARGET mincaverage PROPERTY LOCATION)
 
@@ -43,5 +49,13 @@ ADD_TEST(mincresample-test ${CMAKE_CURRENT_SOURCE_DIR}/mincresample-test.sh)
 # Set its environment variables.
 SET_TESTS_PROPERTIES(mincresample-test
     PROPERTIES ENVIRONMENT "MINCRESAMPLE_BIN=${mincresample_bin};MINCSTATS_BIN=${mincstats_bin}")
+
+# Get path to mincaverage binary.
+GET_PROPERTY(mincreshape_bin TARGET mincreshape PROPERTY LOCATION)
+
+ADD_TEST(mincreshape-test ${CMAKE_CURRENT_SOURCE_DIR}/mincreshape-test.pl)
+
+SET_TESTS_PROPERTIES(mincreshape-test
+  PROPERTIES ENVIRONMENT "MINCRESHAPE_BIN=${mincreshape_bin};MINCSTATS_BIN=${mincstats_bin};MINCINFO_BIN=${mincinfo_bin};MINCEXTRACT_BIN=${mincextract_bin}")
 
 #TODO: add more tests?

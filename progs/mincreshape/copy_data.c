@@ -395,6 +395,23 @@ static void handle_normalization(Reshape_info *reshape_info,
    get_block_min_and_max(reshape_info, block_start, block_count,
                          minmax_buffer, &minimum, &maximum);
 
+   /* Calculate the pixel fill value */
+   *fillvalue = ((reshape_info->fillvalue == NOFILL) ? 0.0 :
+                 reshape_info->fillvalue);
+
+   /* If the fillvalue for uninitialized data lies outside the
+    * pre-existing data range, we need to adjust the range
+    * accordingly, which implies renormalization.
+    */
+   if (*fillvalue < minimum) {
+     minimum = *fillvalue;
+     reshape_info->do_block_normalization = TRUE;
+   }
+   if (*fillvalue > maximum) {
+     maximum = *fillvalue;
+     reshape_info->do_block_normalization = TRUE;
+   }
+
    /* Modify the icv if necessary */
    if (reshape_info->do_block_normalization) {
       (void) miicv_detach(icvid);
@@ -433,9 +450,6 @@ static void handle_normalization(Reshape_info *reshape_info,
       }
    }
 
-   /* Calculate the pixel fill value */
-   *fillvalue = ((reshape_info->fillvalue == NOFILL) ? 0.0 :
-                 reshape_info->fillvalue);
    if ((reshape_info->output_datatype != NC_FLOAT) &&
        (reshape_info->output_datatype != NC_DOUBLE) &&
        (*fillvalue != FILL)) {
