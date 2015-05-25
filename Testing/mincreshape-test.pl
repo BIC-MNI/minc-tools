@@ -95,7 +95,6 @@ for (my $i = 0; $i < 5; $i++)
     if ($a1[$i] != $a2[5-$i-1])
     {
         $errors++;
-        print "$i $a1[$i] $a2[5-$i-1]\n";
         print "Test 4 failed data direction check.\n";
     }
 }
@@ -108,6 +107,23 @@ if ($h4[0] != 25 || $h4[1] != 25 || $h4[2] != 25 ||
     print "Test 4 failed histogram check.\n";
 }
 
+# Case 5 - Now test a harder case where the fill data is out of range.
+
+system("$mincreshape_bin -clobber -quiet -unsigned -byte test-rnd.mnc mincreshape-t5a.mnc");
+system("$mincreshape_bin -quiet -fillvalue 100 -clobber -start -1,0,0 mincreshape-t5a.mnc mincreshape-t5.mnc");
+my $r1=`$mincstats_bin -clobber -integer_histogram -histogram mincreshape-t5.txt -quiet -sum mincreshape-t5.mnc`;
+my @h5 = read_histogram('mincreshape-t5.txt');
+if ($h5[0] != 20 || $h5[1] != 20 || $h5[2] != 20 ||
+    $h5[3] != 20 || $h5[4] != 20 || $h5[100] != 25)
+{
+    $errors++;
+    print "Test 5 failed histogram check.\n";
+    for (my $i = 0; $i <= 1000; $i++)
+    {
+        print "$i $h5[$i]\n" if $h5[$i] != 0;
+    }
+}
+
 print "OK.\n" if $errors == 0;
 print
 exit $errors > 0;
@@ -115,7 +131,7 @@ exit $errors > 0;
 
 sub read_histogram {
     my @hist = ();
-    my ($filename) = @_;
+   my ($filename) = @_;
     open(my $fh, "<", $filename);
     foreach my $line (<$fh>) {
         if ($line !~ /^#/)

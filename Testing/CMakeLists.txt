@@ -8,7 +8,7 @@ GET_PROPERTY(mincstats_bin TARGET mincstats PROPERTY LOCATION)
 GET_PROPERTY(mincinfo_bin TARGET mincinfo PROPERTY LOCATION)
 
 # Get path to mincextract binary
-GET_PROPERTY(mincextract_bin TARGET mincextract PROPERTY_LOCATION)
+GET_PROPERTY(mincextract_bin TARGET mincextract PROPERTY LOCATION)
 
 # Get path to mincaverage binary.
 GET_PROPERTY(mincaverage_bin TARGET mincaverage PROPERTY LOCATION)
