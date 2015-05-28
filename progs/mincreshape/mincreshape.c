@@ -600,7 +600,7 @@ static int get_dimsize(char *dst, char *key, char *nextArg)
 
    /* Get the size */
    size_string++;
-   dimsize_list->size[ientry] = strtol(size_string, &cur, 0);
+   dimsize_list->size[ientry] = ParseLong(size_string, &cur);
    if (cur == size_string) {
       (void) fprintf(stderr,
                      "\"%s\" option requires the argument <dim>=<size>\n",
@@ -776,7 +776,7 @@ static int get_axis_range(char *dst, char *key, char *nextArg)
 
    /* Get the start */
    num_string++;
-   axis_ranges->start[ientry] = strtol(num_string, &cur, 0);
+   axis_ranges->start[ientry] = ParseLong(num_string, &cur);
    if ((cur == num_string) || 
        !(ISSPACE(*cur) || (*cur == ARG_SEPARATOR) || (*cur == '\0'))) {
       (void) fprintf(stderr,
@@ -793,7 +793,7 @@ static int get_axis_range(char *dst, char *key, char *nextArg)
 
    /* Look for a count string */
    num_string = cur;
-   axis_ranges->count[ientry] = strtol(num_string, &cur, 0);
+   axis_ranges->count[ientry] = ParseLong(num_string, &cur);
    if ((cur == num_string) || (axis_ranges->count[ientry] == 0)) {
       axis_ranges->count[ientry] = 0;
    }
@@ -858,7 +858,7 @@ static int get_arg_vector(char *dst, char *key, char *nextArg)
 
       /* Get integer */
       prev = cur;
-      vector[nvals] = strtol(prev, &cur, 0);
+      vector[nvals] = ParseLong(prev, &cur);
       if ((cur == prev) ||
           !(ISSPACE(*cur) || (*cur == VECTOR_SEPARATOR) || (*cur == '\0'))) {
          (void) fprintf(stderr, 

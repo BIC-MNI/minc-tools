@@ -1172,7 +1172,7 @@ static void parse_args(int argc, char *argv[])
      }
      /* Get dimensions */
      for (i=0; i<ndims; i++) {
-       dimlength[i] = strtol(argv[2+i], &ptr, 0);
+       dimlength[i] = ParseLong(argv[2+i], &ptr);
        if ((ptr==argv[2+i]) || (*ptr!=0)) {
 	 if (ptr==argv[2+i]) {
 	   (void) fprintf(stderr, "\nBad argument \"%s\".\n", ptr);

@@ -489,7 +489,7 @@ static int get_arg_vector(char *dst, char *key, char *nextArg)
 
       /* Get integer */
       prev = cur;
-      vector[nvals] = strtol(prev, &cur, 0);
+      vector[nvals] = ParseLong(prev, &cur);
       if (cur == prev) {
          (void) fprintf(stderr, 
             "expected vector of integers for \"%s\", but got \"%s\"\n", 
