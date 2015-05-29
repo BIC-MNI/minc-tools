@@ -840,6 +840,16 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
             acr_insert_string(&group_list, ACR_Diffusion_directionality,
                               value[0]);
         }
+        else if (!strcmp(name, "B_matrix")) {
+          if (!acr_find_group_element(group_list, SPI_B_matrix) &&
+              n_values == B_MATRIX_COUNT) {
+            double tmp[B_MATRIX_COUNT];
+            for (i = 0; i < B_MATRIX_COUNT; i++) {
+              tmp[i] = atof(value[i]);
+            }
+            acr_insert_double(&group_list, SPI_B_matrix, B_MATRIX_COUNT, tmp);
+          }
+        }
         else if (!strcmp(name, "B_value")) {
 
             /*double tmp = atof(value[0]); this atof makes the value null!  ilana*/
