@@ -149,10 +149,10 @@ main(int argc, char **argv)
         perror(old_fname);
         exit(EXIT_FAILURE);
     }
-    
+
     /* check the version of file and Abort if converting to itself */
     if (MI2_ISH5OBJ(old_fd)) {
-      if (v2format && compress <= 0 ) {
+      if (v2format) {
       
         /* If already a minc2 file, allow to do compression if
            requested by the user. Ideally, one should call the
@@ -160,8 +160,7 @@ main(int argc, char **argv)
            level of the input image, but this function does not
            seem to be supported anymore in HDF5. */
 
-	fprintf(stderr,"Abort: Converting Version 2 (HDF5) to itself!! \n");
-	exit(EXIT_FAILURE);
+	fprintf(stderr,"Warning: Converting Version 2 (HDF5) to itself!! \n");
       }
     }
     else {
@@ -170,7 +169,7 @@ main(int argc, char **argv)
 	 exit(EXIT_FAILURE);
        }
     }
-    
+
     flags = 0;
 
     if (clobber) {
