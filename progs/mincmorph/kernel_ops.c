@@ -53,7 +53,7 @@ void split_kernel(Kernel * K, Kernel * k1, Kernel * k2)
    }
 
 /* binarise a volume between a range */
-VIO_Volume  *binarise(VIO_Volume * vol, double floor, double ceil, double fg, double bg)
+VIO_Volume  binarise(VIO_Volume vol, double floor, double ceil, double fg, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
@@ -63,19 +63,19 @@ VIO_Volume  *binarise(VIO_Volume * vol, double floor, double ceil, double fg, do
    if(verbose){
       fprintf(stdout, "Binarising, range: [%g:%g] fg/bg: [%g:%g]\n", floor, ceil, fg, bg);
       }
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
 
    initialize_progress_report(&progress, FALSE, sizes[2], "Binarise");
    for(z = sizes[0]; z--;){
       for(y = sizes[1]; y--;){
          for(x = sizes[2]; x--;){
 
-            value = get_volume_voxel_value(*vol, z, y, x, 0, 0);
+            value = get_volume_voxel_value(vol, z, y, x, 0, 0);
             if((value >= floor) && (value <= ceil)){
-               set_volume_voxel_value(*vol, z, y, x, 0, 0, fg);
+               set_volume_voxel_value(vol, z, y, x, 0, 0, fg);
                }
             else {
-               set_volume_voxel_value(*vol, z, y, x, 0, 0, bg);
+               set_volume_voxel_value(vol, z, y, x, 0, 0, bg);
                }
 
             }
@@ -88,7 +88,7 @@ VIO_Volume  *binarise(VIO_Volume * vol, double floor, double ceil, double fg, do
    }
 
 /* clamp a volume between a range */
-VIO_Volume  *clamp(VIO_Volume * vol, double floor, double ceil, double bg)
+VIO_Volume  clamp(VIO_Volume vol, double floor, double ceil, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
@@ -99,15 +99,15 @@ VIO_Volume  *clamp(VIO_Volume * vol, double floor, double ceil, double bg)
       fprintf(stdout, "Clamping, range: [%g:%g] bg: %g\n", floor, ceil, bg);
       }
 
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
 
    initialize_progress_report(&progress, FALSE, sizes[2], "Clamping");
    for(z = sizes[0]; z--;){
       for(y = sizes[1]; y--;){
          for(x = sizes[2]; x--;){
-            value = get_volume_voxel_value(*vol, z, y, x, 0, 0);
+            value = get_volume_voxel_value(vol, z, y, x, 0, 0);
             if((value < floor) || (value > ceil)){
-               set_volume_voxel_value(*vol, z, y, x, 0, 0, bg);
+               set_volume_voxel_value(vol, z, y, x, 0, 0, bg);
                }
             }
          }
@@ -119,21 +119,21 @@ VIO_Volume  *clamp(VIO_Volume * vol, double floor, double ceil, double bg)
    }
 
 /* pad a volume using the background value */
-VIO_Volume  *pad(Kernel * K, VIO_Volume * vol, double bg)
+VIO_Volume  pad(Kernel * K, VIO_Volume vol, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
 
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
 
    /* z */
    for(y = 0; y < sizes[1]; y++){
       for(x = 0; x < sizes[2]; x++){
          for(z = 0; z < -K->pre_pad[2]; z++){
-            set_volume_real_value(*vol, z, y, x, 0, 0, bg);
+            set_volume_real_value(vol, z, y, x, 0, 0, bg);
             }
          for(z = sizes[0] - K->post_pad[2]; z < sizes[0]; z++){
-            set_volume_real_value(*vol, z, y, x, 0, 0, bg);
+            set_volume_real_value(vol, z, y, x, 0, 0, bg);
             }
          }
       }
@@ -142,10 +142,10 @@ VIO_Volume  *pad(Kernel * K, VIO_Volume * vol, double bg)
    for(z = 0; z < sizes[0]; z++){
       for(x = 0; x < sizes[2]; x++){
          for(y = 0; y < -K->pre_pad[1]; y++){
-            set_volume_real_value(*vol, z, y, x, 0, 0, bg);
+            set_volume_real_value(vol, z, y, x, 0, 0, bg);
             }
          for(y = sizes[1] - K->post_pad[1]; y < sizes[1]; y++){
-            set_volume_real_value(*vol, z, y, x, 0, 0, bg);
+            set_volume_real_value(vol, z, y, x, 0, 0, bg);
             }
          }
       }
@@ -154,10 +154,10 @@ VIO_Volume  *pad(Kernel * K, VIO_Volume * vol, double bg)
    for(z = 0; z < sizes[0]; z++){
       for(y = 0; y < sizes[1]; y++){
          for(x = 0; x < -K->pre_pad[0]; x++){
-            set_volume_real_value(*vol, z, y, x, 0, 0, bg);
+            set_volume_real_value(vol, z, y, x, 0, 0, bg);
             }
          for(x = sizes[2] - K->post_pad[0]; x < sizes[2]; x++){
-            set_volume_real_value(*vol, z, y, x, 0, 0, bg);
+            set_volume_real_value(vol, z, y, x, 0, 0, bg);
             }
          }
       }
@@ -166,7 +166,7 @@ VIO_Volume  *pad(Kernel * K, VIO_Volume * vol, double bg)
    }
 
 /* perform a dilation on a volume */
-VIO_Volume  *dilation_kernel(Kernel * K, VIO_Volume * vol)
+VIO_Volume  dilation_kernel(Kernel * K, VIO_Volume vol)
 {
    int      x, y, z, c;
    double   value;
@@ -177,11 +177,11 @@ VIO_Volume  *dilation_kernel(Kernel * K, VIO_Volume * vol)
    if(verbose){
       fprintf(stdout, "Dilation kernel\n");
       }
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
    initialize_progress_report(&progress, FALSE, sizes[2], "Dilation");
 
    /* copy the volume */
-   tmp_vol = copy_volume(*vol);
+   tmp_vol = copy_volume(vol);
 
    for(z = -K->pre_pad[2]; z < sizes[0] - K->post_pad[2]; z++){
       for(y = -K->pre_pad[1]; y < sizes[1] - K->post_pad[1]; y++){
@@ -189,12 +189,12 @@ VIO_Volume  *dilation_kernel(Kernel * K, VIO_Volume * vol)
 
             value = get_volume_real_value(tmp_vol, z, y, x, 0, 0);
             for(c = 0; c < K->nelems; c++){
-               if(get_volume_real_value(*vol,
+               if(get_volume_real_value(vol,
                                         z + K->K[c][2],
                                         y + K->K[c][1],
                                         x + K->K[c][0],
                                         0 + K->K[c][3], 0 + K->K[c][4]) < value){
-                  set_volume_real_value(*vol,
+                  set_volume_real_value(vol,
                                         z + K->K[c][2],
                                         y + K->K[c][1],
                                         x + K->K[c][0],
@@ -214,7 +214,7 @@ VIO_Volume  *dilation_kernel(Kernel * K, VIO_Volume * vol)
    }
 
 /* perform a median kernel operation on a volume */
-VIO_Volume  *median_dilation_kernel(Kernel * K, VIO_Volume * vol)
+VIO_Volume  median_dilation_kernel(Kernel * K, VIO_Volume vol)
 {
    int      x, y, z, c, i;
    int      sizes[MAX_VAR_DIMS];
@@ -228,11 +228,11 @@ VIO_Volume  *median_dilation_kernel(Kernel * K, VIO_Volume * vol)
    if(verbose){
       fprintf(stdout, "Median Dilation kernel\n");
       }
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
    initialize_progress_report(&progress, FALSE, sizes[2], "Median Dilation");
 
    /* copy the volume */
-   tmp_vol = copy_volume(*vol);
+   tmp_vol = copy_volume(vol);
 
    for(z = -K->pre_pad[2]; z < sizes[0] - K->post_pad[2]; z++){
       for(y = -K->pre_pad[1]; y < sizes[1] - K->post_pad[1]; y++){
@@ -264,14 +264,14 @@ VIO_Volume  *median_dilation_kernel(Kernel * K, VIO_Volume * vol)
                   qsort(&neighbours[0], (size_t) i, sizeof(unsigned int), &compare_ints);
 
                   /* store the median value */
-                  set_volume_voxel_value(*vol, z, y, x, 0, 0,
+                  set_volume_voxel_value(vol, z, y, x, 0, 0,
                                          (double)neighbours[(int)floor((i - 1) / 2)]);
                   }
                }
 
             /* else just copy the original value over */
             else {
-               set_volume_voxel_value(*vol, z, y, x, 0, 0, value);
+               set_volume_voxel_value(vol, z, y, x, 0, 0, value);
                }
             }
          }
@@ -285,7 +285,7 @@ VIO_Volume  *median_dilation_kernel(Kernel * K, VIO_Volume * vol)
    }
 
 /* perform an erosion on a volume */
-VIO_Volume  *erosion_kernel(Kernel * K, VIO_Volume * vol)
+VIO_Volume  erosion_kernel(Kernel * K, VIO_Volume vol)
 {
    int      x, y, z, c;
    double   value;
@@ -296,11 +296,11 @@ VIO_Volume  *erosion_kernel(Kernel * K, VIO_Volume * vol)
    if(verbose){
       fprintf(stdout, "Erosion kernel\n");
       }
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
    initialize_progress_report(&progress, FALSE, sizes[2], "Erosion");
 
    /* copy the volume */
-   tmp_vol = copy_volume(*vol);
+   tmp_vol = copy_volume(vol);
 
    for(z = -K->pre_pad[2]; z < sizes[0] - K->post_pad[2]; z++){
       for(y = -K->pre_pad[1]; y < sizes[1] - K->post_pad[1]; y++){
@@ -308,12 +308,12 @@ VIO_Volume  *erosion_kernel(Kernel * K, VIO_Volume * vol)
 
             value = get_volume_real_value(tmp_vol, z, y, x, 0, 0);
             for(c = 0; c < K->nelems; c++){
-               if(get_volume_real_value(*vol,
+               if(get_volume_real_value(vol,
                                         z + K->K[c][2],
                                         y + K->K[c][1],
                                         x + K->K[c][0],
                                         0 + K->K[c][3], 0 + K->K[c][4]) > value){
-                  set_volume_real_value(*vol,
+                  set_volume_real_value(vol,
                                         z + K->K[c][2],
                                         y + K->K[c][1],
                                         x + K->K[c][0],
@@ -334,7 +334,7 @@ VIO_Volume  *erosion_kernel(Kernel * K, VIO_Volume * vol)
    }
 
 /* convolve a volume with a input kernel */
-VIO_Volume  *convolve_kernel(Kernel * K, VIO_Volume * vol)
+VIO_Volume  convolve_kernel(Kernel * K, VIO_Volume vol)
 {
    int      x, y, z, c;
    double   value;
@@ -345,11 +345,11 @@ VIO_Volume  *convolve_kernel(Kernel * K, VIO_Volume * vol)
    if(verbose){
       fprintf(stdout, "Convolve kernel\n");
       }
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
    initialize_progress_report(&progress, FALSE, sizes[2], "Convolve");
 
    /* copy the volume */
-   tmp_vol = copy_volume(*vol);
+   tmp_vol = copy_volume(vol);
 
    for(z = -K->pre_pad[2]; z < sizes[0] - K->post_pad[2]; z++){
       for(y = -K->pre_pad[1]; y < sizes[1] - K->post_pad[1]; y++){
@@ -363,7 +363,7 @@ VIO_Volume  *convolve_kernel(Kernel * K, VIO_Volume * vol)
                                               x + K->K[c][0], 0 + K->K[c][3],
                                               0 + K->K[c][4]) * K->K[c][5];
                }
-            set_volume_real_value(*vol, z, y, x, 0, 0, value);
+            set_volume_real_value(vol, z, y, x, 0, 0, value);
             }
          }
 
@@ -377,7 +377,7 @@ VIO_Volume  *convolve_kernel(Kernel * K, VIO_Volume * vol)
 
 /* should really only work on binary images    */
 /* from the original 2 pass Borgefors alg      */
-VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
+VIO_Volume  distance_kernel(Kernel * K, VIO_Volume vol, double bg)
 {
    int      x, y, z, c;
    double   value, min;
@@ -401,7 +401,7 @@ VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
       print_kernel(k2);
       }
 
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
    initialize_progress_report(&progress, FALSE, sizes[2] * 2, "Distance");
 
    /* forward raster direction */
@@ -409,12 +409,12 @@ VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
       for(y = -K->pre_pad[1]; y < sizes[1] - K->post_pad[1]; y++){
          for(x = -K->pre_pad[0]; x < sizes[2] - K->post_pad[0]; x++){
 
-            if(get_volume_real_value(*vol, z, y, x, 0, 0) != bg){
+            if(get_volume_real_value(vol, z, y, x, 0, 0) != bg){
 
                /* find the minimum */
                min = DBL_MAX;
                for(c = 0; c < k1->nelems; c++){
-                  value = get_volume_real_value(*vol,
+                  value = get_volume_real_value(vol,
                                                 z + k1->K[c][2],
                                                 y + k1->K[c][1],
                                                 x + k1->K[c][0],
@@ -424,7 +424,7 @@ VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
                      }
                   }
 
-               set_volume_real_value(*vol, z, y, x, 0, 0, min);
+               set_volume_real_value(vol, z, y, x, 0, 0, min);
                }
             }
          }
@@ -436,12 +436,12 @@ VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
       for(y = sizes[1] - k2->post_pad[1] - 1; y >= -k2->pre_pad[1]; y--){
          for(x = sizes[2] - k2->post_pad[0] - 1; x >= -k2->pre_pad[0]; x--){
 
-            min = get_volume_real_value(*vol, z, y, x, 0, 0);
+            min = get_volume_real_value(vol, z, y, x, 0, 0);
             if(min != bg){
 
                /* find the minimum distance to bg in the neighbouring vectors */
                for(c = 0; c < k2->nelems; c++){
-                  value = get_volume_real_value(*vol,
+                  value = get_volume_real_value(vol,
                                                 z + k2->K[c][2],
                                                 y + k2->K[c][1],
                                                 x + k2->K[c][0],
@@ -451,7 +451,7 @@ VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
                      }
                   }
 
-               set_volume_real_value(*vol, z, y, x, 0, 0, min);
+               set_volume_real_value(vol, z, y, x, 0, 0, min);
                }
             }
          }
@@ -466,7 +466,7 @@ VIO_Volume  *distance_kernel(Kernel * K, VIO_Volume * vol, double bg)
 
 /* do connected components labelling on a volume */
 /* resulting groups are sorted WRT size          */
-VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
+VIO_Volume  group_kernel(Kernel * K, VIO_Volume vol, double bg)
 {
    int      x, y, z;
    int      sizes[MAX_VAR_DIMS];
@@ -509,15 +509,15 @@ VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
       print_kernel(k2);
       }
 
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
    initialize_progress_report(&progress, FALSE, sizes[2], "Groups");
 
    /* copy and then zero out the original volume */
-   tmp_vol = copy_volume(*vol);
+   tmp_vol = copy_volume(vol);
    for(z = sizes[0]; z--;){
       for(y = sizes[1]; y--;){
          for(x = sizes[2]; x--;){
-            set_volume_voxel_value(*vol, z, y, x, 0, 0, 0);
+            set_volume_voxel_value(vol, z, y, x, 0, 0, 0);
             }
          }
       }
@@ -545,7 +545,7 @@ VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
                min_label = INT_MAX;
 
                for(c = 0; c < k1->nelems; c++){
-                  value = (unsigned int)get_volume_voxel_value(*vol,
+                  value = (unsigned int)get_volume_voxel_value(vol,
                                                                z + k1->K[c][2],
                                                                y + k1->K[c][1],
                                                                x + k1->K[c][0],
@@ -563,7 +563,7 @@ VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
                switch (num_matches){
                case 0:
                   /* no neighbours, make a new label and increment */
-                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) group_idx);
+                  set_volume_voxel_value(vol, z, y, x, 0, 0, (VIO_Real) group_idx);
 
                   SET_ARRAY_SIZE(equiv, group_idx, group_idx + 1, 500);
                   equiv[group_idx] = group_idx;
@@ -576,7 +576,7 @@ VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
 
                case 1:
                   /* only one neighbour, no equivalences needed */
-                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) min_label);
+                  set_volume_voxel_value(vol, z, y, x, 0, 0, (VIO_Real) min_label);
                   counts[min_label]++;
                   break;
 
@@ -632,7 +632,7 @@ VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
                      }
 
                   /* finally set the voxel in question to the minimum value */
-                  set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) min_label);
+                  set_volume_voxel_value(vol, z, y, x, 0, 0, (VIO_Real) min_label);
                   counts[min_label]++;
                   break;
                   }                       /* end case */
@@ -702,10 +702,10 @@ VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
    for(z = sizes[0]; z--;){
       for(y = sizes[1]; y--;){
          for(x = sizes[2]; x--;){
-            value = (unsigned int)get_volume_voxel_value(*vol, z, y, x, 0, 0);
+            value = (unsigned int)get_volume_voxel_value(vol, z, y, x, 0, 0);
             if(value != 0){
                value = trans[equiv[value]];
-               set_volume_voxel_value(*vol, z, y, x, 0, 0, (VIO_Real) value);
+               set_volume_voxel_value(vol, z, y, x, 0, 0, (VIO_Real) value);
                }
             }
          }
@@ -726,7 +726,7 @@ VIO_Volume  *group_kernel(Kernel * K, VIO_Volume * vol, double bg)
 
 /* do local correlation to another volume                    */
 /* xcorr = sum((a*b)^2) / (sqrt(sum(a^2)) * sqrt(sum(b^2))   */
-VIO_Volume *lcorr_kernel(Kernel * K, VIO_Volume * vol, VIO_Volume *cmp)
+VIO_Volume lcorr_kernel(Kernel * K, VIO_Volume vol, VIO_Volume cmp)
 {
    int      x, y, z, c;
    double   value, v1, v2;
@@ -738,23 +738,23 @@ VIO_Volume *lcorr_kernel(Kernel * K, VIO_Volume * vol, VIO_Volume *cmp)
    if(verbose){
       fprintf(stdout, "Local Correlation kernel\n");
       }
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
    initialize_progress_report(&progress, FALSE, sizes[2], "Local Correlation");
 
    /* copy the volume */
-   tmp_vol = copy_volume(*vol);
+   tmp_vol = copy_volume(vol);
    
    /* zero the output volume */
    for(z = sizes[0]; z--;){
       for(y = sizes[1]; y--;){
          for(x = sizes[2]; x--;){
-            set_volume_voxel_value(*vol, z, y, x, 0, 0, 0);
+            set_volume_voxel_value(vol, z, y, x, 0, 0, 0);
             }
          }
       }
    
    /* set output range */
-   set_volume_real_range(*vol, 0.0, 1.0);
+   set_volume_real_range(vol, 0.0, 1.0);
    
    for(z = -K->pre_pad[2]; z < sizes[0] - K->post_pad[2]; z++){
       for(y = -K->pre_pad[1]; y < sizes[1] - K->post_pad[1]; y++){
@@ -768,7 +768,7 @@ VIO_Volume *lcorr_kernel(Kernel * K, VIO_Volume * vol, VIO_Volume *cmp)
                                           y + K->K[c][1],
                                           x + K->K[c][0], 0 + K->K[c][3],
                                           0 + K->K[c][4]) * K->K[c][5];
-               v2 = get_volume_real_value(*cmp,
+               v2 = get_volume_real_value(cmp,
                                           z + K->K[c][2],
                                           y + K->K[c][1],
                                           x + K->K[c][0], 0 + K->K[c][3],
@@ -783,7 +783,7 @@ VIO_Volume *lcorr_kernel(Kernel * K, VIO_Volume * vol, VIO_Volume *cmp)
             denom = sqrt(ssum_v1 * ssum_v2);
             value = (denom == 0.0) ? 0.0 : sum_prd / denom;
             
-            set_volume_real_value(*vol, z, y, x, 0, 0, value);
+            set_volume_real_value(vol, z, y, x, 0, 0, value);
             }
          }
       update_progress_report(&progress, z + 1);

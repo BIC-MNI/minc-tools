@@ -20,23 +20,42 @@ Kernel  *new_kernel(int nelems)
    int      i, j;
    Kernel  *tmp;
 
-   ALLOC_VAR_SIZED_STRUCT(tmp, VIO_Real, 10);
+   ALLOC(tmp, 1);
 
-   /* allocate and initialise the Kernel Array */
-   SET_ARRAY_SIZE(tmp->K, 0, nelems, 10);
-   for(i = 0; i < nelems; i++){
-      ALLOC(tmp->K[i], KERNEL_DIMS + 1);
+   if (nelems != 0) {
+      /* allocate and initialise the Kernel Array */
+      SET_ARRAY_SIZE(tmp->K, 0, nelems, 10);
+      for(i = 0; i < nelems; i++){
+         ALLOC(tmp->K[i], KERNEL_DIMS + 1);
 
-      for(j = 0; j < KERNEL_DIMS; j++){
-         tmp->K[i][j] = 0.0;
+         for(j = 0; j < KERNEL_DIMS; j++){
+            tmp->K[i][j] = 0.0;
          }
-      tmp->K[i][KERNEL_DIMS] = 1.0;
+         tmp->K[i][KERNEL_DIMS] = 1.0;
 
       }
+   }
+   else {
+     tmp->K = NULL;
+   }
    tmp->nelems = nelems;
 
    return tmp;
    }
+
+/* delete a kernel structure properly */
+void delete_kernel(Kernel *kernel)
+{
+  int i;
+
+  if (kernel->K != NULL) {
+    for (i = 0; i < kernel->nelems; i++) {
+      FREE(kernel->K[i]);
+    }
+    FREE(kernel->K);
+  }
+  FREE(kernel);
+}
 
 /* reads in a Kernel from a file                        */
 VIO_Status input_kernel(const char *kernel_file, Kernel * kernel)

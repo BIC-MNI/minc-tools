@@ -23,6 +23,7 @@ typedef struct {
 
 /* returns a new B_Matrix struct (pointer) */
 Kernel  *new_kernel(int nelems);
+void     delete_kernel(Kernel * kernel);
 
 /* reads in a B_Matrix from a file (pointer) */
 VIO_Status   input_kernel(const char *kernel_file, Kernel * kernel);

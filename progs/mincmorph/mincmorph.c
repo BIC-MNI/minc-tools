@@ -33,7 +33,7 @@
 /* function prototypes */
 char    *get_real_from_string(char *string, double *value);
 char    *get_string_from_string(char *string, char **value);
-void     calc_volume_range(VIO_Volume * vol, double *min, double *max);
+void     calc_volume_range(VIO_Volume vol, double *min, double *max);
 
 /* kernel names for pretty output */
 char    *KERN_names[] = { "NULL", "2D04", "2D08", "3D06", "3D26" };
@@ -184,8 +184,8 @@ int main(int argc, char *argv[])
    char    *infile;
    char    *outfile;
 
-   VIO_Volume *volume;
-   VIO_Volume *cmpvol;
+   VIO_Volume volume;
+   VIO_Volume cmpvol;
    Kernel  *kernel;
    int      num_ops;
    Operation operation[100];
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
    double   min, max;
    char    *ptr;
 
-   char    *axis_order[3] = { MIzspace, MIyspace, MIxspace };
+   char    *axis_order[VIO_MAX_DIMENSIONS] = { MIzspace, MIyspace, MIxspace, MItime, MIvector_dimension };
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -440,12 +440,14 @@ int main(int argc, char *argv[])
       num_ops++;
       }
 
-   /* malloc space for volume structure and read in infile */
-   volume = (VIO_Volume *) malloc(sizeof(VIO_Volume));
-   input_volume(infile, MAX_VAR_DIMS, axis_order,
-                INTERNAL_PREC, TRUE, 0.0, 0.0, TRUE, volume, NULL);
-   get_type_range(get_volume_data_type(*volume), &min, &max);
-   set_volume_real_range(*volume, min, max);
+   /* read input */
+   if (input_volume(infile, VIO_MAX_DIMENSIONS, axis_order,
+                    INTERNAL_PREC, TRUE, 0.0, 0.0, TRUE, 
+                    &volume, NULL) != VIO_OK){
+      exit(EXIT_FAILURE);
+   }
+   get_type_range(get_volume_data_type(volume), &min, &max);
+   set_volume_real_range(volume, min, max);
 
    /* init and then do some operations */
    kernel = new_kernel(0);
@@ -517,7 +519,7 @@ int main(int argc, char *argv[])
 
       case READ_KERNEL:
          /* free the existing kernel then set the pointer to the new one */
-         free(kernel);
+         delete_kernel(kernel);
 
          /* read in the kernel or set the kernel to an inbuilt one */
          if(op->kernel_id == K_NULL){
@@ -582,11 +584,13 @@ int main(int argc, char *argv[])
                max = 255;
                }
             }
-         set_volume_real_range(*volume, min, max);
+         set_volume_real_range(volume, min, max);
 
          output_modified_volume(op->outfile,
                                 dtype, is_signed,
-                                0.0, 0.0, *volume, infile, arg_string, NULL);
+                                0.0, 0.0, volume, infile, arg_string, NULL);
+         free(arg_string);
+         arg_string = NULL;
          break;
 
       case LCORR:
@@ -600,18 +604,18 @@ int main(int argc, char *argv[])
             fprintf(stdout, "Comparing to %s\n", op->cmpfile);
             }
          
-         /* malloc space for volume structure and read cmpfile */
-         cmpvol = (VIO_Volume *) malloc(sizeof(VIO_Volume));
-         input_volume(op->cmpfile, MAX_VAR_DIMS, axis_order,
-            INTERNAL_PREC, TRUE, 0.0, 0.0, TRUE, cmpvol, NULL);
+         /* read cmpfile */
+         if (input_volume(op->cmpfile, VIO_MAX_DIMENSIONS, axis_order,
+                          INTERNAL_PREC, TRUE, 0.0, 0.0, TRUE, 
+                          &cmpvol, NULL) != VIO_OK) {
+           exit(EXIT_FAILURE);
+         }
          
          /* run the local correlation */
          volume = lcorr_kernel(kernel, volume, cmpvol);
          
          /* clean up */
-         delete_volume(*cmpvol);
-         free(cmpvol);
-         
+         delete_volume(cmpvol);
          break;
 
       default:
@@ -621,9 +625,9 @@ int main(int argc, char *argv[])
       }
 
    /* jump through operations freeing stuff */
-   // free(op.kernel);
+   delete_kernel(kernel);
 
-   delete_volume(*volume);
+   delete_volume(volume);
    return (EXIT_SUCCESS);
    }
 
@@ -695,25 +699,25 @@ char    *get_string_from_string(char *string, char **value)
    return string;
    }
 
-void calc_volume_range(VIO_Volume * vol, double *min, double *max)
+void calc_volume_range(VIO_Volume vol, double *min, double *max)
 {
 
    int      x, y, z;
-   int      sizes[MAX_VAR_DIMS];
+   int      sizes[VIO_MAX_DIMENSIONS];
    double   value;
    VIO_progress_struct progress;
 
    *min = DBL_MAX;
    *max = -DBL_MIN;
 
-   get_volume_sizes(*vol, sizes);
+   get_volume_sizes(vol, sizes);
 
    initialize_progress_report(&progress, FALSE, sizes[2], "Finding Range");
    for(z = sizes[0]; z--;){
       for(y = sizes[1]; y--;){
          for(x = sizes[2]; x--;){
 
-            value = get_volume_voxel_value(*vol, z, y, x, 0, 0);
+            value = get_volume_voxel_value(vol, z, y, x, 0, 0);
             if(value < *min){
                *min = value;
                }
