@@ -5,6 +5,8 @@
 #include <minc2.h>
 #include <ParseArgv.h>
 
+#include "restructure.h"
+
 #include "nifti1_io.h"
 
 #include "nifti1_local.h"       /* Our local definitions */
@@ -142,18 +144,6 @@ init_nifti_header(nifti_image *nii_ptr)
     
     nii_ptr->num_ext = 0;
 }    
-
-/* private function from from libminc2.  This function is private partially
- because it's parameters are somewhat bizarre.  It would be a good idea to
- rework them into a more rational and easily described form. 
-*/
-
-extern void restructure_array(int ndims,
-                              unsigned char *array,
-                              const unsigned long *lengths_perm,
-                              int el_size,
-                              const int *map,
-                              const int *dir);
 
 /* Calculate the first power of two greater than or equal to "value".
  */
