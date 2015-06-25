@@ -313,7 +313,7 @@ dicom_to_minc(int num_files,
               const char *minc_file,
               int clobber,
               const char *file_prefix, 
-              char **output_file_name)
+              const char **output_file_name)
 {
     Acr_Group group_list;     /* List of ACR/NEMA groups & elements */
     File_Info *fi_ptr;          /* Array of per-file information */
@@ -323,7 +323,7 @@ dicom_to_minc(int num_files,
     int icvid;                  /* MINC Image Conversion Variable */
     int ifile;                  /* File index */
     Mri_Index imri;             /* MRI axis index */
-    char *out_file_name;        /* Output MINC filename */
+    const char *out_file_name;  /* Output MINC filename */
     int isep;                   /* Loop counter */
     const Loop_Type loop_type = NONE; /* MINC loop type always none for now */
     int subimage;               /* Loop counter for MOSAIC images per file */
@@ -332,7 +332,6 @@ dicom_to_minc(int num_files,
     Mosaic_Info mi;             /* Mosaic (multi-image) information */
     Multiframe_Info mfi;        /* Multiframe information */
     int n_slices_in_file;       /* Number of slices in file */
-    int n_acquisition = -1;     /* For testing ACR_Acquisition */
 
     gi.subimage_type = SUBIMAGE_TYPE_NONE;
 
@@ -754,15 +753,15 @@ is_siemens_mosaic(Acr_Group group_list)
 Acr_Group
 parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
 {
-    int byte_cnt;
-    int byte_pos;
-    unsigned char *byte_ptr;
+    size_t byte_cnt;
+    size_t byte_pos;
+    char *byte_ptr;
     Acr_Long n_items;
     Acr_Long n_values;
     Acr_Long vm;
     char vr[4];
     Acr_Long syngodt;
-    int i;
+    unsigned int i;
     char name[64];
     char *value[MAXVM];
     Acr_Long len;
@@ -819,7 +818,7 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
         byte_pos += 4;          /* skip dummy */
 
         if (n_values > 0) {
-            for (i = 0; i < (int)n_values; i++) {
+            for (i = 0; i < n_values; i++) {
                 byte_pos += 4;      /* skip */
 
                 acr_get_long(ACR_LITTLE_ENDIAN, 1, byte_ptr + byte_pos, &len);
@@ -829,7 +828,7 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
                 byte_pos += 8;
 
                 if (i < vm && i < MAXVM) {
-                    value[i] = (byte_ptr + byte_pos);
+                    value[i] = (char *)(byte_ptr + byte_pos);
                 }
 
                 byte_pos += ((len + 3) / 4) * 4;
@@ -1188,8 +1187,9 @@ add_siemens_info(Acr_Group group_list)
     int interpolation_flag;
     int temp;
 
+    str_ptr = acr_find_string(group_list, SPI_Private_creator_0029, "");
     element = acr_find_group_element(group_list, SPI_Protocol2);
-    if (element != NULL) {
+    if (!strncmp(str_ptr, "SIEMENS CSA HEADER", 18) && element != NULL) {
         group_list = parse_siemens_proto2(group_list, element);
     }
 
@@ -2301,10 +2301,10 @@ sort_dimensions(General_Info *gi_ptr)
 static int
 dimension_sort_function(const void *v1, const void *v2)
 {
-    Sort_Element *value1, *value2;
+    const Sort_Element *value1, *value2;
 
-    value1 = (Sort_Element *) v1;
-    value2 = (Sort_Element *) v2;
+    value1 = (const Sort_Element *) v1;
+    value2 = (const Sort_Element *) v2;
 
     if (value1->value < value2->value)
         return -1;
@@ -2843,7 +2843,6 @@ mosaic_insert_subframe(Acr_Group group_list, Mosaic_Info *mi_ptr,
     double position[WORLD_NDIMS];
     string_t string;
     int islice;
-    char *str_tmp;
     int oldb=1;
 
     if (G.Debug >= HI_LOGGING) {

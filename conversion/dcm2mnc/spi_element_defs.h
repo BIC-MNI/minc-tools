@@ -109,6 +109,7 @@ GLOBAL_ELEMENT(SPI_Number_of_echoes                   , 0x0021, 0x1370, IS);
  * are dumped. The ASCCONV block is located in the second (0029, 1020), but
  * many of the DTI parameters are available in the first.
  */
+GLOBAL_ELEMENT(SPI_Private_creator_0029               , 0x0029, 0x0010, LO);
 GLOBAL_ELEMENT(SPI_Protocol2                          , 0x0029, 0x1010, CS);
 GLOBAL_ELEMENT(SPI_Protocol                           , 0x0029, 0x1020, CS);
 

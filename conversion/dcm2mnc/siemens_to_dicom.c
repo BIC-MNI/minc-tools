@@ -167,12 +167,12 @@ siemens_to_dicom(const char *filename, int max_group)
     Siemens_hdr_entry *entry;
     Acr_Group group_list;
     Acr_Element element;
-    long image_size;
+    size_t image_size;
     long pixel_size;
     void *image;
     double flip_angle;
-    short rows;
-    short cols;
+    Acr_Short rows;
+    Acr_Short cols;
     int n_slices;
 
 #ifdef PRINT_OFFSET_TABLE
@@ -646,13 +646,13 @@ DEFINE_ELEMENT_FUNC(create_ima_time_t_element)
     acr_get_long(ACR_BIG_ENDIAN, 1, &ptr->second, &second); 
     acr_get_long(ACR_BIG_ENDIAN, 1, &ptr->msec, &msec); 
 
-    if ((hour < 0) || (hour >= 24)) 
+    if (hour >= 24)
         return NULL;
-    if ((minute < 0) || (minute >= 60)) 
+    if (minute >= 60)
         return NULL;
-    if ((second < 0) || (second >= 60)) 
+    if (second >= 60)
         return NULL;
-    if ((msec < 0) || (msec > 999)) 
+    if (msec > 999)
         return NULL;
 
     sprintf(string, "%02d%02d%02d.%03d", (int) hour, (int) minute, 

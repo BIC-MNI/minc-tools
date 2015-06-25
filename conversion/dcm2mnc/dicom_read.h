@@ -12,4 +12,5 @@ extern int dicom_read_orientation(Acr_Group group_list, double orientation[6]);
 extern int dicom_read_pixel_size(Acr_Group group_list, double pixel_size[2]);
 
 extern void convert_dicom_coordinate(double coord[]);
+extern int is_numaris3(Acr_Group group_list);
 

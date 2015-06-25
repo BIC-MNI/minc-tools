@@ -158,9 +158,9 @@ static int use_the_files(int num_files,
                          const char *out_dir);
 static void usage(void);
 static void free_list(int num_files, 
-                      const char **file_list, 
+                      char **file_list, 
                       Data_Object_Info **file_info_list);
-static int check_file_type_consistency(int num_files, const char *file_list[]);
+static int check_file_type_consistency(int num_files, char **file_list);
 
 
 struct globals G;
@@ -254,7 +254,7 @@ main(int argc, char *argv[])
 {
     int ifile;
     Acr_Group group_list;
-    const char **file_list;     /* List of file names */
+    char **file_list;           /* List of file names */
     Data_Object_Info **file_info_list;
     int num_file_args;          /* Number of files on command line */
     int num_files;              /* Total number of files */
@@ -419,7 +419,7 @@ main(int argc, char *argv[])
 
     num_files_ok = 0;
     for (ifile = 0; ifile < num_files; ifile++) {
-        const char *cur_fname_ptr = file_list[ifile];
+        char *cur_fname_ptr = file_list[ifile];
 
         if (!G.Debug) {
             sprintf(message, "Parsing %d files", num_files);
@@ -441,7 +441,7 @@ main(int argc, char *argv[])
              */
             printf("Skipping file %s, which is not in the expected format.\n",
                    cur_fname_ptr);
-            free((void *) cur_fname_ptr);
+            free(cur_fname_ptr);
         }
         else {
             /* Copy it back to the (possibly earlier) position in the real
@@ -580,14 +580,14 @@ main(int argc, char *argv[])
 ---------------------------------------------------------------------------- */
 static void 
 free_list(int num_files, 
-          const char **file_list, 
+          char **file_list, 
           Data_Object_Info **file_info_list)
 {
     int i;
 
     for (i = 0; i < num_files; i++) {
         if (file_list[i] != NULL) {
-            free((void *) file_list[i]);
+            free(file_list[i]);
         }
         if (file_info_list[i] != NULL) {
             free(file_info_list[i]->file_name);
@@ -612,8 +612,10 @@ free_list(int num_files,
 static int 
 dcm_sort_function(const void *entry1, const void *entry2)
 {
-    Data_Object_Info **file_info_list1 = (Data_Object_Info **) entry1;
-    Data_Object_Info **file_info_list2 = (Data_Object_Info **) entry2;
+    const Data_Object_Info **file_info_list1 = 
+      (const Data_Object_Info **) (uintptr_t) entry1;
+    const Data_Object_Info **file_info_list2 = 
+      (const Data_Object_Info **) (uintptr_t) entry2;
 
     // make a sort-able session ID number:  date.time
     double session1 = (*file_info_list1)->study_date +
@@ -686,7 +688,7 @@ use_the_files(int num_files,
     string_t cur_patient_id;
     string_t cur_sequence_name;
     int exit_status;
-    char *output_file_name;
+    const char *output_file_name;
     string_t file_prefix;
     string_t string;
     FILE *fp;
@@ -966,7 +968,8 @@ use_the_files(int num_files,
                    G.command_line);
             fflush(stdout);
             if ((fp = popen(string, "r")) != NULL) {
-                fscanf(fp, "%s", output_file_name);
+                char pipe_output_name[256];
+                fscanf(fp, "%s", pipe_output_name);
                 if (pclose(fp) != EXIT_SUCCESS) {
                     fprintf(stderr, 
                             "Error executing command\n   \"%s\"\n",
@@ -974,7 +977,7 @@ use_the_files(int num_files,
                 }
                 else if (G.Debug) {
                     printf("Executed command \"%s\",\nproducing file %s.\n",
-                           string, output_file_name);
+                           string, pipe_output_name);
                 }
             }
             else {
@@ -1077,7 +1080,7 @@ is_binary_file(const char *fullname)
 
 
 static int
-check_file_type_consistency(int num_files, const char *file_list[])
+check_file_type_consistency(int num_files, char *file_list[])
 {
     int i;
     const char *fn_ptr;

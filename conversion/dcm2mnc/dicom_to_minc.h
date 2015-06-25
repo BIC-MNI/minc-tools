@@ -283,7 +283,7 @@ extern int dicom_to_minc(int num_files,
                          const char *minc_file, 
                          int clobber,
                          const char *file_prefix, 
-                         char **output_file_name);
+                         const char **output_file_name);
 extern Acr_Group read_std_dicom(const char *filename, int max_group);
 extern Acr_Group read_numa4_dicom(const char *filename, int max_group);
 extern int search_list(int value, const int *list_ptr, int list_length, 

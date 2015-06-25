@@ -302,8 +302,6 @@ init_general_info(General_Info *gi_ptr, /* OUT */
     World_Index iworld; /* World coordinate index (XCOORD, YCOORD...) */
     World_Index jworld;         /* World coordinate index */
     Volume_Index ivolume; /* Voxel coordinate index (VROW, VCOLUMN...) */
-    Mri_Index imri;
-    int index;
 
     // Get row and columns sizes
     gi_ptr->nrows = spatial_sizes[VROW];
@@ -464,7 +462,8 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
         def_val = acr_find_int(group_list,
                                ACR_Number_of_temporal_positions,
                                -1);
-        printf("W: %d\n", def_val);
+        if (G.Debug > 1)
+          printf("(0021,0105)=%d\n", def_val);
 
         /* Now look in the equally official but different field.
          */
@@ -472,7 +471,8 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
           def_val = acr_find_int(group_list,
                                  ACR_Number_of_time_slices,
                                  def_val);
-          printf("X: %d\n", def_val);
+          if (G.Debug > 1)
+            printf("(0054,0101)=%d\n", def_val);
         }
 
         if (def_val < 0) {
@@ -481,15 +481,14 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
           def_val = acr_find_int(group_list,
                                  ACR_Cardiac_number_of_images,
                                  def_val);
-          printf("Y: %d\n", def_val);
-          
+          if (G.Debug > 1)
+            printf("(0018,1090)=%d\n", def_val);
         }
 
         if (def_val <= 0) {
           def_val = acr_find_int(group_list,
                                  mri_total_list[imri],
                                  def_val);
-          printf("Z: %d\n", def_val);
         }
 
         if (def_val < 0) {
@@ -709,14 +708,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
     double dircos[VOL_NDIMS][WORLD_NDIMS]; /* Direction cosines */
     double steps[VOL_NDIMS];    /* Step (spacing) coordinates */
     double starts[VOL_NDIMS];   /* Start (origin) coordinates */
-    Acr_Element_Id mri_total_list[MRI_NDIMS]; /*added by ilana*/
     Acr_Element element;
-
-   mri_total_list[SLICE] = SPI_Number_of_slices_nominal;
-   mri_total_list[ECHO] = SPI_Number_of_echoes;
-   mri_total_list[TIME] = ACR_Acquisitions_in_series;
-   mri_total_list[PHASE] = NULL;
-   mri_total_list[CHEM_SHIFT] = NULL;
 
     /* Get image dimensions
      */
@@ -2151,7 +2143,7 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
     /*strncpy(gi_ptr->acq.comments, "", STRING_T_LEN);*/
     get_string_field(gi_ptr->acq.comments, 
                      group_list, ACR_Image_comments);
-    
+
     /* Siemens Numaris 4 specific!
      */
 

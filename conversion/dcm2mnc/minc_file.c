@@ -347,11 +347,11 @@ create_minc_file(const char *minc_file,
                  int clobber,
                  General_Info *general_info,
                  const char *file_prefix, 
-                 char **output_file_name,
+                 const char **output_file_name,
                  Loop_Type loop_type)
 {
     char temp_name[1024];
-    char *filename;
+    const char *filename;
     int minc_clobber;
     int mincid, icvid;
     static char full_path[1024];
@@ -361,7 +361,7 @@ create_minc_file(const char *minc_file,
 
     /* Create the file name if needed */
     if (minc_file != NULL) {
-        filename = (char *) minc_file;
+        filename = (const char *) minc_file;
     }
     else {
         /* rhoge:  add session directory to prefix */
@@ -1247,9 +1247,9 @@ save_minc_image(int icvid, General_Info *gi_ptr,
                         start[gi_ptr->image_index[TIME]],
                         fi_ptr->grad_direction[ZCOORD]);
 	    
-	    int i=0;
+	    int i;
 	    int num_elements=6;
-	    for(i;i<num_elements;i++){ 
+	    for(i=0;i<num_elements;i++){ 
 		 put_att_dbl(mincid, 
                 	     ncvarid(mincid, MIacquisition),
                              "b_matrix", 
