@@ -521,7 +521,6 @@ otsu_threshold(double histo[], double hist_centre[], int hist_bins)
     double mu_k;
     double sum;
     int k_low, k_high;
-    double mu_0, mu_1, mu;
 
     /* If memory allocation fails, abandon ship!!! */
     if (p == NULL) {
@@ -552,8 +551,6 @@ otsu_threshold(double histo[], double hist_centre[], int hist_bins)
 
     criterion = 0.0;
     threshold = hist_centre[hist_bins / 2];
-    mu_0 = hist_centre[hist_bins / 2 - 1];
-    mu_1 = hist_centre[hist_bins / 2 + 1];
 
     omega_k = 0.0;
     mu_k = 0.0;
@@ -566,11 +563,8 @@ otsu_threshold(double histo[], double hist_centre[], int hist_bins)
         if (criterion < sigma_b_k / sigma_T) {
             criterion = sigma_b_k / sigma_T;
             threshold = hist_centre[k];
-            mu_0 = mu_k / omega_k;
-            mu_1 = (mu_T - mu_k) / (1.0 - omega_k);
         }
     }
-    mu = mu_T;
     free(p);
     return threshold;
 }
@@ -592,7 +586,6 @@ kittler_threshold (double hist_bin[], double hist_centre[], int hist_size)
     double sum_ggh_1, sum_ggh_2, sum_ggh_tot;
     double sigma_1_T, sigma_2_T;
     double J_T;
-    double mu, mu_1, mu_2;
 
     criterion = 1e10;
     threshold = hist_centre[hist_size / 2 + 1];
@@ -627,8 +620,6 @@ kittler_threshold (double hist_bin[], double hist_centre[], int hist_size)
         sum_gh_tot += hist_centre[g] * hist_bin[g];
     }
 
-    mu = sum_gh_tot * 1.0 / n;
-
     sum_ggh_1 = hist_centre[T_low] * hist_centre[T_low] * hist_bin[T_low];
 
     sum_ggh_tot = 0.0;
@@ -662,8 +653,6 @@ kittler_threshold (double hist_bin[], double hist_centre[], int hist_size)
         if (criterion > J_T) {
             criterion = J_T;
             threshold = hist_centre[g];
-            mu_1 = mu_1_T;
-            mu_2 = mu_2_T;
         }
     }
     return threshold;
