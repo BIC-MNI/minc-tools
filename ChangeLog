@@ -1,3 +1,33 @@
+2015-06-26  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * progs/mincstats/mincstats.c: Fix potential memory error and removed some warnings.
+   * conversion/dcm2mnc/*: Many changes to improve robustness of DICOM conversion.
+   * conversion/nifti1/mnc2nii.c: Use new restructure_array() and restructure.h.
+   * progs/mincmorph/*: Fix a number of memory issues and odd use
+	of pointers.
+   * progs/mincconvert/mincconvert.c: Allow conversion from MINC2 to MINC2.
+   * mincextract.c, mincreshape.c, rawtominc.c: Use new ParseLong() function
+	rather than strtol() to avoid interpreting numbers with leading zeros
+	in octal.
+   * Testing/: added tests for mincreshape, mincresample, minccalc, and
+	mincaverage.
+   * conversion/nifti1/: Moved nifti1_io.c, znzlib.c and headers to libminc.
+   * progs/mincresample/mincresample.c: Warn before doing incorrect things
+	with non-monotonic irregular dimensions.
+   * progs/minccmp/minccmp.c: Add support for confusion matrix statistics
+	(e.g. Dice statistics) with discrete volumes.
+   * progs/mincdump/mincdump.c: Expand legal character set in text, fix usage
+	message.
+   * progs/mincresample/resample_volumes.c: Fix issue with -keep_real_range
+	(see Github issue #21).
+   * conversion/nifti1/mnc2nii.c: Fix a number of bugs.
+   * progs/mincextract/mincextract.c, progs/minctoraw/minctoraw.c: Provide for
+	creation of either big-endian or little-endian data.
+   * progs/minccalc/{minccalc.c, sym.c}: Fix minor memory leak, incorrect
+	modification of symbol values in ranges (see Github issue #18).
+   * progs/minccmp/minccmp.c: Print results for all volumes, not just the
+	first (see Github issue #9).
+   * progs/mincaverage/mincaverage.c: Fix incorrect normalized average when
+	mean is less than zero (bug reported by Alex Z.).
 
 -- Release of minc 2.2.00 --
 
