@@ -561,9 +561,17 @@ dicom_to_minc(int num_files,
         }
        
         if (group_list == NULL) {
-            fprintf(stderr, "Error parsing file '%s' during 2nd pass.\n",
-                    file_list[ifile]);
-            exit(-1);
+            if (G.abort_on_error) {
+              fprintf(stderr, "ERROR: parsing file '%s' during 2nd pass.\n",
+                      file_list[ifile]);
+                exit(-1);
+            }
+            else {
+                fprintf(stderr, "WARNING: parsing file '%s' during 2nd pass.\n",
+                        file_list[ifile]);
+                fi_ptr[ifile].valid = FALSE;
+                continue;
+            }
         }
 
         /* initialize big and small images, if mosaic

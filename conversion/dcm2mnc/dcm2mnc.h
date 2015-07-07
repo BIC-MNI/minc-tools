@@ -264,6 +264,7 @@ struct globals {
     int max_acq_num;            /* Maximum acquisition number. */
     int min_img_num;            /* Minimum image number (0020,0013). */
     int max_img_num;            /* Maximum image number. */
+    int abort_on_error;         /* Abort on parse errors. */
 };
 
 /* Values for options flags */

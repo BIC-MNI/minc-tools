@@ -739,7 +739,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
         (fi_ptr->bits_stored <= 0) ||
         (fi_ptr->bits_alloc <= 0)) {
         if (G.Debug) {
-            printf("ERROR: Needed values missing, marking invalid\n");
+            printf("ERROR: Needed values missing, marking '%s' invalid\n", file_name);
         }
         fi_ptr->valid = FALSE;
         return;
@@ -2295,8 +2295,6 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     Acr_Short AcqMat[4];
     Acr_Short freq_rows;
     Acr_Short freq_cols;
-    Acr_Short phase_rows;
-    Acr_Short phase_cols;
     double slice_coord[WORLD_NDIMS];
 
     /* Get info to construct unique identifiers for study, series/acq
@@ -2374,13 +2372,16 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     element = acr_find_group_element(group_list, ACR_Acquisition_matrix);
 
     if (element != NULL) {
+        /* The acquisition matrix contains four elements:
+           AcqMat[0] -> number of rows in frequency space.
+           AcqMat[1] -> number of columns in frequency space.
+           AcqMat[2] -> number of rows in phase space.
+           AcqMat[3] -> number of columns in phase space.
+        */
         acr_get_element_short_array(element, 4, AcqMat);
 
         freq_rows = AcqMat[0];
         freq_cols = AcqMat[1];
-    
-        phase_rows = AcqMat[2];
-        phase_cols = AcqMat[3];
 
         /* rows in acq matrix is larger of freq rows and freq columns:
          */

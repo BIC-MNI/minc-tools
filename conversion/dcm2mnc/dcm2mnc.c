@@ -199,19 +199,19 @@ ArgvInfo argTable[] = {
      "Set debugging options"},
 
     {"-descending", 
-     ARGV_CONSTANT, 
-     (char *) MOSAIC_SEQ_DESCENDING, 
+     ARGV_CONSTANT,
+     (char *) MOSAIC_SEQ_DESCENDING,
      (char *) &G.mosaic_seq,
      "Mosaic sequence is in descending slice order."},
 
     {"-ascending", 
-     ARGV_CONSTANT, 
+     ARGV_CONSTANT,
      (char *) MOSAIC_SEQ_ASCENDING, 
      (char *) &G.mosaic_seq,
      "Mosaic sequence is in ascending slice order."},
 
     {"-interleaved", 
-     ARGV_CONSTANT, 
+     ARGV_CONSTANT,
      (char *) MOSAIC_SEQ_INTERLEAVED, 
      (char *) &G.mosaic_seq,
      "Mosaic sequence is in interleaved slice order."},
@@ -245,6 +245,13 @@ ArgvInfo argTable[] = {
      (char *) TRUE,
      (char *) &G.prefer_coords,
      "Derive step value from coordinates rather than slice spacing."},
+
+    {"-abort",
+     ARGV_CONSTANT,
+     (char *) TRUE,
+     (char *) &G.abort_on_error,
+     "Stop processing immediately if a file is not parsed properly."},
+
     {NULL, ARGV_END, NULL, NULL, NULL}
 
 };
@@ -274,6 +281,7 @@ main(int argc, char *argv[])
 
     G.minc_history = time_stamp(argc, argv); /* Create minc history string */
     G.prefer_coords = FALSE;
+    G.abort_on_error = FALSE;
 
     G.pname = argv[0];          /* get program name */
     
