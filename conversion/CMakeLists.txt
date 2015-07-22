@@ -82,3 +82,14 @@ INSTALL(TARGETS
    nii2mnc
    upet2mnc
    DESTINATION bin)
+
+
+INSTALL_MAN_PAGES( ${CMAKE_INSTALL_PREFIX}/man
+  dcm2mnc/dcm2mnc.man1
+  ecattominc/ecattominc.man1
+  micropet/upet2mnc.man1
+  minctoecat/minctoecat.man1
+  nifti1/mnc2nii.man1
+  nifti1/nii2mnc.man1
+  vff2mnc/vff2mnc.man1
+)
