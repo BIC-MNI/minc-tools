@@ -220,3 +220,42 @@ INSTALL(PROGRAMS
   PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ  WORLD_EXECUTE WORLD_READ
   RENAME mincpik
   DESTINATION bin )
+
+
+INSTALL_MAN_PAGES( ${CMAKE_INSTALL_PREFIX}/man
+  coordinates/voxeltoworld.man1
+  mincaverage/mincaverage.man1
+  mincblob/mincblob.man1
+  minccalc/minccalc.man1
+  minccmp/minccmp.man1
+  mincconcat/mincconcat.man1
+  mincconvert/mincconvert.man1
+  minccopy/minccopy.man1
+  mincdiff/mincdiff.man1
+  mincdump/mincdump.man1
+  mincedit/mincedit.man1
+  mincexpand/mincexpand.man1
+  mincextract/mincextract.man1
+  mincgen/mincgen.man1
+  mincheader/mincheader.man1
+  mincinfo/mincinfo.man1
+  minclookup/minclookup.man1
+  mincmakescalar/mincmakescalar.man1
+  mincmakevector/mincmakevector.man1
+  mincmath/mincmath.man1
+  minc_modify_header/minc_modify_header.man1
+  mincresample/mincresample.man1
+  mincreshape/mincreshape.man1
+  mincsample/mincsample.man1
+  mincstats/mincstats.man1
+  minctoraw/minctoraw.man1
+  mincview/invert_raw_image.man1
+  mincview/mincview.man1
+  mincwindow/mincwindow.man1
+  rawtominc/rawtominc.man1
+  xfm/transformtags.man1
+  xfm/xfm2def.man1
+  xfm/xfmconcat.man1
+  xfm/xfmflip.man1
+  xfm/xfminvert.man1
+)
