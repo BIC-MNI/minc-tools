@@ -137,6 +137,8 @@
 #endif
 
 #define SQR(x)    ((x)*(x))
+#define CUBE(x)   ((x)*(x)*(x))
+#define QUAD(x)   ((x)*(x)*(x)*(x))
 #define WORLD_NDIMS 3
 #define DEFAULT_VIO_BOOL (-1)
 #define BINS_DEFAULT 2000
@@ -161,6 +163,10 @@ typedef struct {
    double   max;
    double   sum;
    double   sum2;
+   double   mu;                 /* current estimate of mean. */
+   double   M2;                 /* for calculation of second moment */
+   double   M3;                 /* for calculation of third moment */
+   double   M4;                 /* for calculation of fourth moment */
    double   mean;
    double   variance;
    double   stddev;
@@ -219,6 +225,8 @@ static int Sum2 = FALSE;
 static int Mean = FALSE;
 static int Variance = FALSE;
 static int Stddev = FALSE;
+static int Skewness = FALSE;
+static int Kurtosis = FALSE;
 static int CoM = FALSE;
 static int World_Only = FALSE;
 
@@ -360,6 +368,10 @@ static ArgvInfo argTable[] = {
     "centre of mass of the volume."},
    {"-world_only", ARGV_CONSTANT, (char *)TRUE, (char *)&World_Only,
     "print CoM in world coords only."},
+   {"-skewness", ARGV_CONSTANT, (char *)TRUE, (char *)&Skewness,
+    "sample skewness (3rd moment)"},
+   {"-kurtosis", ARGV_CONSTANT, (char *)TRUE, (char *)&Kurtosis,
+    "sample kurtosis (4th moment)"},
 
    {NULL, ARGV_HELP, (char *)NULL, (char *)NULL, "\nHistogram Dependant Statistics:"},
    {"-hist_count", ARGV_CONSTANT, (char *)TRUE, (char *)&Hist_Count,
@@ -803,7 +815,8 @@ int main(int argc, char *argv[])
    /* if nothing selected, do everything */
    if(!Vol_Count && !Vol_Per && !Vol && !Min && !Max && !Sum && !Sum2 &&
       !Mean && !Variance && !Stddev && !Hist_Count && !Hist_Per &&
-      !Median && !Majority && !BiModalT && !PctT && !Entropy && !CoM) {
+      !Median && !Majority && !BiModalT && !PctT && !Entropy && !CoM &&
+      !Skewness && !Kurtosis) {
       All = TRUE;
       Hist = TRUE;
    }
@@ -1208,6 +1221,21 @@ int main(int argc, char *argv[])
          if(All || CoM) {
             print_com(stats);
          }
+         if (Skewness || Kurtosis) {
+           /* Use the online estimate of the standard deviation for
+            * consistency. This gives results nearly identical to
+            * Octave 4.0.0 and Matlab R2014a.
+            */
+           double sd = sqrt(stats->M2 / stats->vvoxels);
+           if (Skewness) {
+             print_result("Skewness:          ",
+                          stats->M3 / (stats->vvoxels * CUBE(sd)));
+           }
+           if (Kurtosis) {
+             print_result("Kurtosis:          ",
+                          stats->M4 / (stats->vvoxels * QUAD(sd)));
+           }
+         }
 
          if(Hist) {
             if(All && !quiet) {
@@ -1328,6 +1356,33 @@ void do_math(void *caller_data, long num_voxels,
    return;
 }
 
+/**
+ * Calculate second, third, and fourth moments.
+ * Relations derived from: Technical report: SAND2008-6212,
+ * "Formulas for Robust, One-Pass Parallel Computation of
+ * Covariances and Arbitrary-Order Statistical Moments",
+ * Philippe Pebay, Sandia National Laboratories, pppebay@sandia.gov
+ * http://prod.sandia.gov/techlib/access-control.cgi/2008/086212.pdf
+*/
+void
+update_moments(Stats_Info *stats, double value)
+{
+  double n = stats->vvoxels;
+  double n1 = stats->vvoxels - 1;
+  double delta = value - stats->mu;
+  double mu = stats->mu + delta / n;
+  double M2 = stats->M2 + delta * (value - mu);
+  double M3 = stats->M3 + (n1 * (n1 - 1.0) * CUBE(delta) / SQR(n) - 
+                           3.0 * stats->M2 * delta / n);
+  double M4 = stats->M4 + (n1 * (SQR(n1) - n1 + 1.0) * QUAD(delta) / CUBE(n) + 
+                           6.0 * stats->M2 * SQR(delta) / SQR(n) -
+                           4.0 * stats->M3 * delta / n);
+  stats->mu = mu;
+  stats->M2 = M2;
+  stats->M3 = M3;
+  stats->M4 = M4;
+}
+
 void do_stats(double value, long index[], Stats_Info * stats)
 {
    int      idim;
@@ -1346,6 +1401,9 @@ void do_stats(double value, long index[], Stats_Info * stats)
       stats->vvoxels++;
       stats->sum += value;
       stats->sum2 += SQR(value);
+      if (Kurtosis || Skewness) {
+        update_moments(stats, value);
+      }
 
       if(value < stats->min) {
          stats->min = value;
@@ -1868,6 +1926,10 @@ void init_stats(Stats_Info * stats, int hist_bins)
    stats->max = -DBL_MAX;
    stats->sum = 0.0;
    stats->sum2 = 0.0;
+   stats->mu = 0.0;
+   stats->M2 = 0.0;
+   stats->M3 = 0.0;
+   stats->M4 = 0.0;
    stats->mean = 0.0;
    stats->variance = 0.0;
    stats->stddev = 0.0;
