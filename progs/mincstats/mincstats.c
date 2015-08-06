@@ -519,65 +519,51 @@ simple_threshold(double *histogram, double *hist_centre, int hist_bins)
  * No 1, pp 62-66, 1979.
  */
 static double
-otsu_threshold(double histo[], double hist_centre[], int hist_bins)
+otsu_threshold(const double histo[], const double hist_centre[], int hist_bins)
 {
     double threshold;
     double criterion;
     double expr_1;              /* Temporary for common subexpression */
     int i, k;                   /* Generic loop counters */
-    double *p = malloc(hist_bins * sizeof(double));
-    double omega_k;
+    long omega_k;
     double sigma_b_k;
-    double sigma_T;
     double mu_T;
     double mu_k;
-    double sum;
+    long sum;
     int k_low, k_high;
 
-    /* If memory allocation fails, abandon ship!!! */
-    if (p == NULL) {
-        return (0.0);
-    }
-
-    sum = 0.0;
-    for (i = 0; i < hist_bins; i++)
-        sum += (double)histo[i];
-
-    for (i = 0; i < hist_bins; i++)
-        p[i] = (double)histo[i] / sum;
-
-    mu_T = 0.0;
-    for (i = 0; i < hist_bins; i++)
-        mu_T += hist_centre[i] * p[i];
-
-    sigma_T = 0.0;
-    for (i = 0; i < hist_bins; i++)
-        sigma_T += (hist_centre[i] - mu_T) * (hist_centre[i] - mu_T) * p[i];
-
     /* Ignore outlying zero bins */
-    for (k_low = 0; (p[k_low] == 0) && (k_low < hist_bins - 1); k_low++)
+    for (k_low = 0; (histo[k_low] <= 0.0) && (k_low < hist_bins-1); k_low++)
         ;
 
-    for (k_high = hist_bins - 1; (p[k_high] == 0) && (k_high > 0); k_high--)
+    for (k_high = hist_bins-1; (histo[k_high] <= 0) && (k_high > 0); k_high--)
         ;
+
+    sum = 0L;
+    mu_T = 0.0;
+    for (i = k_low; i <= k_high; i++) {
+        sum += histo[i];
+        mu_T += hist_centre[i] * histo[i];
+    }
+    mu_T /= (double)sum;
 
     criterion = 0.0;
-    threshold = hist_centre[hist_bins / 2];
+    threshold = hist_centre[(k_high - k_low + 1 ) / 2];
 
-    omega_k = 0.0;
+    omega_k = 0L;
     mu_k = 0.0;
     for (k = k_low; k <= k_high ; k++) {
-        omega_k += p[k];
-        mu_k += hist_centre[k] * p[k];
-
-        expr_1 = (mu_T * omega_k - mu_k);
-        sigma_b_k = expr_1 * expr_1 / (omega_k * (1 - omega_k));
-        if (criterion < sigma_b_k / sigma_T) {
-            criterion = sigma_b_k / sigma_T;
+        omega_k += (long)histo[k];
+        if( omega_k == 0L || omega_k >= sum )
+            continue;
+        mu_k += hist_centre[k] * histo[k];
+        expr_1 = mu_T * omega_k - mu_k;
+        sigma_b_k = expr_1 * expr_1 / ( (double) omega_k * ( sum - omega_k ) );
+        if (criterion < sigma_b_k) {
+            criterion = sigma_b_k;
             threshold = hist_centre[k];
         }
     }
-    free(p);
     return threshold;
 }
 
