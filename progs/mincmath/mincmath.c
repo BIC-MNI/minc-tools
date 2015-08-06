@@ -123,6 +123,7 @@
 #include <ParseArgv.h>
 #include <time_stamp.h>
 #include <voxel_loop.h>
+#include <read_file_names.h>
 
 /* Constants */
 
@@ -567,7 +568,7 @@ static void do_math(void *caller_data, long num_voxels,
    double value1, value2;
    double illegal_value;
    Operation operation;
-   int num_constants, iconst;
+   unsigned int num_constants, iconst;
    double constants[2];
 
    /* Get pointer to window info */

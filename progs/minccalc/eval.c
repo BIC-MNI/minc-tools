@@ -87,7 +87,7 @@ scalar_t eval_scalar(int width, int *eval_flags, node_t n, sym_t sym){
    if (n->flags & ALLARGS_SCALAR) {
 
       /* Check that we don't have too many arguments */
-      if (n->numargs > (int) sizeof(args)/sizeof(args[0])) {
+      if (n->numargs > (int) (sizeof(args) / sizeof(args[0]))) {
          eval_error(n, "Internal error: too many arguments");
       }
 
@@ -239,7 +239,9 @@ scalar_t eval_scalar(int width, int *eval_flags, node_t n, sym_t sym){
             result->vals[ivalue] = 
                ( (vals[0] >= vals[1] && vals[0] <= vals[2]) ? 1.0 : 0.0);
             break;
-   
+
+         default:
+            break;
          }  /* switch on type */
 
       }   /* Loop over values of scalar */

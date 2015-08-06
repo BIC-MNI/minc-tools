@@ -108,6 +108,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <string.h>
 #include <acr_nema.h>
 
 /* Define constants */
@@ -271,7 +272,7 @@ Acr_byte_order acr_get_byte_order(Acr_File *afp)
 @CREATED    : February 14, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-int acr_get_machine_byte_order(void)
+Acr_byte_order acr_get_machine_byte_order(void)
 {
    int dummy = 1;
    char *ptr = (char *) &dummy;
@@ -473,21 +474,13 @@ static void invert_values(Acr_byte_order byte_order,
                           long nvals, size_t value_size, 
                           void *input_value, void *mach_value)
 {
-   long i;
-   char *ptr1, *ptr2;
-
    /* Check whether a flip is needed */
    if (acr_need_invert(byte_order)) {
       acr_reverse_byte_order(nvals, value_size, input_value, mach_value);
    }
    else {
-      ptr1 = (char *) input_value;
-      ptr2 = (char *) mach_value;
-      for (i=0; i<nvals*value_size; i++) {
-         ptr2[i] = ptr1[i];
-      }
+      memcpy(mach_value, input_value, nvals * value_size);
    }
-
 }
 
 /* ----------------------------- MNI Header -----------------------------------

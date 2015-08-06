@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
    /* check kernel args */
    if(kernel_fn != NULL && kernel_id != K_NULL){
       fprintf(stderr, "%s: specify either a kernel file or a set kernel (not both)\n\n",
-              argv[0], outfile);
+              argv[0]);
       exit(EXIT_FAILURE);
       }
 

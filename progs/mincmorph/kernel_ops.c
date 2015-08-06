@@ -21,12 +21,12 @@ typedef group_info_struct *Group_info;
 
 int compare_ints(const void *a, const void *b)
 {
-   return (*(int *)a - *(int *)b);
+   return (*(const int *)a - *(const int *)b);
    }
 
 int compare_groups(const void *a, const void *b)
 {
-   return (*(Group_info *) b)->count - (*(Group_info *) a)->count;
+   return (*(const Group_info *) b)->count - (*(const Group_info *) a)->count;
    }
 
 void split_kernel(Kernel * K, Kernel * k1, Kernel * k2)
@@ -544,7 +544,7 @@ VIO_Volume  group_kernel(Kernel * K, VIO_Volume vol, double bg)
                num_matches = 0;
                min_label = INT_MAX;
 
-               for(c = 0; c < k1->nelems; c++){
+               for(c = 0; c < (unsigned) k1->nelems; c++){
                   value = (unsigned int)get_volume_voxel_value(vol,
                                                                z + k1->K[c][2],
                                                                y + k1->K[c][1],

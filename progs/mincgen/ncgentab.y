@@ -7,9 +7,6 @@
 /* yacc source for "ncgen", a netCDL parser and netCDF generator */
 
 %{
-#ifndef lint
-static char SccsId[] __attribute__ ((unused)) = "$Id: ncgentab.y,v 1.3 2008-01-13 06:49:41 stever Exp $";
-#endif
 #include        <string.h>
 #include	<stdlib.h>
 #include	<minc.h>
@@ -17,17 +14,6 @@ static char SccsId[] __attribute__ ((unused)) = "$Id: ncgentab.y,v 1.3 2008-01-1
 #include        "ncgen.h"
 #include	"genlib.h"	/* for grow_darray() et al */
 
-typedef struct Symbol {		/* symbol table entry */
-	char    	*name;
-	struct Symbol   *next;
-	unsigned	is_dim : 1;	/* appears as netCDF dimension */
-	unsigned	is_var : 1;	/* appears as netCDF variable */
-	unsigned	is_att : 1;	/* appears as netCDF attribute */
-	int             dnum;	        /* handle as a dimension */
-	int             vnum;	        /* handle as a variable */
-	} *YYSTYPE1;
-
-#define YYSTYPE YYSTYPE1
 YYSTYPE symlist;		/* symbol table: linked list */
 
 extern int derror_count;	/* counts errors in netcdf definition */
@@ -57,6 +43,7 @@ static double *double_valp;
 static void *rec_cur;		/* pointer to where next data value goes */
 static void *rec_start;		/* start of space for data */
 %}
+
 
 /* DECLARATIONS */
 

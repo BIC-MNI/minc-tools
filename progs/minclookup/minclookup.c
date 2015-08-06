@@ -332,6 +332,11 @@ int main(int argc, char *argv[])
       case LU_SPECTRAL:
          lookup_data.lookup_table = &spectral_lookup;
          break;
+      case LU_TABLE:
+         break;
+      default:
+         fprintf(stderr, "Unknown lookup type: %d\n", lookup_type);
+         break;
       }
    }
 
@@ -594,10 +599,10 @@ static char *get_next_line(char *line, int linelen, FILE *fp, char **string)
 ---------------------------------------------------------------------------- */
 static int sorting_function(const void *value1, const void *value2)
 {
-   Sort_Key *key1, *key2;
+   const Sort_Key *key1, *key2;
 
-   key1 = (Sort_Key *) value1;
-   key2 = (Sort_Key *) value2;
+   key1 = (const Sort_Key *) value1;
+   key2 = (const Sort_Key *) value2;
 
    if (key1->key == key2->key) {
       if (key1->index == key2->index) return 0;

@@ -970,8 +970,9 @@ Image_subheader * init_image_subheader(char *file, minc_info *mi, Main_header *m
   return sh;
 }
 void write_ecat_frame(MatrixFile *mf, Image_subheader *sh, short *ptr,int fr, float min, float max) {
-  MatrixData md = {0};
+  MatrixData md;
 
+  md.matnum = 0;
   md.matfile = mf;
   md.mat_type = mf->mhptr->file_type;
   md.data_type = sh->data_type;
@@ -988,6 +989,7 @@ void write_ecat_frame(MatrixFile *mf, Image_subheader *sh, short *ptr,int fr, fl
   md.data_min = min;
   md.data_max = max;
   md.data_size = (sh->x_dimension) * (sh->y_dimension) * (sh->z_dimension) * sizeof(short int);
+  md.x_origin = md.y_origin = md.z_origin = 0.0;
   matrix_write(mf,mat_numcod(fr + 1, 1, 1, 0, 0) , &md);
 }
 

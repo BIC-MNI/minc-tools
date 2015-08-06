@@ -175,7 +175,8 @@ static void
 gen_c(
      char *filename)
 {
-    int idim, ivar, iatt, jatt, maxdims;
+    int idim, ivar, iatt, maxdims;
+    unsigned int jatt;
     int vector_atts;
     char *val_string;
     char stmnt[C_MAX_STMNT];
@@ -516,7 +517,8 @@ static void
 gen_fortran(
      char *filename)
 {
-    int idim, ivar, iatt, jatt, itype, maxdims;
+    int idim, ivar, iatt, itype, maxdims;
+    unsigned int jatt;
     int vector_atts;
     char *val_string;
     char stmnt[FORT_MAX_STMNT];
@@ -1017,7 +1019,7 @@ cstrstr(
     static char *sp;
     char *cp;
     char *istr, *istr0;		/* for null-terminated copy */
-    int ii;
+    size_t ii;
     
     if(4*len+3 != (unsigned)(4*len+3)) {
 	derror("too much character data!");
@@ -1087,7 +1089,7 @@ fstrstr(
     char *cp, tstr[12];
     int was_print = 0;		/* true if last character was printable */
     char *istr, *istr0;		/* for null-terminated copy */
-    int ii;
+    size_t ii;
 
     if(12*ilen != (size_t)(12*ilen)) {
 	derror("too much character data!");

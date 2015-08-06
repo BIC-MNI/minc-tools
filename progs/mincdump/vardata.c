@@ -402,14 +402,14 @@ pr_tvals(
 	Printf("\"");
 	if (fsp->full_data_cmnts) {
 	    lastdelim (more, lastrow);
-	    annotate (vp, fsp,  (long *)cor, 0L);
+	    annotate (vp, fsp, cor, 0L);
 	}
     } else {		/* use format from C_format attribute */
 	for (iel = 0; iel < len-1; iel++) {
 	    if (fsp->full_data_cmnts) {
 		Printf(fmt, *vals++);
 		Printf(", ");
-		annotate (vp, fsp,  (long *)cor, iel);
+		annotate (vp, fsp, cor, iel);
 	    } else {
 		(void) sprintf(sout, fmt, *vals++);
 		(void) strcat(sout, ", ");
@@ -419,7 +419,7 @@ pr_tvals(
 	if (fsp->full_data_cmnts) {
 	    Printf(fmt, *vals++);
 	    lastdelim (more, lastrow);
-	    annotate (vp, fsp,  (long *)cor, iel);
+	    annotate (vp, fsp, cor, iel);
 	} else {
 	    (void) sprintf(sout, fmt, *vals++);
 	    lput(sout);

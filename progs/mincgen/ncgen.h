@@ -21,7 +21,7 @@ extern int natts;		/* number of attributes */
 extern int nvdims;		/* number of dimensions for variables */
 extern int dimnum;		/* dimension number index for variables */
 extern int varnum;		/* variable number index for attributes */
-extern int valnum;		/* number of values specified for variable */
+extern size_t valnum;		/* number of values specified for variable */
 extern int rec_dim;		/* number of the unlimited dimension, if any */
 extern size_t rec_len;		/* number of elements for a record of data */
 extern size_t var_len;		/* variable length (product of dimensions) */
@@ -57,4 +57,22 @@ extern struct atts {
     void *val;
     char *lname;		/* with no "-" characters, for C and Fortran */
 } *atts;			/* table of variable and global attributes */
+
+typedef struct Symbol {		/* symbol table entry */
+	char    	*name;
+	struct Symbol   *next;
+	unsigned	is_dim : 1;	/* appears as netCDF dimension */
+	unsigned	is_var : 1;	/* appears as netCDF variable */
+	unsigned	is_att : 1;	/* appears as netCDF attribute */
+	int             dnum;	        /* handle as a dimension */
+	int             vnum;	        /* handle as a variable */
+	} *YYSTYPE1;
+
+#define YYSTYPE YYSTYPE1
+
+extern int yylex(void);
+extern YYSTYPE lookup(char *sname);
+extern YYSTYPE install(char *sname);
+extern int yyerror(char *s);
+
 #endif /*!NC_NCGEN_H*/

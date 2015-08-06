@@ -61,7 +61,8 @@ gen_load_c(
     void *rec_start
     )
 {
-    int  idim, ival;
+    int  idim;
+    size_t ival;
     char *val_string;
     char *charvalp;
     short *shortvalp;
@@ -317,7 +318,7 @@ f_var_init(
     char stmnt[FORT_MAX_STMNT];
     size_t stmnt_len;
     char s2[FORT_MAX_STMNT];
-    int ival;
+    size_t ival;
     
     /* load variable with data values  */
     sprintf(stmnt, "data %s /",vars[varnum].lname);

@@ -906,8 +906,8 @@ check_irregular_dimension(double *coord_ptr, int length)
      * irregular dimension. This is also probably bad.
      */
     if (temp_delta == 0.0 ||
-        temp_delta < 0.0 && first_delta > 0.0 ||
-        temp_delta > 0.0 && first_delta < 0.0) {
+        (temp_delta < 0.0 && first_delta > 0.0) ||
+        (temp_delta > 0.0 && first_delta < 0.0)) {
       return FALSE;
     }
   }

@@ -215,10 +215,10 @@ pr_att_vals(
     if (type == NC_BYTE && len > 2) {
         int isstring = 1;
         int ch;
-        ch = ((signed char *)vals)[len-1];
+        ch = ((const signed char *)vals)[len-1];
         if (isprint(ch) || ch == '\0' || ch == '\n') {
             for (iel = 0; iel < len-1; iel++) {
-                ch = ((signed char *)vals)[iel];
+                ch = ((const signed char *)vals)[iel];
                 if (!isprint(ch) && ch != '\n' && ch != '\t' && (ch & 0xff) != 0xa0) {
                     isstring = 0;
                     break;
@@ -236,25 +236,25 @@ pr_att_vals(
     for (iel = 0; iel < len-1; iel++) {
 	switch (type) {
 	case NC_BYTE:
-	    sc = ((signed char *) vals)[iel] & 0377;
+	    sc = ((const signed char *) vals)[iel] & 0377;
 	    Printf ("%db, ", sc);
 	    break;
 	case NC_SHORT:
-	    ss = ((short *)vals)[iel];
+	    ss = ((const short *)vals)[iel];
 	    Printf ("%ds, ", ss);
 	    break;
 	case NC_INT:
-	    ii = ((int *)vals)[iel];
+	    ii = ((const int *)vals)[iel];
 	    Printf ("%d, ", ii);
 	    break;
 	case NC_FLOAT:
-	    ff = ((float *)vals)[iel];
+	    ff = ((const float *)vals)[iel];
 	    (void) sprintf(gps, float_att_fmt, ff);
 	    tztrim(gps);	/* trim trailing 0's after '.' */
 	    Printf ("%s, ", gps);
 	    break;
 	case NC_DOUBLE:
-	    dd = ((double *)vals)[iel];
+	    dd = ((const double *)vals)[iel];
 	    (void) sprintf(gps, double_att_fmt, dd);
 	    tztrim(gps);
 	    Printf ("%s, ", gps);
@@ -265,25 +265,25 @@ pr_att_vals(
     }
     switch (type) {
     case NC_BYTE:
-	sc = ((signed char *) vals)[iel] & 0377;
+	sc = ((const signed char *) vals)[iel] & 0377;
 	Printf ("%db", sc);
 	break;
     case NC_SHORT:
-	ss = ((short *)vals)[iel];
+	ss = ((const short *)vals)[iel];
 	Printf ("%ds", ss);
 	break;
     case NC_INT:
-	ii = ((int *)vals)[iel];
+	ii = ((const int *)vals)[iel];
 	Printf ("%d", ii);
 	break;
     case NC_FLOAT:
-	ff = ((float *)vals)[iel];
+	ff = ((const float *)vals)[iel];
 	(void) sprintf(gps, float_att_fmt, ff);
 	tztrim(gps);
 	Printf ("%s", gps);
 	break;
     case NC_DOUBLE:
-	dd = ((double *)vals)[iel];
+	dd = ((const double *)vals)[iel];
 	(void) sprintf(gps, double_att_fmt, dd);
 	tztrim(gps);
 	Printf ("%s", gps);

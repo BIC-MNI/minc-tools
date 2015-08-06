@@ -1147,11 +1147,11 @@ void sort_slices(int sort_over_time, int num_frames,
 int sortcmp(const void *val1, const void *val2)
 {
 
-   if (((sort_type *)val1)->sort_key < 
-       ((sort_type *)val2)->sort_key) 
+   if (((const sort_type *)val1)->sort_key < 
+       ((const sort_type *)val2)->sort_key) 
       return -1;
-   else if (((sort_type *)val1)->sort_key > 
-            ((sort_type *)val2)->sort_key)
+   else if (((const sort_type *)val1)->sort_key > 
+            ((const sort_type *)val2)->sort_key)
       return 1;
    else return 0;
 

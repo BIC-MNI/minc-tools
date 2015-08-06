@@ -120,6 +120,7 @@ Mon May 21 01:01:01 EST 2000 - Original version "imgcalc" by David Leonard
 #include <ParseArgv.h>
 #include <voxel_loop.h>
 #include <time_stamp.h>
+#include <read_file_names.h>
 #include "node.h"
 
 /* Constants */
@@ -537,7 +538,7 @@ static char *read_expression_file(char *filename)
    size_t size;
    FILE *fp;
    char *expression;
-   int ichar;
+   size_t ichar;
    int beginning_of_line, in_comment;
    int ch;
 

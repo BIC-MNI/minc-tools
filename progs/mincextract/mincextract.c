@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
    int nstart, ncount;
    void *data;
    double temp;
-   long nelements, ielement;
+   size_t nelements, ielement;
    double *dbl_data;
    int user_normalization;
    minc_swap_fn_t swap_fn = NULL;

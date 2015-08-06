@@ -187,6 +187,7 @@
 #include <float.h>
 #include <math.h>
 #if HAVE_UNISTD_H
+#define __USE_XOPEN
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
 #include <ParseArgv.h>

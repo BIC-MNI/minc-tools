@@ -72,7 +72,7 @@ lput(const char *cp)
 {
     size_t nn = strlen(cp);
 
-    if (nn+linep > max_line_len && nn > 2) {
+    if (nn+linep > (size_t)max_line_len && nn > 2) {
 	(void) fputs("\n", stdout);
 	(void) fputs(LINEPIND, stdout);
 	linep = (int)strlen(LINEPIND);

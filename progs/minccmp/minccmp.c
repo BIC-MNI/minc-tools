@@ -322,7 +322,9 @@ int main(int argc, char *argv[]){
      if (do_sim) {
        double nvox = ld.vd[i].nvox;
        int j, k;
-       struct aggregate_similarity agg_sim = { 0 };
+       struct aggregate_similarity agg_sim = { 
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+       };
 
        if (!quiet) {
          printf("id  dice    sens.   spec.   acc.    kappa\n");
