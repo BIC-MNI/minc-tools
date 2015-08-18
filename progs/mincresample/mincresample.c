@@ -116,7 +116,7 @@
  * Added -spacetype, -talairach and -units options.
  *
  * Revision 3.2  1995/11/21  14:13:20  neelin
- * VIO_Transform input sampling with transformation and use this as default.
+ * Transform input sampling with transformation and use this as default.
  * Added -tfm_input_sampling to specify above option.
  * Added -use_input_sampling to get old behaviour (no longer the default).
  * Added -origin option (to specify coordinate instead of start values).
@@ -379,7 +379,7 @@ static void get_arginfo(int argc, char *argv[],
           "Do not invert the transformation (default).\n"},
       {"-tfm_input_sampling", ARGV_CONSTANT, (char *) TRUE,
           (char *) &transform_input_sampling,
-          "VIO_Transform the input sampling with the transform (default).\n"},
+          "Transform the input sampling with the transform (default).\n"},
       {"-use_input_sampling", ARGV_CONSTANT, (char *) FALSE,
           (char *) &transform_input_sampling,
           "Use the input sampling without transforming (old behaviour).\n"},
@@ -1199,7 +1199,7 @@ static void transform_volume_def(Transform_Info *transform_info,
             origin[idim] += input_volume_def->start[jdim] *
                input_volume_def->dircos[jdim][idim];
 
-      /* VIO_Transform origin vector */
+      /* Transform origin vector */
       DO_INVERSE_TRANSFORM_WITH_INPUT_STEPS(transformed_origin,
                            transform_info->transformation, origin, input_volume_def->step);
 
@@ -1210,7 +1210,7 @@ static void transform_volume_def(Transform_Info *transform_info,
          nelements = input_volume_def->nelements[idim] - 1;
          if (nelements < 1) nelements = 1.0;
 
-         /* VIO_Transform whole axis */
+         /* Transform whole axis */
          VECTOR_SCALAR_MULT(vector, input_volume_def->dircos[idim],
                             nelements * input_volume_def->step[idim]);
          VECTOR_ADD(vector, vector, origin);
