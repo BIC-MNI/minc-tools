@@ -30,6 +30,11 @@
 #define INTERNAL_PREC NC_FLOAT         /* should be NC_FLOAT or NC_DOUBLE */
 #define DEF_DOUBLE -DBL_MAX
 
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+
+
 /* function prototypes */
 char    *get_real_from_string(char *string, double *value);
 char    *get_string_from_string(char *string, char **value);
