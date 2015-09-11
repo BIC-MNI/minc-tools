@@ -1,3 +1,12 @@
+New in Release 2.3.00
+---------------------
+* Many fixes for dcm2mnc
+* Add -skewness and -kurtosis to mincstats
+* Some general refactoring and bug fixing
+* Don't treat leading zero in numeric arguments as indicating an octal radix.
+* Add confusion matrix statistics to minccmp, similar to voldiff.
+* Fix bugs in mincresample, mnc2nii, mincaverage, and minccalc.
+
 New in Release 2.2.00
 ---------------------
 * added mincmorph, mincblob and mincsample
