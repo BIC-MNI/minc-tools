@@ -1051,7 +1051,7 @@ int main(int argc, char *argv[])
             }
 
             /* median */
-            if(median_bin == 0) {
+            if(median_bin == 0 || median_bin == hist_bins - 1) {
                stats->median = 0.5 * pdf[median_bin] * hist_sep;
             }
             else {
