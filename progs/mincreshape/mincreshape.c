@@ -1129,6 +1129,10 @@ static void setup_reshaping_info(int icvid, int mincid,
    for (idim=0; idim < input_ndims; idim++) {
       (void) ncdiminq(mincid, input_dim[idim], NULL, 
                       &reshape_info->input_size[idim]);
+
+      /* Save the _original_ size. */
+      reshape_info->original_size[idim] = reshape_info->input_size[idim];
+
       if ((idim > fastest_input_img_dim-num_imgdims) && 
           (idim <= fastest_input_img_dim)) {
          (void) miicv_inqlong(icvid, 

@@ -1,3 +1,8 @@
+2015-09-22  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * progs/mincreshape/{mincreshape.c, mincreshape.h, copy_data.c}: Fix
+	reading of image-min and image-max to avoid wildly incorrect
+	values in the output file when the slice dimension is expanded.
+
 2015-08-06  Robert D. Vincent <robert.d.vincent@mcgill.ca>
    * progs/mincstats/mincstats.c: Incorporate Claude's suggested changes to
 	the otsu_threshold() function.

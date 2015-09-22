@@ -555,8 +555,25 @@ static void get_block_min_and_max(Reshape_info *reshape_info,
          (void) mitranslate_coords(inmincid,
                                    inimgid, input_block_count,
                                    varid, minmax_count);
-         (void) mivarget(reshape_info->inmincid, varid, 
-                         minmax_start, minmax_count, 
+         /*
+          * Force the minmax_count and num_values into legal range of
+          * the actual input file. Elsewhere in the code, we
+          * use the ICV to give the "appearance" of different sizes for
+          * the input data, and the library magically makes this work. 
+          * But we can't do the same for the image-min and image-max
+          * variables, we need to enforce the true file sizes here.
+          */
+         for (ivalue = 0; ivalue < reshape_info->input_ndims; ivalue++) {
+            if (reshape_info->original_size[ivalue] < minmax_count[ivalue]) {
+               minmax_count[ivalue] = reshape_info->original_size[ivalue];
+            }
+         }
+         if (num_values > minmax_count[0]) {
+            num_values = minmax_count[0];
+         }
+
+         (void) mivarget(reshape_info->inmincid, varid,
+                         minmax_start, minmax_count,
                          NC_DOUBLE, NULL, minmax_buffer);
          *extreme = minmax_buffer[0];
          for (ivalue=1; ivalue < num_values; ivalue++) {
@@ -571,7 +588,6 @@ static void get_block_min_and_max(Reshape_info *reshape_info,
           (reshape_info->fillvalue == NOFILL) && 
           (0.0 > (*extreme * sign)))
          *extreme = 0.0;
-      
    }
 }
 
