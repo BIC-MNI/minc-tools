@@ -1754,7 +1754,8 @@ add_philips_info(Acr_Group group_list)
         PMS_SET_CREATOR(PMS_Number_of_Slices_MR, &creator_id);
         slice_count = acr_find_int(group_list, PMS_Number_of_Slices_MR, -1);
         if (slice_count < 0) {
-            printf("WARNING: Can't find Philips slice count\n");
+            if (G.Debug)
+                printf("WARNING: Can't find Philips slice count\n");
         }
         else {
             acr_insert_short(&group_list, ACR_Images_in_acquisition, 
@@ -1763,7 +1764,8 @@ add_philips_info(Acr_Group group_list)
         PMS_SET_CREATOR(PMS_Slice_Number_MR, &creator_id);
         slice_index = acr_find_int(group_list, PMS_Slice_Number_MR, -1);
         if (slice_index < 0) {
-            printf("WARNING: Can't find Philips slice index\n");
+            if (G.Debug)
+                printf("WARNING: Can't find Philips slice index\n");
         }
         else {
             /* TODO: It is really quite gross that we have to resort to

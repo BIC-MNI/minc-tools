@@ -272,6 +272,11 @@ strfminc(char *str_ptr, int str_max, const char *fmt_ptr,
                                    tmp_str, sizeof(tmp_str));
                 tmp_ptr = tmp_str;
                 break;
+            case 'P':
+                string_to_filename(gi_ptr->acq.protocol_name,
+                                   tmp_str, sizeof(tmp_str));
+                tmp_ptr = tmp_str;
+                break;
             case 's':
                 tmp_ptr = scan_label[SLICE];
                 break;
@@ -320,6 +325,40 @@ strfminc(char *str_ptr, int str_max, const char *fmt_ptr,
     return (str_len);
 }
 
+/*
+ * Simple functions to remember what files we've created so far.
+ * This allows us to check for filename collision independently of
+ * the possibility of an already-existing output file.
+ */
+struct file_name_list {
+  string_t filename;
+  struct file_name_list *link;
+} *File_name_list;
+
+void
+remember_file_name(const char *filename)
+{
+  struct file_name_list *fn_ptr = malloc(sizeof(struct file_name_list));
+  if (fn_ptr != NULL) {
+    fn_ptr->link = File_name_list;
+    File_name_list = fn_ptr;
+    strcpy(fn_ptr->filename, filename);
+  }
+}
+
+int
+duplicate_file_name(const char *filename)
+{
+  struct file_name_list *fn_ptr = File_name_list;
+  while (fn_ptr != NULL) {
+    if (!strcmp(fn_ptr->filename, filename)) {
+      return 1;
+    }
+    fn_ptr = fn_ptr->link;
+  }
+  return 0;
+}
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : create_minc_file
    @INPUT      : minc_file - name of file to create. If NULL, a name is 
@@ -342,6 +381,8 @@ strfminc(char *str_ptr, int str_max, const char *fmt_ptr,
    @MODIFIED   : rhoge - modified to create directory for session
  -------------------------------------------------------------------------- */
 
+#define N_ALTERNATIVES 3
+
 int
 create_minc_file(const char *minc_file, 
                  int clobber,
@@ -350,12 +391,20 @@ create_minc_file(const char *minc_file,
                  const char **output_file_name,
                  Loop_Type loop_type)
 {
-    char temp_name[1024];
+    char dir_name[1024];
+    char file_name[1024];
     const char *filename;
     int minc_clobber;
     int mincid, icvid;
     static char full_path[1024];
-
+    const char *fn_fmt_ptr;
+    int i;
+    static const char *format_alternatives[N_ALTERNATIVES] = {
+      "%N_%D_%T_%A%s%e%t%p%ca%m",
+      "%N_%D_%T_%A%s%e%t%p%cb%m",
+      "%N_%D_%T_%A%s%e%t%p%cc%m"
+    };
+      
     /* Turn off fatal errors */
     ncopts = NCOPTS_DEFAULT;
 
@@ -364,42 +413,50 @@ create_minc_file(const char *minc_file,
         filename = (const char *) minc_file;
     }
     else {
-        /* rhoge:  add session directory to prefix */
-      
-        strcpy(full_path, file_prefix);
-
         if (G.dirname_format == NULL) {
             G.dirname_format = "%N_%D_%T";
         }
-        strfminc(temp_name, sizeof(temp_name), G.dirname_format, general_info);
-        strcat(full_path, temp_name);
-
-        if (strlen(full_path) != 0) {
-            if (mkdir(full_path, 0777) && G.Debug) {
-                printf("Directory %s exists...\n", full_path);
-            }
-            strcat(full_path, "/");
-        }
-
-        /* if measurement loop, make sure that acquisition_id is
-         * a 6 digit (hhmmss) string with leading zero if needed 
-         */
-        if (loop_type == MEAS) {
-            sprintf(general_info->study.acquisition_id, "%06d",
-                    general_info->acq_id);
-        }
-
-        /* Create file name */
-
         if (G.filename_format == NULL) {
             G.filename_format = "%N_%D_%T_%A%s%e%t%p%c%m";
         }
-        strfminc(temp_name, sizeof(temp_name), G.filename_format,
-                 general_info);
 
-        strcat(full_path, temp_name);
-        strcat(full_path, ".mnc"); /* Always append the extension */
-        filename = full_path;
+        fn_fmt_ptr = G.filename_format;
+        for (i = 0; i < N_ALTERNATIVES; i++) {
+            /* rhoge:  add session directory to prefix */
+      
+            strcpy(full_path, file_prefix);
+
+            strfminc(dir_name, sizeof(dir_name), G.dirname_format, 
+                     general_info);
+            strcat(full_path, dir_name);
+
+            if (strlen(full_path) != 0) {
+                if (mkdir(full_path, 0777) && G.Debug) {
+                    printf("Directory %s exists...\n", full_path);
+                }
+                strcat(full_path, "/");
+            }
+
+            /* if measurement loop, make sure that acquisition_id is
+             * a 6 digit (hhmmss) string with leading zero if needed 
+             */
+            if (loop_type == MEAS) {
+                sprintf(general_info->study.acquisition_id, "%06d",
+                        general_info->acq_id);
+            }
+
+            /* Create file name */
+
+            strfminc(file_name, sizeof(file_name), fn_fmt_ptr, general_info);
+            strcat(full_path, file_name);
+            strcat(full_path, ".mnc");
+            filename = full_path;
+
+            if (!duplicate_file_name(full_path)) {
+                break;
+            }
+            fn_fmt_ptr = format_alternatives[i];
+        }
 
         if (G.Debug) {
             printf("MINC file name:  %s\n", filename);
@@ -442,6 +499,7 @@ create_minc_file(const char *minc_file,
     if (mincid == MI_ERROR) {
         return MI_ERROR;
     }
+    remember_file_name(filename);
 
     /* Set up variables */
     setup_minc_variables(mincid, general_info, loop_type);
