@@ -8,6 +8,7 @@
 #include <float.h>
 #include <time.h>
 #include <string.h>
+#include <ctype.h>
 #include <minc.h>
 #include <time_stamp.h>
 #include <ParseArgv.h>
@@ -1315,7 +1316,6 @@ DECLARE_FUNC(upet_frame_max)
 
 DECLARE_FUNC(upet_frame_file_ptr)
 {
-    long hipart;
     long lopart;
     char *end_ptr;
 
@@ -1324,8 +1324,11 @@ DECLARE_FUNC(upet_frame_file_ptr)
         while (*end_ptr == ' ') {
             end_ptr++;
         }
+        /* If we found spaces, that implies there was a high-part followed
+         * by the low-part of the frame file pointer. We just ignore the
+         * high part.
+         */
         if (isdigit(*end_ptr)) {
-            hipart = lopart;
             lopart = strtol(end_ptr, NULL, 10);
         }
     }

@@ -225,3 +225,6 @@ MatrixFile *matrix_create(const char *fname, Main_header * proto_mhptr);
 int matrix_write(MatrixFile *mptr, int matnum, MatrixData *data);
 int matrix_close(MatrixFile *mptr);
 int mat_numcod(int frame, int plane, int gate, int data, int bed);
+int mat_wblk(FILE *fptr,int blkno, char *bufr,int nblks);
+void swaw( const short *from, short *to, int length);
+int mat_rblk(FILE *fptr, int blkno, char *bufr, int nblks);

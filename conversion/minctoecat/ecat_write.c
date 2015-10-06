@@ -39,7 +39,6 @@ FILE *mat_create(const char  *fname,Main_header *mhead);
 FILE *mat_open( const char *fname, char *fmode);
 int mat_write_main_header(FILE *fptr, Main_header *header);
 int map_main_header(char *bufr,Main_header *header);
-int mat_wblk(FILE *fptr,int blkno, char *bufr,int nblks);
 MatDirList *mat_read_directory(MatrixFile *mptr);
 MatDirBlk *mat_rdirblk(MatrixFile *file, int blknum);
 int write_host_data(MatrixFile *mptr, int matnum, MatrixData *data);
@@ -49,9 +48,7 @@ int insert_mdir(struct MatDir matdir, MatDirList *dirlist);
 int mat_write_image_subheader(FILE *fptr, Main_header *mhptr,int blknum, Image_subheader *header);
 int map_image_header(char *buf, Image_subheader *header);
 int matrix_freelist(MatDirList *matdirlist);
-void swaw( short *from, short *to, int length);
 int mat_close(FILE *fptr);
-int mat_rblk(FILE *fptr, int blkno, char *bufr, int nblks);
 
 MatrixFile     *matrix_create(const char *fname, Main_header * proto_mhptr) {
   MatrixFile     *mptr = NULL;
@@ -605,7 +602,7 @@ int mat_numcod(int frame, int plane, int gate, int data, int bed) {
 	  ((gate&0x3F)<<24)|((data&0x3)<<30)|((data&0x4)<<9));
 }
 
-void swaw( short *from, short *to, int length) {
+void swaw( const short *from, short *to, int length) {
   short int temp;
   int i;
   

@@ -409,7 +409,7 @@ static Dicom_client_data *get_client_data_ptr(Acr_File *afp)
    struct sockaddr_in server;
    int sock;
    int sockbuflen, oldsockbuflen;
-   int sockoptlen;
+   socklen_t sockoptlen;
 
    /* Set default file pointers */
    *fpin = *fpout = NULL;

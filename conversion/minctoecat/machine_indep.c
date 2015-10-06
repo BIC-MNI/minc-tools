@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
+#define __USE_XOPEN
+#include <unistd.h>
 #include "ecat_write.h"
 
 #define OK 0
@@ -14,31 +16,20 @@ unsigned long ntohl(unsigned long ul) {
     unsigned char *p = (unsigned char*)&ul;
     return ((unsigned long)p[3] + (p[2] >> 8) + (p[1] >> 16) + (p[0] >> 24));
 }
-#endif
-
-
-#if defined(__STDC__)
-void SWAB(const void *from, void *to, int length)
 #else
-void SWAB( from, to, length)
-char *from, *to;
-int length;
+#include <arpa/inet.h>
 #endif
+
+
+void SWAB(const void *from, void *to, int length)
 {
 	if (ntohs(1) == 1) swab(from, to, length);
 	else memcpy(to,from,length);
 }
 
-void SWAW ( from, to, length)
-#if defined(__STDC__)
-const short *from;
-#else
-short *from;
-#endif
-short *to;
-int length;
+void SWAW ( const void *from, void *to, int length)
 {
-	if (ntohs(1) == 1) swaw((short*)from,to,length);
+	if (ntohs(1) == 1) swaw(from,to,length);
 	else memcpy(to,from,length*2);
 } 
 
@@ -181,10 +172,9 @@ int nblks, dtype;
 }
 
 
-read_matrix_data( fptr, strtblk, nblks, dptr, dtype)
-  FILE *fptr;
-  int strtblk, nblks, dtype;
-  char * dptr;
+int read_matrix_data(FILE *fptr,
+                     int strtblk, int nblks, int dtype,
+                     char * dptr)
 {
 	int  err;
 
@@ -193,10 +183,9 @@ read_matrix_data( fptr, strtblk, nblks, dptr, dtype)
 	return file_data_to_host(dptr,nblks,dtype);
 }
 
-write_matrix_data( fptr, strtblk, nblks, dptr, dtype)
-FILE *fptr;
-int strtblk, nblks, dtype;
-char *dptr;
+int write_matrix_data(FILE *fptr,
+                      int strtblk, int nblks, int dtype,
+                      char *dptr)
 {
 	int error_flag = 0;
 	int i, j, k;

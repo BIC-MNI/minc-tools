@@ -129,6 +129,7 @@
 #include <ParseArgv.h>
 #include <time_stamp.h>
 #include <voxel_loop.h>
+#include <read_file_names.h>
 
 /* Constants */
 #ifndef TRUE
@@ -1196,11 +1197,11 @@ static void sort_coords(Concat_Info *concat_info)
 ---------------------------------------------------------------------------- */
 static int sort_function(const void *value1, const void *value2)
 {
-   Sort_Element *element1, *element2;
+   const Sort_Element *element1, *element2;
    int return_value;
 
-   element1 = (Sort_Element *) value1;
-   element2 = (Sort_Element *) value2;
+   element1 = (const Sort_Element *) value1;
+   element2 = (const Sort_Element *) value2;
 
    if (element1->coord < element2->coord) return_value = -1;
    else if (element1->coord > element2->coord) return_value = 1;

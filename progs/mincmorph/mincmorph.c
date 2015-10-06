@@ -30,6 +30,11 @@
 #define INTERNAL_PREC NC_FLOAT         /* should be NC_FLOAT or NC_DOUBLE */
 #define DEF_DOUBLE -DBL_MAX
 
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+
+
 /* function prototypes */
 char    *get_real_from_string(char *string, double *value);
 char    *get_string_from_string(char *string, char **value);
@@ -226,7 +231,7 @@ int main(int argc, char *argv[])
    /* check kernel args */
    if(kernel_fn != NULL && kernel_id != K_NULL){
       fprintf(stderr, "%s: specify either a kernel file or a set kernel (not both)\n\n",
-              argv[0], outfile);
+              argv[0]);
       exit(EXIT_FAILURE);
       }
 

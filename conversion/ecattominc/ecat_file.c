@@ -899,11 +899,11 @@ static void ecat_initialize_table(Ecat_header_table_type *table)
 ---------------------------------------------------------------------------- */
 static int ecat_table_entry_compare(const void *v1, const void *v2)
 {
-   Ecat_field_description_type *first, *second;
+   const Ecat_field_description_type *first, *second;
 
    /* Get pointers */
-   first  = (Ecat_field_description_type *) v1;
-   second = (Ecat_field_description_type *) v2;
+   first  = (const Ecat_field_description_type *) v1;
+   second = (const Ecat_field_description_type *) v2;
 
    /* Compare field names */
    return ((int) first->name - (int) second->name);
@@ -924,11 +924,11 @@ static int ecat_table_entry_compare(const void *v1, const void *v2)
 ---------------------------------------------------------------------------- */
 static int ecat_table_offset_compare(const void *v1, const void *v2)
 {
-   Ecat_field_description_type *first, *second;
+   const Ecat_field_description_type *first, *second;
 
    /* Get pointers */
-   first  = (Ecat_field_description_type *) v1;
-   second = (Ecat_field_description_type *) v2;
+   first  = (const Ecat_field_description_type *) v1;
+   second = (const Ecat_field_description_type *) v2;
 
    /* Compare field names */
    return ((int) first->offset - (int) second->offset);
@@ -1050,7 +1050,7 @@ static long get_dirblock(Ecat_file *file, int32_t *dirblock, int offset){
 {
    long file_offset;
    int xsize, ysize, zsize, data_type, bytes_per_pixel;
-   long image_npix, image_size, array_offset, ipix;
+   unsigned long image_npix, image_size, array_offset, ipix;
    unsigned char *bimage;
 
    /* Get the image size and type */

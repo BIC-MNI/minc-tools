@@ -212,9 +212,9 @@ static void get_arginfo(int argc, char *argv[],
    static int image_size = MI_ICV_ANYSIZE;
    static int row_size = MI_ICV_ANYSIZE;
    static int col_size = MI_ICV_ANYSIZE;
-   static Dimsize_list dimsize_list = {0};
+   static Dimsize_list dimsize_list = {0, {NULL}, {0}};
    static char *axis_order[MAX_VAR_DIMS+1];
-   static Axis_ranges axis_ranges = {0};
+   static Axis_ranges axis_ranges = {0, {NULL}, {0}, {0}};
    static long hs_start[MAX_VAR_DIMS] = {LONG_MIN};
    static long hs_count[MAX_VAR_DIMS] = {LONG_MIN};
    static double fillvalue = NOFILL;
@@ -1129,6 +1129,10 @@ static void setup_reshaping_info(int icvid, int mincid,
    for (idim=0; idim < input_ndims; idim++) {
       (void) ncdiminq(mincid, input_dim[idim], NULL, 
                       &reshape_info->input_size[idim]);
+
+      /* Save the _original_ size. */
+      reshape_info->original_size[idim] = reshape_info->input_size[idim];
+
       if ((idim > fastest_input_img_dim-num_imgdims) && 
           (idim <= fastest_input_img_dim)) {
          (void) miicv_inqlong(icvid, 

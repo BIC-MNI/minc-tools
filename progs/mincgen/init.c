@@ -27,7 +27,7 @@ int natts;			/* number of attributes */
 int nvdims;			/* number of dimensions for variables */
 int dimnum;			/* dimension number index for variables */
 int varnum;			/* variable number index for attributes */
-int valnum;			/* value number index for attributes */
+size_t valnum;			/* value number index for attributes */
 int rec_dim;			/* number of the unlimited dimension, if any */
 size_t var_len;			/* variable length (product of dimensions) */
 size_t rec_len;			/* number of elements for a record of data */

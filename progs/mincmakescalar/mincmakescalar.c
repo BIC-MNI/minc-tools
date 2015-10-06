@@ -376,6 +376,8 @@ static void do_makescalar(void *caller_data, long num_voxels,
          case CONV_LINEAR:
             result += program_data->linear_coefficients[ivalue] * value;
             break;
+         default:
+            break;
          }
 
       }     /* End of loop over components */
@@ -388,6 +390,8 @@ static void do_makescalar(void *caller_data, long num_voxels,
             break;
          case CONV_MAGNITUDE:
             result = sqrt(result);
+            break;
+         default:
             break;
          }
       }

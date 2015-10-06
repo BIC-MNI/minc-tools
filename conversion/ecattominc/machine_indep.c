@@ -11,6 +11,8 @@ unsigned long ntohl(unsigned long ul) {
     unsigned char *p = (unsigned char*)&ul;
     return ((unsigned long)p[3] + (p[2] >> 8) + (p[1] >> 16) + (p[0] >> 24));
 }
+#else
+#include <arpa/inet.h>
 #endif
 
 void get_short_value(const void *from, void *to) {

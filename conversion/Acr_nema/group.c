@@ -905,6 +905,10 @@ static Acr_Status acr_input_group_with_max(Acr_File *afp, Acr_Group *group,
       case ACR_END_OF_INPUT:
          status = ACR_ABNORMAL_END_OF_INPUT; 
          break;
+      default:
+         /* Other status */
+         status = ACR_OTHER_ERROR;
+         break;
       }
    }
 

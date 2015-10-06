@@ -80,6 +80,7 @@ typedef struct {
    int output_is_signed;
    int input_ndims;                  /* Number of input dimensions */
    int output_ndims;                 /* Number of output dimensions */
+   long original_size[MAX_VAR_DIMS]; /* True original size of input volume */
    long input_size[MAX_VAR_DIMS];    /* Size of input volume */
    long input_start[MAX_VAR_DIMS];   /* Start of desired hyperslab */
    long input_count[MAX_VAR_DIMS];   /* Size of desired hyperslab 

@@ -165,7 +165,7 @@ static int check_file_type_consistency(int num_files, char **file_list);
 
 struct globals G;
 
-#define VERSION_STRING "2.01.01 built " __DATE__ " " __TIME__
+#define VERSION_STRING "2.01.03 built " __DATE__ " " __TIME__
 
 #ifndef S_ISDIR
 #define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
@@ -498,7 +498,7 @@ main(int argc, char *argv[])
             char *fname;
 
             if ((ifile % 16) == 0) {
-                printf("%-4s %-32.32s %-14s %-8s %-8s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-4s %-5s %-16s\n",
+                printf("%-4s %-32.32s %-15s %8s %8s %4s %4s %4s %4s %4s %4s %4s %4s %4s %5s %16s %16s\n",
                        "num",
                        "filename",
                        "studyid",
@@ -514,7 +514,8 @@ main(int argc, char *argv[])
                        "rcol",
                        "mrow",
                        "img#",
-                       "seq");
+                       "seq",
+                       "pro");
             }
             /* Print out info about file.  Truncate the name if necessary.
              */
@@ -523,7 +524,7 @@ main(int argc, char *argv[])
                 fname += strlen(fname) - 32;
             }
 
-            printf("%4d %-32.32s %14.6f %8d %8d %4d %4d %4d %4d %4d %4d %4d %4d %4d %5d %-16s\n",
+            printf("%4d %-32.32s %14.6f %8d %8d %4d %4d %4d %4d %4d %4d %4d %4d %4d %5d %16s %16s\n",
                    ifile,
                    fname,
                    info->study_id,
@@ -539,7 +540,8 @@ main(int argc, char *argv[])
                    info->rec_cols,
                    info->num_mosaic_rows,
                    info->global_image_number,
-                   info->sequence_name);
+                   info->sequence_name,
+                   info->protocol_name);
         }
     }
 
@@ -646,17 +648,22 @@ dcm_sort_function(const void *entry1, const void *entry2)
     int slice1 = (*file_info_list1)->slice_number;
     int slice2 = (*file_info_list2)->slice_number;
 
+    int ncmp;
+
     if (session1 < session2) return -1;
     else if (session1 > session2) return 1;
     else if (series1 < series2) return -1;
     else if (series1 > series2) return 1;
+    else if ((ncmp = strcmp((*file_info_list1)->protocol_name,
+                            (*file_info_list2)->protocol_name)) != 0) {
+      return ncmp;
+    }
     else if (frame1 < frame2) return -1;
     else if (frame1 > frame2) return 1;
     else if (image1 < image2) return -1;
     else if (image1 > image2) return 1;
     else if (slice1 < slice2) return -1;
     else if (slice1 > slice2) return 1;
-
     /* Last chance - if all else is equal, sort by the file names. 
      */
     else return strcmp((*file_info_list1)->file_name,
@@ -695,6 +702,7 @@ use_the_files(int num_files,
     string_t cur_patient_name;
     string_t cur_patient_id;
     string_t cur_sequence_name;
+    string_t cur_protocol_name;
     int exit_status;
     const char *output_file_name;
     string_t file_prefix;
@@ -776,6 +784,7 @@ use_the_files(int num_files,
                 strcpy(cur_patient_name, di_ptr[ifile]->patient_name);
                 strcpy(cur_patient_id, di_ptr[ifile]->patient_id);
                 strcpy(cur_sequence_name, di_ptr[ifile]->sequence_name);
+                strcpy(cur_protocol_name, di_ptr[ifile]->protocol_name);
 
                 used_file[ifile] = TRUE;
             }
@@ -790,6 +799,7 @@ use_the_files(int num_files,
                       !G.splitEcho) &&
                      (di_ptr[ifile]->dyn_scan_number == cur_dyn_scan_number ||
                       !G.splitDynScan) &&
+                     !strcmp(cur_protocol_name, di_ptr[ifile]->protocol_name) &&
                      !strcmp(cur_patient_name, di_ptr[ifile]->patient_name) &&
                      !strcmp(cur_patient_id, di_ptr[ifile]->patient_id)) {
 

@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
    nc_type datatype;
    int is_signed;
    long start[MAX_VAR_DIMS], count[MAX_VAR_DIMS], end[MAX_VAR_DIMS];
-   long size;
+   size_t size;
    int idim;
    void *data;
    double temp;

@@ -124,6 +124,17 @@ if ($h5[0] != 20 || $h5[1] != 20 || $h5[2] != 20 ||
     }
 }
 
+# Case 6 - See if we can properly expand the slice dimension without
+# doing anything crazy.
+
+system("$mincreshape_bin -clobber -dimsize zspace=9 test-two.mnc mincreshape-t6.mnc");
+my $r1=`$mincstats_bin -quiet -sum mincreshape-t6.mnc`;
+if ($r1 != 400)
+{
+    $errors++;
+    print "Test 6 failed sum check: $r1\n";
+}
+
 print "OK.\n" if $errors == 0;
 print
 exit $errors > 0;

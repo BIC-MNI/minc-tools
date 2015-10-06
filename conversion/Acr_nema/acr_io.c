@@ -108,6 +108,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <string.h>
 #include <acr_nema.h>
 
 /* Define constants */
@@ -128,9 +129,10 @@ typedef struct {
 } *Data_Info;
 
 /* Private functions */
-static int test_vr(char vr_to_test[2], char *vr_list[]);
-static int is_sequence_vr(char vr_to_test[2]);
-static int is_special_vr(char vr_to_test[2]);
+static int test_vr(const char vr_to_test[2], const char *vr_list[]);
+static int is_sequence_vr(const char vr_to_test[2]);
+static int is_special_vr(const char vr_to_test[2]);
+static int is_vr(const char vr_to_test[2]);
 static Data_Info get_data_info(Acr_File *afp);
 static void invert_values(Acr_byte_order byte_order, 
                           long nvals, size_t value_size, 
@@ -142,19 +144,20 @@ static void invert_values(Acr_byte_order byte_order,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : is_sequence_vr
               is_special_vr
+              is_vr
 @INPUT      : vr_to_test - Two character array containing value representation
 @OUTPUT     : (none)
 @RETURNS    : TRUE if vr is in appropriate list
 @DESCRIPTION: These routines test VR against various lists. is_sequence_vr
-              checks for a sequence and is_special_vr checks for a VR
-              with different fields
+              checks for a sequence, is_special_vr checks for a VR
+              with different fields, and is_vr tests for ANY legal VR.
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : January 29, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static int test_vr(char vr_to_test[2], char *vr_list[])
+static int test_vr(const char vr_to_test[2], const char *vr_list[])
 {
    int found_special, i;
 
@@ -170,17 +173,28 @@ static int test_vr(char vr_to_test[2], char *vr_list[])
    return found_special;
 }
 
-static int is_sequence_vr(char vr_to_test[2])
+static int is_sequence_vr(const char vr_to_test[2])
 {
-   static char *sequence_vrs[] = {"SQ", NULL};
+   static const char *sequence_vrs[] = { "SQ", NULL };
    return test_vr(vr_to_test, sequence_vrs);
 }
 
-static int is_special_vr(char vr_to_test[2])
+static int is_special_vr(const char vr_to_test[2])
 {
-   static char *special_vrs[] = {"OB", "OW", "SQ", "UN", "UT", NULL};
+   static const char *special_vrs[] = { "OB", "OW", "SQ", "UN", "UT", NULL };
    return test_vr(vr_to_test, special_vrs);
 }
+
+static int is_vr(const char vr_to_test[2])
+{
+   static const char *all_vrs[] = {
+     "AE", "AS", "AT", "CS", "DA", "DS", "DT",
+     "FD", "FL", "IS", "LO", "LT", "OB", "OD",
+     "OF", "OW", "PN", "SH", "SL", "SQ", "SS",
+     "ST", "TM", "UI", "UL", "UN", "US", "UT", NULL };
+   return test_vr(vr_to_test, all_vrs);
+}
+
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : get_data_info
@@ -271,7 +285,7 @@ Acr_byte_order acr_get_byte_order(Acr_File *afp)
 @CREATED    : February 14, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-int acr_get_machine_byte_order(void)
+Acr_byte_order acr_get_machine_byte_order(void)
 {
    int dummy = 1;
    char *ptr = (char *) &dummy;
@@ -473,21 +487,13 @@ static void invert_values(Acr_byte_order byte_order,
                           long nvals, size_t value_size, 
                           void *input_value, void *mach_value)
 {
-   long i;
-   char *ptr1, *ptr2;
-
    /* Check whether a flip is needed */
    if (acr_need_invert(byte_order)) {
       acr_reverse_byte_order(nvals, value_size, input_value, mach_value);
    }
    else {
-      ptr1 = (char *) input_value;
-      ptr2 = (char *) mach_value;
-      for (i=0; i<nvals*value_size; i++) {
-         ptr2[i] = ptr1[i];
-      }
+      memcpy(mach_value, input_value, nvals * value_size);
    }
-
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -845,16 +851,16 @@ Acr_Status acr_write_buffer(Acr_File *afp, unsigned char buffer[],
 @INPUT      : afp
 @OUTPUT     : (none)
 @RETURNS    : status.
-@DESCRIPTION: Tests input for byte ordering to use. The test is done by 
-              looking at the length of the first element. First a test is
-              done for implicit VR, assuming that the length of the first 
-              element is less than 64K and greater than zero, and we try 
-              the two possible byte orders. If the VR encoding is explicit, 
-              then we have two shortwords (2-bytes), both of which are 
-              non-zero and the longword (4 bytes) will be greater than 64K. 
-              In this case, we test the 2-byte length looking for a length
-              that is less than 256 bytes. If that fails, than we revert
-              to the original byte order.
+@DESCRIPTION: Tests input for byte ordering and VR encoding to use. Byte
+              ordering is determined by reading the group identifier and
+              checking whether its high byte is set or not. Because groups
+              should always be sorted in ascending order, and because most
+              groups have a zero upper byte, this test should be correct
+              as long as this function is called near the beginning of the
+              file. The VR encoding is tested by reading the two bytes 
+              immediately after the group and element numbers. If these 
+              bytes form a legal VR, we assume we have explicit VR
+              throughout this group.
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
@@ -864,17 +870,11 @@ Acr_Status acr_write_buffer(Acr_File *afp, unsigned char buffer[],
 Acr_Status acr_test_byte_order(Acr_File *afp)
 {
    long buflen;
-   unsigned char buffer[2*ACR_SIZEOF_SHORT+ACR_SIZEOF_LONG];
-   Acr_Long data_length;
-   Acr_Short data_length2;
+   unsigned char buffer[3*ACR_SIZEOF_SHORT];
    Acr_Status status;
-   Acr_byte_order byte_order, old_byte_order;
-
-#define ACR_TEST_MAX USHRT_MAX
-#define ACR_TEST_MAX2 UCHAR_MAX
-
-   /* Save old byte ordering */
-   old_byte_order = acr_get_byte_order(afp);
+   Acr_byte_order byte_order;
+   Acr_Short grp_id;
+   char vr[2];
 
    /* Read in group id, element id and length of data */
    status = acr_read_buffer(afp, buffer, SIZEOF_ARRAY(buffer), &buflen);
@@ -884,51 +884,29 @@ Acr_Status acr_test_byte_order(Acr_File *afp)
    status = acr_unget_buffer(afp, buffer, buflen);
    if (status != ACR_OK) return status;
 
-   /* Test data length (the first element should be a group length).
-      Try big-endian ordering first. */
    byte_order = ACR_BIG_ENDIAN;
    acr_set_byte_order(afp, byte_order);
-   acr_get_long(byte_order, 1, &buffer[2*ACR_SIZEOF_SHORT], 
-                &data_length);
+   acr_get_short(byte_order, 1, &buffer[0], &grp_id);
 
-   /* If that doesn't work, set it to little-endian ordering. */
-   if (data_length >= ACR_TEST_MAX) {
-      byte_order = ACR_LITTLE_ENDIAN;
-      acr_set_byte_order(afp, byte_order);
-      acr_get_long(byte_order, 1, &buffer[2*ACR_SIZEOF_SHORT], 
-                   &data_length);
+   /* If the high byte of the group id is non-zero, the encoding is
+    * probably little-endian.
+    */
+   if ((grp_id & 0xff00) != 0) {
+     byte_order = ACR_LITTLE_ENDIAN;
+     acr_set_byte_order(afp, byte_order);
+     acr_get_short(byte_order, 1, &buffer[0], &grp_id);
    }
 
-   /* If one of them worked, then it means that we have implicit VR 
-      encoding since we didn't look for a VR field */
-   if (data_length < ACR_TEST_MAX) {
+   /* See if we have an explicit VR.
+    */
+   vr[0] = buffer[2*ACR_SIZEOF_SHORT+0];
+   vr[1] = buffer[2*ACR_SIZEOF_SHORT+1];
+   if (is_vr(vr)) {
+      acr_set_vr_encoding(afp, ACR_EXPLICIT_VR);
+   }
+   else {
       acr_set_vr_encoding(afp, ACR_IMPLICIT_VR);
    }
-
-   /* Otherwise we probably have explicit vr encoding. */
-   else {
-      acr_set_vr_encoding(afp, ACR_EXPLICIT_VR);
-
-      /* Check the length in this case to see if it small. The default
-         will be little endian. */
-      byte_order = ACR_BIG_ENDIAN;
-      acr_set_byte_order(afp, byte_order);
-      acr_get_short(byte_order, 1, &buffer[3*ACR_SIZEOF_SHORT], 
-                   &data_length2);
-      if (data_length2 >= ACR_TEST_MAX2) {
-         byte_order = ACR_LITTLE_ENDIAN;
-         acr_set_byte_order(afp, byte_order);
-         acr_get_short(byte_order, 1, &buffer[3*ACR_SIZEOF_SHORT], 
-                       &data_length2);
-      }
-      if (data_length2 >= ACR_TEST_MAX2) {
-         /* If we get here, we have completely failed to make sense of 
-          * the byte ordering.
-          */
-         acr_set_byte_order(afp, old_byte_order);
-      }
-   }
-
    return ACR_OK;
 
 }

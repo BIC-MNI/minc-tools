@@ -169,7 +169,7 @@ static int table_integrity_checked = FALSE;
 ---------------------------------------------------------------------------- */
 static void check_table_integrity()
 {
-   int ientry;
+   unsigned int ientry;
 
    /* Don't do anything if check has already been performed */
    if (table_integrity_checked) return;
@@ -211,8 +211,7 @@ static Acr_VR_Entry *get_vr_entry(Acr_VR_Type vr_code)
    CHECK_TABLE_INTEGRITY;
 
    /* Check to see if we have a bogus vr_code */
-   if ((vr_code < 0) || 
-       (vr_code >= ACR_VR_NUM_TYPES+unknown_VR_table_length)) {
+   if (vr_code >= (Acr_VR_Type)(ACR_VR_NUM_TYPES+unknown_VR_table_length)) {
       return NULL;
    }
 
@@ -238,6 +237,8 @@ static Acr_VR_Entry *get_vr_entry(Acr_VR_Type vr_code)
 @CREATED    : January 31, 1997 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
+#define UNKNOWN_VR ((Acr_VR_Type) -1)
+
 static Acr_VR_Type find_vr_name(char *vr_name)
 {
    int ientry;
@@ -260,7 +261,7 @@ static Acr_VR_Type find_vr_name(char *vr_name)
       }
    }
 
-   return (Acr_VR_Type) -1;
+   return UNKNOWN_VR;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -304,7 +305,7 @@ int acr_test_vr_name(char *vr_name)
    Acr_VR_Type vr_code;
 
    vr_code = find_vr_name(vr_name);
-   return ((vr_code >= 0) && (vr_code < ACR_VR_NUM_TYPES));
+   return (vr_code != UNKNOWN_VR && vr_code < ACR_VR_NUM_TYPES);
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -328,7 +329,7 @@ Acr_VR_Type acr_lookup_vr_name(char *vr_name)
 
    /* Look up the name and return the matching code if found */
    vr_code = find_vr_name(vr_name);
-   if (vr_code >= 0) {
+   if (vr_code != UNKNOWN_VR) {
       return vr_code;
    }
 

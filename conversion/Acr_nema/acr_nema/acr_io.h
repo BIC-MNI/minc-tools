@@ -107,7 +107,7 @@ typedef char * Acr_String;
 #define ACR_SEQ_DELIMITER 0xe0dd
 
 /* Flag for data length to indicate variable length elements */
-#define ACR_VARIABLE_LENGTH -1
+#define ACR_VARIABLE_LENGTH ((Acr_Long) -1)
 
 /* Byte-ordering options */
 typedef enum {
@@ -143,7 +143,7 @@ typedef enum {
 extern void acr_set_byte_order(Acr_File *afp, 
                                Acr_byte_order byte_order);
 extern Acr_byte_order acr_get_byte_order(Acr_File *afp);
-extern int acr_get_machine_byte_order(void);
+extern Acr_byte_order acr_get_machine_byte_order(void);
 extern int acr_need_invert(Acr_byte_order byte_order);
 extern void acr_set_vr_encoding(Acr_File *afp, 
                                 Acr_VR_encoding_type vr_encoding);

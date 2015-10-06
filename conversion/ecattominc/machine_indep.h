@@ -58,5 +58,6 @@ void get_long_value(const void *from, void *to);
 void get_vax_short(int nvals, void *vax_value, short *mach_value);
 void get_vax_long(int nvals, void *vax_value, long *mach_value);
 void get_vax_float(int nvals, void *vax_value, float *mach_value);
+void get_int32_value(const void *from, void *to);
 
 #endif /*_ECAT_MACHINE_INDEP_H*/

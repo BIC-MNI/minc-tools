@@ -1,3 +1,24 @@
+2015-09-22  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * progs/mincreshape/{mincreshape.c, mincreshape.h, copy_data.c}: Fix
+	reading of image-min and image-max to avoid wildly incorrect
+	values in the output file when the slice dimension is expanded.
+
+2015-08-06  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * progs/mincstats/mincstats.c: Incorporate Claude's suggested changes to
+	the otsu_threshold() function.
+   * {various}: Corrected many warnings.
+
+2015-08-06  Andrew Janke <a.janke@gmail.com>
+   * progs/mincstats/mincstats.man1: Add documentation of new command line
+	options.
+
+2015-08-05  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * progs/mincstats/mincstats.c: Add -skewness and -kurtosis options.
+
+2015-07-09  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+    * Testing/{mincstats-test.pl, mincinfo-test.pl}: Added test scripts for
+	mincstats and mincinfo.
+
 2015-06-26  Robert D. Vincent <robert.d.vincent@mcgill.ca>
    * progs/mincstats/mincstats.c: Fix potential memory error and removed some warnings.
    * conversion/dcm2mnc/*: Many changes to improve robustness of DICOM conversion.

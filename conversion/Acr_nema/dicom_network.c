@@ -456,6 +456,8 @@ static char Implementation_class_uid[65] = "";
          status = ACR_PROTOCOL_ERROR; break;
       case ACR_END_OF_INPUT:
          status = ACR_ABNORMAL_END_OF_INPUT; break;
+      default:
+         status = ACR_OTHER_ERROR; break;
       }
    }
    if (old_watchpoint != ACR_NO_WATCHPOINT)
@@ -665,6 +667,8 @@ static Acr_Status read_data_tf(Acr_File *dicom_afp, Acr_Group group)
          status = ACR_PROTOCOL_ERROR; break;
       case ACR_END_OF_INPUT:
          status = ACR_ABNORMAL_END_OF_INPUT; break;
+      default:
+         status = ACR_OTHER_ERROR; break;
       }
    }
 
@@ -1392,7 +1396,7 @@ static Acr_Status write_assoc_rq_ac(Acr_File *afp, Acr_Group group,
    unsigned char buffer[ASSOC_RQ_LEN];
    long pdu_length;
    int do_write;
-   int offset;
+   size_t offset;
    Acr_Short svalue;
    Acr_Long lvalue;
    Acr_Element element;
@@ -1566,7 +1570,7 @@ static Acr_Status write_fixed_length_pdu(Acr_File *afp, int pdu_type,
 {
    unsigned char buffer[ABORT_RQ_LEN];
    Acr_Long pdu_length;
-   int i;
+   size_t i;
 
    /* Zero the buffer */
    for (i=0; i<sizeof(buffer); i++) {
@@ -2787,7 +2791,7 @@ static int dicom_output_routine(void *io_data, void *buffer, int nbytes)
             /* Add in data length if needed, making sure that we can
                get some data into this pdu */
             if ((data_length > 0) && (pdu_length+sizeof(header_buffer) < 
-                                      stream_data->maximum_length)) {
+                                      (Acr_Long)stream_data->maximum_length)) {
                pdu_length += sizeof(header_buffer) + data_length;
             }
 
@@ -2818,7 +2822,7 @@ static int dicom_output_routine(void *io_data, void *buffer, int nbytes)
          /* Get length of PDV, making sure that it will fit in the PDU */
          pdv_length = message_watchpoint + nbytes;
          pdu_watchpoint = acr_get_io_watchpoint(real_afp);
-         if ((pdv_length + sizeof(header_buffer)) > pdu_watchpoint) {
+         if ((Acr_Long)(pdv_length + sizeof(header_buffer)) > pdu_watchpoint) {
             pdv_length = pdu_watchpoint - sizeof(header_buffer);
          }
          else {
