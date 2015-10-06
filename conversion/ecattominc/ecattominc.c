@@ -352,8 +352,8 @@ int main(int argc, char *argv[])
    sort_over_time = TRUE;
    if ((num_frames > 1) && (num_bed_positions > 1)) {
       (void) fprintf(stderr, 
-                     "%s: Cannot handle multiple frames and bed positions.\n",
-                     pname);
+                     "%s: Cannot handle multiple frames (%d) and bed positions (%d).\n",
+                     pname, num_frames, num_bed_positions);
       exit(EXIT_FAILURE);
    }
    if (num_bed_positions > 1) {
