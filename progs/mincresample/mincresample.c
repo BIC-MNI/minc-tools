@@ -5,11 +5,11 @@
 @RETURNS    : error status
 @DESCRIPTION: Program to resample a minc file along different spatial
               coordinate axes.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 8, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
  * $Log: mincresample.c,v $
  * Revision 6.23  2008-01-17 02:33:02  rotor
  *  * removed all rcsids
@@ -144,38 +144,38 @@
  *
  * Revision 1.16  94/09/28  10:32:33  neelin
  * Pre-release
- * 
+ *
  * Revision 1.15  94/03/17  14:12:09  neelin
  * Exit with failure if no argument given for -transformation or -like.
  * .,
- * 
+ *
  * Revision 1.14  94/03/15  16:44:21  neelin
  * Changed default from -clobber to -noclobber.
- * 
+ *
  * Revision 1.13  93/11/04  15:13:13  neelin
  * Added support for irregularly spaced dimensions.
- * 
+ *
  * Revision 1.12  93/11/03  14:32:44  neelin
  * Turn off fill for output file.
- * 
+ *
  * Revision 1.11  93/11/03  12:32:17  neelin
  * Change ncopen, nccreate and ncclose to miopen, micreate and miclose.
- * 
+ *
  * Revision 1.10  93/11/02  11:23:06  neelin
  * Handle imagemax/min potentially varying over slices (for vector data, etc.)
- * 
+ *
  * Revision 1.9  93/10/12  12:47:50  neelin
  * Use volume_io.h instead of def_mni.h
- * 
+ *
  * Revision 1.8  93/09/16  09:56:36  neelin
  * Added use of open_file_with_default_suffix in get_transformation to
  * append appropriate suffix for xfm files.
- * 
+ *
  * Revision 1.7  93/08/11  14:28:19  neelin
  * Modified get_arginfo and check_imageminmax to modify type of volume (not
  * file) so that output volume gets the input volume type by default when
  * an icv is used on input.
- * 
+ *
  * Revision 1.6  93/08/11  13:27:59  neelin
  * Converted to use Dave MacDonald's VIO_General_transform code.
  * Fixed bug in get_slice - for non-linear transformations coord was
@@ -186,9 +186,9 @@
  * Handle out-of-range values (-fill values from a previous mincresample, for
  * example).
  * Save transformation file as a string attribute to processing variable.
- * 
+ *
 @COPYRIGHT  :
-              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre, 
+              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre,
               Montreal Neurological Institute, McGill University.
               Permission to use, copy, modify, and distribute this
               software and its documentation for any purpose and without
@@ -216,7 +216,7 @@
 #include <convert_origin_to_start.h>
 #include "mincresample.h"
 
-/* Kludge to catch use of -transformation without -like and without 
+/* Kludge to catch use of -transformation without -like and without
    -tfm_input_sampling or -use_input_sampling */
 #define TRANSFORM_CHANGE_KLUDGE
 #ifdef TRANSFORM_CHANGE_KLUDGE
@@ -302,18 +302,18 @@ int main(int argc, char *argv[])
               out_vol - description of output volume.
               transformation - description of world transformation
 @RETURNS    : (nothing)
-@DESCRIPTION: Routine to get information from arguments about input and 
+@DESCRIPTION: Routine to get information from arguments about input and
               output files and transfomation. Sets up all structures
               completely (including allocating space for data).
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 8, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void get_arginfo(int argc, char *argv[],
                         Program_Flags *program_flags,
-                        VVolume *in_vol, VVolume *out_vol, 
+                        VVolume *in_vol, VVolume *out_vol,
                         VIO_General_transform *transformation)
 {
    /* Argument parsing information */
@@ -352,14 +352,14 @@ static void get_arginfo(int argc, char *argv[],
 
    static ArgvInfo argTable[] = {
 #if MINC2
-       {"-2", ARGV_CONSTANT, (char *) TRUE, 
+       {"-2", ARGV_CONSTANT, (char *) TRUE,
 	(char *) &args.v2format,
        "Produce a MINC 2.0 format output file."},
 #endif /* MINC2 */
-      {"-clobber", ARGV_CONSTANT, (char *) TRUE, 
+      {"-clobber", ARGV_CONSTANT, (char *) TRUE,
           (char *) &args.clobber,
           "Overwrite existing file."},
-      {"-noclobber", ARGV_CONSTANT, (char *) FALSE, 
+      {"-noclobber", ARGV_CONSTANT, (char *) FALSE,
           (char *) &args.clobber,
           "Do not overwrite existing file (default)."},
       {"-verbose", ARGV_CONSTANT, (char *) TRUE,
@@ -368,7 +368,7 @@ static void get_arginfo(int argc, char *argv[],
       {"-quiet", ARGV_CONSTANT, (char *) FALSE,
           (char *) &args.flags.verbose,
           "Do not print out any log messages.\n"},
-      {"-transformation", ARGV_FUNC, (char *) get_transformation, 
+      {"-transformation", ARGV_FUNC, (char *) get_transformation,
           (char *) &args.transform_info,
           "File giving world transformation. (Default = identity)."},
       {"-invert_transformation", ARGV_CONSTANT, (char *) TRUE,
@@ -383,90 +383,90 @@ static void get_arginfo(int argc, char *argv[],
       {"-use_input_sampling", ARGV_CONSTANT, (char *) FALSE,
           (char *) &transform_input_sampling,
           "Use the input sampling without transforming (old behaviour).\n"},
-      {"-like", ARGV_FUNC, (char *) get_model_file, 
+      {"-like", ARGV_FUNC, (char *) get_model_file,
           (char *) &args.volume_def,
           "Specifies a model file for the resampling."},
-      {"-standard_sampling", ARGV_FUNC, (char *) set_standard_sampling, 
+      {"-standard_sampling", ARGV_FUNC, (char *) set_standard_sampling,
           (char *) &args.volume_def,
           "Set the sampling to standard values (step, start and dircos)."},
-      {"-spacetype", ARGV_FUNC, (char *) set_spacetype, 
+      {"-spacetype", ARGV_FUNC, (char *) set_spacetype,
           (char *) &args.volume_def,
           "Set the spacetype attribute to a specified string."},
-      {"-talairach", ARGV_FUNC, (char *) set_spacetype, 
+      {"-talairach", ARGV_FUNC, (char *) set_spacetype,
           (char *) &args.volume_def,
           "Output is in Talairach space."},
-      {"-units", ARGV_FUNC, (char *) set_units, 
+      {"-units", ARGV_FUNC, (char *) set_units,
           (char *) &args.volume_def,
           "Specify the units of the output sampling."},
-      {"-nelements", ARGV_LONG, (char *) 3, 
+      {"-nelements", ARGV_LONG, (char *) 3,
           (char *) args.volume_def.nelements,
           "Number of elements along each dimension (X, Y, Z)"},
-      {"-xnelements", ARGV_LONG, (char *) 0, 
+      {"-xnelements", ARGV_LONG, (char *) 0,
           (char *) &args.volume_def.nelements[VIO_X],
           "Number of elements along the X dimension"},
-      {"-ynelements", ARGV_LONG, (char *) 0, 
+      {"-ynelements", ARGV_LONG, (char *) 0,
           (char *) &args.volume_def.nelements[VIO_Y],
           "Number of elements along the Y dimension"},
-      {"-znelements", ARGV_LONG, (char *) 0, 
+      {"-znelements", ARGV_LONG, (char *) 0,
           (char *) &args.volume_def.nelements[VIO_Z],
           "Number of elements along the Z dimension"},
-      {"-size", ARGV_LONG, (char *) 3, 
+      {"-size", ARGV_LONG, (char *) 3,
           (char *) args.volume_def.nelements,
           "synonym for -nelements)"},
-      {"-xsize", ARGV_LONG, (char *) 0, 
+      {"-xsize", ARGV_LONG, (char *) 0,
           (char *) &args.volume_def.nelements[VIO_X],
           "synonym for -xnelements"},
-      {"-ysize", ARGV_LONG, (char *) 0, 
+      {"-ysize", ARGV_LONG, (char *) 0,
           (char *) &args.volume_def.nelements[VIO_Y],
           "synonym for -ynelements"},
-      {"-zsize", ARGV_LONG, (char *) 0, 
+      {"-zsize", ARGV_LONG, (char *) 0,
           (char *) &args.volume_def.nelements[VIO_Z],
           "synonym for -ynelements"},
-      {"-step", ARGV_FLOAT, (char *) 3, 
+      {"-step", ARGV_FLOAT, (char *) 3,
           (char *) args.volume_def.step,
           "Step size along each dimension (X, Y, Z)"},
-      {"-xstep", ARGV_FLOAT, (char *) 0, 
+      {"-xstep", ARGV_FLOAT, (char *) 0,
           (char *) &args.volume_def.step[VIO_X],
           "Step size along the X dimension"},
-      {"-ystep", ARGV_FLOAT, (char *) 0, 
+      {"-ystep", ARGV_FLOAT, (char *) 0,
           (char *) &args.volume_def.step[VIO_Y],
           "Step size along the Y dimension"},
-      {"-zstep", ARGV_FLOAT, (char *) 0, 
+      {"-zstep", ARGV_FLOAT, (char *) 0,
           (char *) &args.volume_def.step[VIO_Z],
           "Step size along the Z dimension"},
-      {"-start", ARGV_FLOAT, (char *) 3, 
+      {"-start", ARGV_FLOAT, (char *) 3,
           (char *) args.volume_def.start,
           "Start point along each dimension (X, Y, Z)"},
-      {"-xstart", ARGV_FLOAT, (char *) 0, 
+      {"-xstart", ARGV_FLOAT, (char *) 0,
           (char *) &args.volume_def.start[VIO_X],
           "Start point along the X dimension"},
-      {"-ystart", ARGV_FLOAT, (char *) 0, 
+      {"-ystart", ARGV_FLOAT, (char *) 0,
           (char *) &args.volume_def.start[VIO_Y],
           "Start point along the Y dimension"},
-      {"-zstart", ARGV_FLOAT, (char *) 0, 
+      {"-zstart", ARGV_FLOAT, (char *) 0,
           (char *) &args.volume_def.start[VIO_Z],
           "Start point along the Z dimension"},
-      {"-dircos", ARGV_FLOAT, (char *) 9, 
+      {"-dircos", ARGV_FLOAT, (char *) 9,
           (char *) args.volume_def.dircos,
           "Direction cosines along each dimension (X, Y, Z)"},
-      {"-xdircos", ARGV_FLOAT, (char *) 3, 
+      {"-xdircos", ARGV_FLOAT, (char *) 3,
           (char *) args.volume_def.dircos[VIO_X],
           "Direction cosines along the X dimension"},
-      {"-ydircos", ARGV_FLOAT, (char *) 3, 
+      {"-ydircos", ARGV_FLOAT, (char *) 3,
           (char *) args.volume_def.dircos[VIO_Y],
           "Direction cosines along the Y dimension"},
-      {"-zdircos", ARGV_FLOAT, (char *) 3, 
+      {"-zdircos", ARGV_FLOAT, (char *) 3,
           (char *) args.volume_def.dircos[VIO_Z],
           "Direction cosines along the Z dimension"},
       {"-origin", ARGV_FLOAT, (char *) 3, (char *) args.origin,
           "Origin of first pixel in 3D space"},
-      {"-transverse", ARGV_FUNC, (char *) get_axis_order, 
+      {"-transverse", ARGV_FUNC, (char *) get_axis_order,
           (char *) &args.volume_def,
           "Write out transverse slices"},
-      {"-sagittal", ARGV_FUNC, (char *) get_axis_order, 
+      {"-sagittal", ARGV_FUNC, (char *) get_axis_order,
           (char *) &args.volume_def,
           "Write out sagittal slices"},
-      {"-coronal", ARGV_FUNC, (char *) get_axis_order, 
+      {"-coronal", ARGV_FUNC, (char *) get_axis_order,
           (char *) &args.volume_def,
           "Write out coronal slices"},
       {"-byte", ARGV_CONSTANT, (char *) NC_BYTE, (char *) &args.datatype,
@@ -487,29 +487,29 @@ static void get_arginfo(int argc, char *argv[],
           "Write unsigned integer data"},
       {"-range", ARGV_FLOAT, (char *) 2, (char *) args.vrange,
           "Valid range for output data"},
-      {"-keep_real_range", ARGV_CONSTANT, (char *) TRUE, 
+      {"-keep_real_range", ARGV_CONSTANT, (char *) TRUE,
           (char *) &args.keep_real_range,
           "Keep the real scale of the input volume"},
-      {"-nokeep_real_range", ARGV_CONSTANT, (char *) FALSE, 
+      {"-nokeep_real_range", ARGV_CONSTANT, (char *) FALSE,
           (char *) &args.keep_real_range,
           "Do not keep the real scale of the data (default)"},
-      {"-nofill", ARGV_FUNC, (char *) get_fillvalue, 
+      {"-nofill", ARGV_FUNC, (char *) get_fillvalue,
           (char *) &args.fillvalue,
           "Use value zero for points outside of input volume"},
-      {"-fill", ARGV_FUNC, (char *) get_fillvalue, 
+      {"-fill", ARGV_FUNC, (char *) get_fillvalue,
           (char *) &args.fillvalue,
           "Use a fill value for points outside of input volume"},
-      {"-fillvalue", ARGV_FLOAT, (char *) 0, 
+      {"-fillvalue", ARGV_FLOAT, (char *) 0,
           (char *) &args.fillvalue,
           "Specify a fill value for points outside of input volume"},
-      {"-trilinear", ARGV_CONSTANT, (char *) TRILINEAR, 
+      {"-trilinear", ARGV_CONSTANT, (char *) TRILINEAR,
           (char *) &args.interpolant_type,
           "Do trilinear interpolation"},
-      {"-tricubic", ARGV_CONSTANT, (char *) TRICUBIC, 
+      {"-tricubic", ARGV_CONSTANT, (char *) TRICUBIC,
           (char *) &args.interpolant_type,
           "Do tricubic interpolation"},
-      {"-nearest_neighbour", ARGV_CONSTANT, 
-          (char *) N_NEIGHBOUR, 
+      {"-nearest_neighbour", ARGV_CONSTANT,
+          (char *) N_NEIGHBOUR,
           (char *) &args.interpolant_type,
           "Do nearest neighbour interpolation"},
       {"-sinc", ARGV_CONSTANT,
@@ -555,20 +555,33 @@ static void get_arginfo(int argc, char *argv[],
 
    /* Call ParseArgv */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc!=3)) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\nUsage: %s [<options>] <infile> <outfile>\n", pname);
-      (void) fprintf(stderr,   
+      (void) fprintf(stderr,
                      "       %s [-help]\n\n", pname);
       exit(EXIT_FAILURE);
    }
    infile = argv[1];
    outfile = argv[2];
 
+   /* check for the infile */
+   if(access(infile, F_OK) != 0){
+      fprintf(stderr, "%s: Couldn't find %s\n\n", argv[0], infile);
+      exit(EXIT_FAILURE);
+      }
+   
+   /* check for output file */
+   if(access(outfile, F_OK) == 0 && !clobber) {
+      fprintf(stderr, "%s: %s exists, use -clobber to overwrite\n\n",
+              argv[0], outfile);
+      exit(EXIT_FAILURE);
+   }
+
 #ifdef TRANSFORM_CHANGE_KLUDGE
-   if (Specified_transform && 
+   if (Specified_transform &&
        !Specified_like &&
        (transform_input_sampling == SAMPLING_ACTION_NOT_SET)) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Use -like, -tfm_input_sampling or "
                      "-use_input_sampling with -transformation\n");
       exit(EXIT_FAILURE);
@@ -578,7 +591,7 @@ static void get_arginfo(int argc, char *argv[],
    }
 #endif
 
-   /* Check for an inverted transform. This looks backwards because we 
+   /* Check for an inverted transform. This looks backwards because we
       normally invert the transform. */
    if (args.transform_info.invert_transform) {
       copy_general_transform(args.transform_info.transformation,
@@ -596,13 +609,13 @@ static void get_arginfo(int argc, char *argv[],
    /* Check input file for default argument information */
    in_vol->file = malloc(sizeof(File_Info));
    get_file_info(infile, FALSE, &input_volume_def, in_vol->file);
-   transform_volume_def((transform_input_sampling ? 
-                         &args.transform_info : NULL), 
-                        &input_volume_def, 
+   transform_volume_def((transform_input_sampling ?
+                         &args.transform_info : NULL),
+                        &input_volume_def,
                         &transformed_volume_def);
    get_args_volume_def(&transformed_volume_def, &args.volume_def);
 
-   /* Check that direction cosines are normalized and look for origin 
+   /* Check that direction cosines are normalized and look for origin
       option */
    for (idim=0; idim < WORLD_NDIMS; idim++) {
       normalize_vector(args.volume_def.dircos[idim]);
@@ -661,7 +674,7 @@ static void get_arginfo(int argc, char *argv[],
      in_vol->volume->interpolant = windowed_sinc_interpolant;
      if (sinc_half_width < SINC_HALF_WIDTH_MIN ||
          sinc_half_width > SINC_HALF_WIDTH_MAX) {
-         fprintf(stderr, "Invalid sinc half-window size %d\n", 
+         fprintf(stderr, "Invalid sinc half-window size %d\n",
                  sinc_half_width);
          exit(EXIT_FAILURE);
      }
@@ -687,13 +700,13 @@ static void get_arginfo(int argc, char *argv[],
       total_size *= size;
       in_vol->volume->size[index] = size;
    }
-   in_vol->volume->data = malloc((size_t) total_size * 
+   in_vol->volume->data = malloc((size_t) total_size *
                                  nctypelen(in_vol->volume->datatype));
 
    /* Get space for slice scale and offset */
-   in_vol->volume->scale = 
+   in_vol->volume->scale =
       malloc(sizeof(double) * in_vol->volume->size[SLC_AXIS]);
-   in_vol->volume->offset = 
+   in_vol->volume->offset =
       malloc(sizeof(double) * in_vol->volume->size[SLC_AXIS]);
 
    /* Save the program flags */
@@ -726,9 +739,9 @@ static void get_arginfo(int argc, char *argv[],
          args.vrange[1] = in_vol->file->vrange[1];
       }
       else {
-         args.vrange[0] = get_default_range(MIvalid_min, args.datatype, 
+         args.vrange[0] = get_default_range(MIvalid_min, args.datatype,
                                             args.is_signed);
-         args.vrange[1] = get_default_range(MIvalid_max, args.datatype, 
+         args.vrange[1] = get_default_range(MIvalid_max, args.datatype,
                                             args.is_signed);
       }
    }
@@ -753,7 +766,7 @@ static void get_arginfo(int argc, char *argv[],
    /* Loop through list of axes, getting size of volume and slice */
    total_size = 1;
    for (idim=0; idim < WORLD_NDIMS; idim++) {
-      
+
       /* Get the index for input and output volumes */
       out_vindex = args.volume_def.axes[idim];    /* 0, 1 or 2 */
       out_findex = in_vol->file->indices[out_vindex];   /* 0 to ndims-1 */
@@ -785,10 +798,10 @@ static void get_arginfo(int argc, char *argv[],
        cflags |= MI2_CREATE_V2;
    }
 #endif /* MINC2 */
-   create_output_file(outfile, cflags, &args.volume_def, 
+   create_output_file(outfile, cflags, &args.volume_def,
                       in_vol->file, out_vol->file,
                       tm_stamp, &args.transform_info);
-   
+
    /* Save the voxel_to_world transformation information */
    out_vol->voxel_to_world = malloc(sizeof(VIO_General_transform));
    out_vol->world_to_voxel = malloc(sizeof(VIO_General_transform));
@@ -805,16 +818,16 @@ static void get_arginfo(int argc, char *argv[],
 @NAME       : check_imageminmax
 @INPUT      : fp - pointer to file description
               volume - pointer to volume description
-@OUTPUT     : 
+@OUTPUT     :
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to check that MIimagemax and MIimagemin do not vary
               over volume rows and columns. If they do, set up an icv to
               handle it.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : August 5, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void check_imageminmax(File_Info *fp, Volume_Data *volume)
 {
@@ -839,7 +852,7 @@ static void check_imageminmax(File_Info *fp, Volume_Data *volume)
    /* Set up an icv if needed to handle values varying over slice dims. */
    if (fp->using_icv) {
 
-      /* Change type to floating point so that there is no loss of 
+      /* Change type to floating point so that there is no loss of
          precision (except possibly for long values). */
       if (volume->datatype != NC_DOUBLE)
          volume->datatype = NC_FLOAT;
@@ -848,7 +861,7 @@ static void check_imageminmax(File_Info *fp, Volume_Data *volume)
       /* Create the icv */
       fp->icvid = miicv_create();
       (void) miicv_setint(fp->icvid, MI_ICV_TYPE, volume->datatype);
-      (void) miicv_setstr(fp->icvid, MI_ICV_SIGN, 
+      (void) miicv_setstr(fp->icvid, MI_ICV_SIGN,
                           (volume->is_signed ? MI_SIGNED : MI_UNSIGNED));
       (void) miicv_setint(fp->icvid, MI_ICV_DO_NORM, TRUE);
       (void) miicv_setint(fp->icvid, MI_ICV_DO_FILLVALUE, TRUE);
@@ -857,7 +870,7 @@ static void check_imageminmax(File_Info *fp, Volume_Data *volume)
       /* Get max and min for doing valid range checking */
       (void) miicv_inqdbl(fp->icvid, MI_ICV_NORM_MIN, &volume->vrange[0]);
       (void) miicv_inqdbl(fp->icvid, MI_ICV_NORM_MAX, &volume->vrange[1]);
-         
+
    }
 
 }
@@ -890,7 +903,7 @@ check_irregular_dimension(double *coord_ptr, int length)
     return coord_ptr[0] != coord_ptr[1];
   }
 
-  /* Else check the beginning of the array. 
+  /* Else check the beginning of the array.
    */
   first_delta = coord_ptr[1] - coord_ptr[0];
   if (first_delta == 0.0) {
@@ -917,21 +930,21 @@ check_irregular_dimension(double *coord_ptr, int length)
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : get_file_info
 @INPUT      : filename - name of file to read
-              initialized_volume_def - if TRUE, then volume_def is taken 
+              initialized_volume_def - if TRUE, then volume_def is taken
                  as being properly initialized and arrays are freed if
                  non-NULL. Otherwise arrays are not freed.
 @OUTPUT     : volume_def - description of volume
               file_info - description of file
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to get information about the volume definition of
-              a minc file. 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+              a minc file.
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 9, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void get_file_info(char *filename, int initialized_volume_def, 
+static void get_file_info(char *filename, int initialized_volume_def,
                           Volume_Definition *volume_def,
                           File_Info *file_info)
 {
@@ -955,11 +968,11 @@ static void get_file_info(char *filename, int initialized_volume_def,
    ncopts = NC_VERBOSE | NC_FATAL;
 
    /* Get information about datatype dimensions of variable */
-   (void) miget_datatype(file_info->mincid, file_info->imgid, 
+   (void) miget_datatype(file_info->mincid, file_info->imgid,
                          &file_info->datatype, &file_info->is_signed);
 
    /* Get valid max and min */
-   (void) miget_valid_range(file_info->mincid, file_info->imgid, 
+   (void) miget_valid_range(file_info->mincid, file_info->imgid,
                             file_info->vrange);
 
    /* Get information about dimensions */
@@ -993,7 +1006,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
    for (idim=0; idim < file_info->ndims; idim++) {
 
       /* Get size of dimension */
-      (void) ncdiminq(file_info->mincid, dim[idim], dimname, 
+      (void) ncdiminq(file_info->mincid, dim[idim], dimname,
                       &file_info->nelements[idim]);
 
       /* Check variable name */
@@ -1029,21 +1042,21 @@ static void get_file_info(char *filename, int initialized_volume_def,
       dimid = ncvarid(file_info->mincid, dimname);
       ncopts = NC_VERBOSE | NC_FATAL;
       if (dimid == MI_ERROR) continue;
-             
+
       /* Get attributes from variable */
       ncopts = 0;
-      (void) miattget1(file_info->mincid, dimid, MIstep, 
+      (void) miattget1(file_info->mincid, dimid, MIstep,
                        NC_DOUBLE, &volume_def->step[cur_axis]);
       if (volume_def->step[cur_axis] == 0.0)
          volume_def->step[cur_axis] = 1.0;
-      (void) miattget1(file_info->mincid, dimid, MIstart, 
+      (void) miattget1(file_info->mincid, dimid, MIstart,
                        NC_DOUBLE, &volume_def->start[cur_axis]);
-      (void) miattget(file_info->mincid, dimid, MIdirection_cosines, 
-                      NC_DOUBLE, WORLD_NDIMS, 
+      (void) miattget(file_info->mincid, dimid, MIdirection_cosines,
+                      NC_DOUBLE, WORLD_NDIMS,
                       volume_def->dircos[cur_axis], NULL);
-      (void) miattgetstr(file_info->mincid, dimid, MIunits, 
+      (void) miattgetstr(file_info->mincid, dimid, MIunits,
                          MI_MAX_ATTSTR_LEN, volume_def->units[cur_axis]);
-      (void) miattgetstr(file_info->mincid, dimid, MIspacetype, 
+      (void) miattgetstr(file_info->mincid, dimid, MIspacetype,
                          MI_MAX_ATTSTR_LEN, volume_def->spacetype[cur_axis]);
       ncopts = NC_VERBOSE | NC_FATAL;
 
@@ -1061,12 +1074,12 @@ static void get_file_info(char *filename, int initialized_volume_def,
          else if (strcmp(attstr, MI_REGULAR) == 0)
             coord_spacing = REGULAR;
       }
-      if (ncvarinq(file_info->mincid, dimid, NULL, NULL, 
+      if (ncvarinq(file_info->mincid, dimid, NULL, NULL,
                    &varndims, vardim, NULL) == MI_ERROR) {
          ncopts = NC_VERBOSE | NC_FATAL;
          continue;
       }
-      if ((coord_spacing != REGULAR) && 
+      if ((coord_spacing != REGULAR) &&
           (varndims == 1) && (vardim[0] == dim[idim])) {
          coord_spacing = IRREGULAR;
       }
@@ -1090,8 +1103,8 @@ static void get_file_info(char *filename, int initialized_volume_def,
          }
          volume_def->start[cur_axis] = volume_def->coords[cur_axis][0];
          if (dimlength > 1) {
-            volume_def->step[cur_axis] = 
-               (volume_def->coords[cur_axis][dimlength-1] - 
+            volume_def->step[cur_axis] =
+               (volume_def->coords[cur_axis][dimlength-1] -
                             volume_def->coords[cur_axis][0]) /
                                (dimlength - 1);
             if (volume_def->step[cur_axis] == 0.0) {
@@ -1107,7 +1120,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
 
    /* Check that we have the correct number of spatial dimensions */
    if (axis_counter != WORLD_NDIMS) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Incorrect number of spatial dimensions in file %s.\n",
                      filename);
          exit(EXIT_FAILURE);
@@ -1121,14 +1134,14 @@ static void get_file_info(char *filename, int initialized_volume_def,
 @INPUT      : input_volume_def - description of input volume
 @OUTPUT     : args_volume_def - description of new output volume
 @RETURNS    : (nothing)
-@DESCRIPTION: Routine to copy appropriate information from input volume 
-              definition to output volume definition, overriding values 
+@DESCRIPTION: Routine to copy appropriate information from input volume
+              definition to output volume definition, overriding values
               not set on the command line.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 7, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void get_args_volume_def(Volume_Definition *input_volume_def,
                                 Volume_Definition *args_volume_def)
@@ -1149,7 +1162,7 @@ static void get_args_volume_def(Volume_Definition *input_volume_def,
          args_volume_def->start[idim] = input_volume_def->start[idim];
       if (args_volume_def->dircos[idim][0] == NO_VALUE) {
          for (jdim=0; jdim < WORLD_NDIMS; jdim++)
-            args_volume_def->dircos[idim][jdim] = 
+            args_volume_def->dircos[idim][jdim] =
                input_volume_def->dircos[idim][jdim];
       }
       if (strlen(args_volume_def->units[idim]) == 0)
@@ -1169,14 +1182,14 @@ static void get_args_volume_def(Volume_Definition *input_volume_def,
               input_volume_def - description of input volume
 @OUTPUT     : transformed_volume_def - description of new output volume
 @RETURNS    : (nothing)
-@DESCRIPTION: Routine to copy appropriate information from input volume 
-              definition to a new volume definition, after transformation 
+@DESCRIPTION: Routine to copy appropriate information from input volume
+              definition to a new volume definition, after transformation
               from with the output to input transform.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 7, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void transform_volume_def(Transform_Info *transform_info,
                                  Volume_Definition *input_volume_def,
@@ -1225,8 +1238,8 @@ static void transform_volume_def(Transform_Info *transform_info,
 
          /* Calculate new direction cosines */
          for (jdim=0; jdim < WORLD_NDIMS; jdim++) {
-            transformed_volume_def->dircos[idim][jdim] = 
-               (length > 0.0 ? vector[jdim] / length : 
+            transformed_volume_def->dircos[idim][jdim] =
+               (length > 0.0 ? vector[jdim] / length :
                 (jdim == idim ? 1.0 : 0.0));
          }
 
@@ -1249,7 +1262,7 @@ static void transform_volume_def(Transform_Info *transform_info,
          /* If dircos are bad, set them to default */
          for (idim=0; idim < WORLD_NDIMS; idim++) {
             for (jdim=0; jdim < WORLD_NDIMS; jdim++) {
-               transformed_volume_def->dircos[idim][jdim] = 
+               transformed_volume_def->dircos[idim][jdim] =
                   ((idim==jdim) ? 1.0 : 0.0);
             }
          }
@@ -1260,7 +1273,7 @@ static void transform_volume_def(Transform_Info *transform_info,
                                      transformed_volume_def->dircos[YCOORD],
                                      transformed_volume_def->dircos[ZCOORD],
                                      transformed_volume_def->start) != 0) {
-            (void) fprintf(stderr, 
+            (void) fprintf(stderr,
                            "Serious problem converting origin to start!\n");
             exit(EXIT_FAILURE);
          }
@@ -1276,11 +1289,11 @@ static void transform_volume_def(Transform_Info *transform_info,
 @OUTPUT     : (none)
 @RETURNS    : 1 if vector has zero length, 0 otherwise
 @DESCRIPTION: Routine to check for a zero length vector.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 9, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int is_zero_vector(double vector[])
 {
@@ -1295,11 +1308,11 @@ static int is_zero_vector(double vector[])
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to normalize a vector
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 9, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void normalize_vector(double vector[])
 {
@@ -1329,21 +1342,21 @@ static void normalize_vector(double vector[])
               out_file - description of output file
               tm_stamp - string describing program invocation
               transformation - transformation to be applied to data
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to create an minc output file and set up its parameters
               properly.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 9, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void create_output_file(char *filename, int cflags, 
+static void create_output_file(char *filename, int cflags,
                                Volume_Definition *volume_def,
                                File_Info *in_file,
                                File_Info *out_file,
-                               char *tm_stamp, 
+                               char *tm_stamp,
                                Transform_Info *transform_info)
 {
    int ndims, in_dims[MAX_VAR_DIMS], out_dims[MAX_VAR_DIMS];
@@ -1383,9 +1396,9 @@ static void create_output_file(char *filename, int cflags,
 
    /* Create the file */
    out_file->mincid = micreate(filename, cflags);
- 
+
    /* Copy all other variable definitions */
-   (void) micopy_all_var_defs(in_file->mincid, out_file->mincid, 
+   (void) micopy_all_var_defs(in_file->mincid, out_file->mincid,
                               nexcluded, excluded_vars);
 
    /* Add the time stamp */
@@ -1397,7 +1410,7 @@ static void create_output_file(char *filename, int cflags,
    att_length += strlen(tm_stamp) + 1;
    string = malloc(att_length);
    string[0] = '\0';
-   (void) miattgetstr(out_file->mincid, NC_GLOBAL, MIhistory, att_length, 
+   (void) miattgetstr(out_file->mincid, NC_GLOBAL, MIhistory, att_length,
                       string);
    ncopts=NC_VERBOSE | NC_FATAL;
    (void) strcat(string, tm_stamp);
@@ -1405,12 +1418,12 @@ static void create_output_file(char *filename, int cflags,
    free(string);
 
    /* Get the dimension ids from the input file */
-   (void) ncvarinq(in_file->mincid, in_file->imgid, NULL, NULL, 
+   (void) ncvarinq(in_file->mincid, in_file->imgid, NULL, NULL,
                    &ndims, in_dims, NULL);
 
    /* Check for screw-up on number of dimensions */
    if (ndims != out_file->ndims) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Error in number of dimensions for output file.\n");
       exit(EXIT_FAILURE);
    }
@@ -1422,7 +1435,7 @@ static void create_output_file(char *filename, int cflags,
       is_volume_dimension = (out_file->world_axes[out_index] != NO_AXIS);
 
       /* Get the input index */
-      if (!is_volume_dimension) 
+      if (!is_volume_dimension)
          in_index = out_index;
       else {
          axis = out_file->world_axes[out_index];
@@ -1445,7 +1458,7 @@ static void create_output_file(char *filename, int cflags,
 
       /* If we have a volume dimension and it exists already with the wrong
          size, then we must rename it */
-      if (is_volume_dimension && dim_exists && 
+      if (is_volume_dimension && dim_exists &&
           (out_file->nelements[out_index] != in_file->nelements[in_index])) {
          string = malloc(MAX_NC_NAME);
          ncopts = 0;
@@ -1457,11 +1470,11 @@ static void create_output_file(char *filename, int cflags,
          ncopts = NC_VERBOSE | NC_FATAL;
          (void) ncdimrename(out_file->mincid, out_dims[out_index], string);
          free(string);
-         out_dims[out_index] = ncdimdef(out_file->mincid, dimname, 
+         out_dims[out_index] = ncdimdef(out_file->mincid, dimname,
                                         out_file->nelements[out_index]);
       }
       else if (!dim_exists)
-         out_dims[out_index] = ncdimdef(out_file->mincid, dimname, 
+         out_dims[out_index] = ncdimdef(out_file->mincid, dimname,
                                         out_file->nelements[out_index]);
 
       /* If this is a volume dimension, create a variable */
@@ -1469,15 +1482,15 @@ static void create_output_file(char *filename, int cflags,
 
          /* Create the variable */
          dimid = micreate_group_variable(out_file->mincid, dimname);
-         (void) miattputdbl(out_file->mincid, dimid, MIstep, 
+         (void) miattputdbl(out_file->mincid, dimid, MIstep,
                             volume_def->step[axis]);
-         (void) miattputdbl(out_file->mincid, dimid, MIstart, 
+         (void) miattputdbl(out_file->mincid, dimid, MIstart,
                             volume_def->start[axis]);
-         (void) ncattput(out_file->mincid, dimid, MIdirection_cosines, 
+         (void) ncattput(out_file->mincid, dimid, MIdirection_cosines,
                          NC_DOUBLE, WORLD_NDIMS, volume_def->dircos[axis]);
-         (void) miattputstr(out_file->mincid, dimid, MIunits, 
+         (void) miattputstr(out_file->mincid, dimid, MIunits,
                             volume_def->units[axis]);
-         (void) miattputstr(out_file->mincid, dimid, MIspacetype, 
+         (void) miattputstr(out_file->mincid, dimid, MIspacetype,
                             volume_def->spacetype[axis]);
 
       }       /* If volume dimension */
@@ -1509,25 +1522,25 @@ static void create_output_file(char *filename, int cflags,
       }
    }
    out_file->do_slice_renormalization =
-      ((out_file->datatype != NC_FLOAT) && 
+      ((out_file->datatype != NC_FLOAT) &&
        (out_file->datatype != NC_DOUBLE) &&
        (out_file->slices_per_image > 1));
 
    /* Create the variables */
    out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
-                                           NC_DOUBLE, nmaxmin_dims, 
+                                           NC_DOUBLE, nmaxmin_dims,
                                            out_maxmin_dims);
    if (in_file->maxid != MI_ERROR)
       (void) micopy_all_atts(in_file->mincid, in_file->maxid,
                              out_file->mincid, out_file->maxid);
    out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
-                                           NC_DOUBLE, nmaxmin_dims, 
+                                           NC_DOUBLE, nmaxmin_dims,
                                            out_maxmin_dims);
    if (in_file->minid != MI_ERROR)
       (void) micopy_all_atts(in_file->mincid, in_file->minid,
                              out_file->mincid, out_file->minid);
 
-   /* Add transformation information to image processing variable if 
+   /* Add transformation information to image processing variable if
       a transformation is given on the command line */
 
    if (transform_info->file_name != NULL) {
@@ -1538,7 +1551,7 @@ static void create_output_file(char *filename, int cflags,
       varid = ncvarid(out_file->mincid, PROCESSING_VAR);
       if (varid == MI_ERROR) {
          varid = ncvardef(out_file->mincid, PROCESSING_VAR, NC_INT, 0, NULL);
-         (void) miadd_child(out_file->mincid, 
+         (void) miadd_child(out_file->mincid,
                             ncvarid(out_file->mincid, MIrootvariable), varid);
       }
 
@@ -1556,7 +1569,7 @@ static void create_output_file(char *filename, int cflags,
       ncopts = NC_VERBOSE | NC_FATAL;
 
       /* Add the attributes describing the transformation */
-      (void) miattputstr(out_file->mincid, varid, string, 
+      (void) miattputstr(out_file->mincid, varid, string,
                          transform_info->file_name);
       (void) sprintf(string, "transformation%d-filedata", itrans);
       (void) miattputstr(out_file->mincid, varid, string,
@@ -1571,14 +1584,14 @@ static void create_output_file(char *filename, int cflags,
    }         /* If transform specified on command line */
 
    /* Create the image variable */
-   out_file->imgid = micreate_std_variable(out_file->mincid, MIimage, 
+   out_file->imgid = micreate_std_variable(out_file->mincid, MIimage,
                                            out_file->datatype,
                                            ndims, out_dims);
    (void) micopy_all_atts(in_file->mincid, in_file->imgid,
                           out_file->mincid, out_file->imgid);
    (void) miattputstr(out_file->mincid, out_file->imgid, MIcomplete,
                       MI_FALSE);
-   (void) miset_valid_range(out_file->mincid, out_file->imgid, 
+   (void) miset_valid_range(out_file->mincid, out_file->imgid,
                             out_file->vrange);
    if (out_file->is_signed)
       (void) miattputstr(out_file->mincid, out_file->imgid,
@@ -1613,13 +1626,13 @@ static void create_output_file(char *filename, int cflags,
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to convert a Volume definition specification of sampling
               to a voxel-to-world transformation
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 9, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void get_voxel_to_world_transf(Volume_Definition *volume_def, 
+static void get_voxel_to_world_transf(Volume_Definition *volume_def,
                                       VIO_General_transform *voxel_to_world)
 {
    int idim, jdim, cur_dim, vol_axis;
@@ -1640,7 +1653,7 @@ static void get_voxel_to_world_transf(Volume_Definition *volume_def,
          cur_dim = volume_def->axes[jdim];
 
          /* Get rotation/scale components of matrix */
-         Transform_elem(matrix, idim, cur_dim) = 
+         Transform_elem(matrix, idim, cur_dim) =
             volume_def->step[jdim] * volume_def->dircos[jdim][idim];
 
          /* Get translation components */
@@ -1688,8 +1701,8 @@ static void get_voxel_to_world_transf(Volume_Definition *volume_def,
                last coord n-1 (so that we can concat with the linear
                transform already created */
             for (ielement=0; ielement < dimlength; ielement++) {
-               irreg_transf_data->coords[vol_axis][ielement] = 
-                  (volume_def->coords[idim][ielement] - 
+               irreg_transf_data->coords[vol_axis][ielement] =
+                  (volume_def->coords[idim][ielement] -
                               volume_def->start[idim]) /
                                  volume_def->step[idim];
             }
@@ -1722,13 +1735,13 @@ static void get_voxel_to_world_transf(Volume_Definition *volume_def,
               x, y, z   - coordinate to transform
 @OUTPUT     : x_trans, y_trans, z_trans - resulting coordinate
 @RETURNS    : (nothin)
-@DESCRIPTION: Routine to transform irregularly spaced coordinate to a 
+@DESCRIPTION: Routine to transform irregularly spaced coordinate to a
               regular spacing.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 4, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void irregular_transform_function(void *user_data,
                                          VIO_Real x,
@@ -1763,8 +1776,8 @@ static void irregular_transform_function(void *user_data,
          if (index < 0) index = 0;
          if (index > dimlength-2) index = dimlength-2;
          frac = coord[idim] - index;
-         coord_transf[idim] = 
-            (1.0 - frac) * irreg_transf_data->coords[idim][index] + 
+         coord_transf[idim] =
+            (1.0 - frac) * irreg_transf_data->coords[idim][index] +
             frac * irreg_transf_data->coords[idim][index + 1];
 
       }
@@ -1784,13 +1797,13 @@ static void irregular_transform_function(void *user_data,
               x, y, z   - coordinate to transform
 @OUTPUT     : x_trans, y_trans, z_trans - resulting coordinate
 @RETURNS    : (nothin)
-@DESCRIPTION: Routine to transform irregularly spaced coordinate to a 
+@DESCRIPTION: Routine to transform irregularly spaced coordinate to a
               regular spacing.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 4, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void irregular_inverse_transform_function(void *user_data,
                                                  VIO_Real x,
@@ -1843,7 +1856,7 @@ static void irregular_inverse_transform_function(void *user_data,
             else {
                not_found = FALSE;
             }
-            
+
          }
          irreg_transf_data->last_index[idim] = index;
 
@@ -1855,7 +1868,7 @@ static void irregular_inverse_transform_function(void *user_data,
             frac = 0.0;
          else
             frac = (coord[idim] - first) / step;
-         coord_transf[idim] = 
+         coord_transf[idim] =
             (1.0 - frac) * index + frac * (index + 1);
 
       }
@@ -1871,7 +1884,7 @@ static void irregular_inverse_transform_function(void *user_data,
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : get_default_range
-@INPUT      : what     - MIvalid_min means get default min, MIvalid_min means 
+@INPUT      : what     - MIvalid_min means get default min, MIvalid_min means
                  get default min
               datatype - type of variable
               is_signed   - TRUE if variable is signed
@@ -1879,9 +1892,9 @@ static void irregular_inverse_transform_function(void *user_data,
 @RETURNS    : default maximum or minimum for the datatype
 @DESCRIPTION: Return the defaults maximum or minimum for a given datatype
               and sign.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : August 10, 1992 (Peter Neelin)
 @MODIFIED   : February 10, 1993 (Peter Neelin)
                  - ripped off from MINC code
@@ -1918,14 +1931,14 @@ static double get_default_range(char *what, nc_type datatype, int is_signed)
 @NAME       : finish_up
 @INPUT      : in_vol - input volume
               out_vol - output volume
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to finish up at end of program, closing files, etc.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 15, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void finish_up(VVolume *in_vol, VVolume *out_vol)
 {
@@ -1956,15 +1969,15 @@ static void finish_up(VVolume *in_vol, VVolume *out_vol)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : TRUE so that ParseArgv will discard nextArg, unless there
               is no following argument.
 @DESCRIPTION: Routine called by ParseArgv to read in a transformation file
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 15, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_transformation(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -1976,7 +1989,7 @@ static int get_transformation(char *dst, char *key, char *nextArg)
 
    /* Check for following argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\"%s\" option requires an additional argument\n",
                      key);
       exit(EXIT_FAILURE);
@@ -2018,8 +2031,8 @@ static int get_transformation(char *dst, char *key, char *nextArg)
    for (index = 0; (ch=getc(fp)) != EOF; index++) {
       if (index >= transform_info->buffer_length-1) {
          transform_info->buffer_length += TRANSFORM_BUFFER_INCREMENT;
-         transform_info->file_contents = 
-            realloc(transform_info->file_contents, 
+         transform_info->file_contents =
+            realloc(transform_info->file_contents,
                     transform_info->buffer_length);
       }
       transform_info->file_contents[index] = (char) ch;
@@ -2031,7 +2044,7 @@ static int get_transformation(char *dst, char *key, char *nextArg)
    delete_general_transform(transformation);
 
    /* Read the file */
-   if (input_transform(fp, transform_info->file_name, 
+   if (input_transform(fp, transform_info->file_name,
                        transformation)!=VIO_OK) {
       (void) fprintf(stderr, "Error reading transformation file.\n");
       exit(EXIT_FAILURE);
@@ -2050,15 +2063,15 @@ static int get_transformation(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : TRUE so that ParseArgv will discard nextArg unless there
               is no following argument.
 @DESCRIPTION: Routine called by ParseArgv to read in a model file (-like)
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 15, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_model_file(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -2068,7 +2081,7 @@ static int get_model_file(char *dst, char *key, char *nextArg)
 
    /* Check for following argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\"%s\" option requires an additional argument\n",
                      key);
       exit(EXIT_FAILURE);
@@ -2095,15 +2108,15 @@ static int get_model_file(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : FALSE so that ParseArgv will not discard nextArg.
 @DESCRIPTION: Routine called by ParseArgv to set the sampling to standard
               values (sets only step, start and direction cosines).
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 14, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int set_standard_sampling(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -2131,15 +2144,15 @@ static int set_standard_sampling(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : TRUE if nextArg should be discarded, FALSE otherwise
 @DESCRIPTION: Routine called by ParseArgv to set the space type of the
               output sampling.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : December 12, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int set_spacetype(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -2161,7 +2174,7 @@ static int set_spacetype(char *dst, char *key, char *nextArg)
 
       /* Check for following argument */
       if (nextArg == NULL) {
-         (void) fprintf(stderr, 
+         (void) fprintf(stderr,
                         "\"%s\" option requires an additional argument\n",
                         key);
          exit(EXIT_FAILURE);
@@ -2174,7 +2187,7 @@ static int set_spacetype(char *dst, char *key, char *nextArg)
 
    /* Copy the strings */
    for (idim=0; idim < WORLD_NDIMS; idim++) {
-      (void) strncpy(volume_def->spacetype[idim], spacetype, 
+      (void) strncpy(volume_def->spacetype[idim], spacetype,
                      MI_MAX_ATTSTR_LEN);
       volume_def->spacetype[idim][MI_MAX_ATTSTR_LEN-1] = '\0';
    }
@@ -2188,15 +2201,15 @@ static int set_spacetype(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : TRUE if nextArg should be discarded, FALSE otherwise
 @DESCRIPTION: Routine called by ParseArgv to set the units of the
               output sampling.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : December 12, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int set_units(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -2210,7 +2223,7 @@ static int set_units(char *dst, char *key, char *nextArg)
 
    /* Check for following argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\"%s\" option requires an additional argument\n",
                      key);
       exit(EXIT_FAILURE);
@@ -2232,14 +2245,14 @@ static int set_units(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : FALSE so that ParseArgv will not discard nextArg
 @DESCRIPTION: Routine called by ParseArgv to get the axis order
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 15, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_axis_order(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -2274,14 +2287,14 @@ static int get_axis_order(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : FALSE so that ParseArgv will not discard nextArg
 @DESCRIPTION: Routine called by ParseArgv to set the fill value
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 15, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_fillvalue(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
