@@ -205,6 +205,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <float.h>
 #include <limits.h>
 #include <string.h>
@@ -569,9 +570,9 @@ static void get_arginfo(int argc, char *argv[],
       fprintf(stderr, "%s: Couldn't find %s\n\n", argv[0], infile);
       exit(EXIT_FAILURE);
       }
-   
+
    /* check for output file */
-   if(access(outfile, F_OK) == 0 && !clobber) {
+   if(access(outfile, F_OK) == 0 && !args.clobber) {
       fprintf(stderr, "%s: %s exists, use -clobber to overwrite\n\n",
               argv[0], outfile);
       exit(EXIT_FAILURE);

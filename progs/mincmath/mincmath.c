@@ -4,11 +4,11 @@
 @OUTPUT     : (none)
 @RETURNS    : status
 @DESCRIPTION: Program to do simple math on minc files
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : April 28, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
  * $Log: mincmath.c,v $
  * Revision 6.15  2009-01-20 11:58:13  rotor
  *  * CMakeLists.txt: updated version
@@ -114,6 +114,7 @@
 #include "config.h"
 #endif
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
@@ -143,8 +144,8 @@
 /* Typedefs */
 typedef enum {
 UNSPECIFIED_OP = 0, ADD_OP, SUB_OP, MULT_OP, DIV_OP, SQRT_OP, SQUARE_OP,
-SCALE_OP, CLAMP_OP, SEGMENT_OP, NSEGMENT_OP, PERCENTDIFF_OP, 
-EQ_OP, NE_OP, GT_OP, GE_OP, LT_OP, LE_OP, AND_OP, OR_OP, NOT_OP, 
+SCALE_OP, CLAMP_OP, SEGMENT_OP, NSEGMENT_OP, PERCENTDIFF_OP,
+EQ_OP, NE_OP, GT_OP, GE_OP, LT_OP, LE_OP, AND_OP, OR_OP, NOT_OP,
 ISNAN_OP, NISNAN_OP, INVERT_OP, EXP_OP, LOG_OP, MAX_OP, MIN_OP, ABS_OP,
 COUNT_OP
 } Operation;
@@ -200,23 +201,23 @@ typedef struct {
 } Math_Data;
 
 /* Function prototypes */
-static void do_math(void *caller_data, long num_voxels, 
+static void do_math(void *caller_data, long num_voxels,
                     int input_num_buffers, int input_vector_length,
                     double *input_data[],
                     int output_num_buffers, int output_vector_length,
                     double *output_data[],
                     Loop_Info *loop_info);
-static void accum_math(void *caller_data, long num_voxels, 
+static void accum_math(void *caller_data, long num_voxels,
                        int input_num_buffers, int input_vector_length,
                        double *input_data[],
                        int output_num_buffers, int output_vector_length,
                        double *output_data[],
                        Loop_Info *loop_info);
-static void start_math(void *caller_data, long num_voxels, 
+static void start_math(void *caller_data, long num_voxels,
                        int output_num_buffers, int output_vector_length,
                        double *output_data[],
                        Loop_Info *loop_info);
-static void end_math(void *caller_data, long num_voxels, 
+static void end_math(void *caller_data, long num_voxels,
                      int output_num_buffers, int output_vector_length,
                      double *output_data[],
                      Loop_Info *loop_info);
@@ -245,7 +246,7 @@ static int minc2_format = FALSE;
 
 /* Argument table */
 static ArgvInfo argTable[] = {
-   {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+   {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
        "General options:"},
 #if MINC2
    {"-2", ARGV_CONSTANT, (char *) TRUE, (char *) &minc2_format,
@@ -289,31 +290,31 @@ static ArgvInfo argTable[] = {
        "Write unsigned integer data (default if type specified)."},
    {"-range", ARGV_FLOAT, (char *) 2, (char *) valid_range,
        "Valid range for output data."},
-   {"-max_buffer_size_in_kb", ARGV_INT, (char *) 1, 
+   {"-max_buffer_size_in_kb", ARGV_INT, (char *) 1,
        (char *) &max_buffer_size_in_kb,
        "Specify the maximum size of the internal buffers (in kbytes)."},
    {"-dimension", ARGV_STRING, (char *) 1, (char *) &loop_dimension,
        "Specify a dimension along which we wish to perform a calculation."},
-   {"-check_dimensions", ARGV_CONSTANT, (char *) TRUE, 
+   {"-check_dimensions", ARGV_CONSTANT, (char *) TRUE,
        (char *) &check_dim_info,
        "Check that files have matching dimensions (default)."},
-   {"-nocheck_dimensions", ARGV_CONSTANT, (char *) FALSE, 
+   {"-nocheck_dimensions", ARGV_CONSTANT, (char *) FALSE,
        (char *) &check_dim_info,
        "Do not check that files have matching dimensions."},
    {"-ignore_nan", ARGV_CONSTANT, (char *) FALSE, (char *) &propagate_nan,
        "Ignore invalid data (NaN) for accumulations."},
    {"-propagate_nan", ARGV_CONSTANT, (char *) TRUE, (char *) &propagate_nan,
        "Invalid data in any file at a voxel produces a NaN (default)."},
-   {"-nan", ARGV_CONSTANT, (char *) TRUE, 
+   {"-nan", ARGV_CONSTANT, (char *) TRUE,
        (char *) &use_nan_for_illegal_values,
        "Output NaN when an illegal operation is done (default)."},
-   {"-zero", ARGV_CONSTANT, (char *) FALSE, 
+   {"-zero", ARGV_CONSTANT, (char *) FALSE,
        (char *) &use_nan_for_illegal_values,
        "Output zero when an illegal operation is done."},
-   {"-illegal_value", ARGV_FLOAT, (char *) 1, 
+   {"-illegal_value", ARGV_FLOAT, (char *) 1,
        (char *) &value_for_illegal_operations,
        "Value to write out when an illegal operation is done."},
-   {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+   {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
        "Options for specifying constants:"},
    {"-constant", ARGV_FLOAT, (char *) 1, (char *) &constant,
        "Specify a constant argument."},
@@ -321,7 +322,7 @@ static ArgvInfo argTable[] = {
        "Synonym for -constant."},
    {"-const2", ARGV_FLOAT, (char *) 2, (char *) constant2,
        "Specify two constant arguments."},
-   {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+   {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
        "Operations:"},
    {"-add", ARGV_CONSTANT, (char *) ADD_OP, (char *) &operation,
        "Add N volumes or volume + constant."},
@@ -357,7 +358,7 @@ static ArgvInfo argTable[] = {
        "Segment a volume using range of -const2: within range = 1, outside range = 0."},
    {"-nsegment", ARGV_CONSTANT, (char *) NSEGMENT_OP, (char *) &operation,
        "Opposite of -segment: within range = 0, outside range = 1."},
-   {"-percentdiff", ARGV_CONSTANT, (char *) PERCENTDIFF_OP, 
+   {"-percentdiff", ARGV_CONSTANT, (char *) PERCENTDIFF_OP,
        (char *) &operation,
        "Percent difference between 2 volumes, thresholded (const def=0.0)."},
    {"-pd", ARGV_CONSTANT, (char *) PERCENTDIFF_OP, (char *) &operation,
@@ -394,7 +395,7 @@ static ArgvInfo argTable[] = {
 int main(int argc, char *argv[])
 {
    char **infiles, **outfiles;
-   int nfiles, nout;
+   int nfiles, nout, i;
    char *arg_string;
    Math_Data math_data;
    Loop_Options *loop_options;
@@ -409,16 +410,16 @@ int main(int argc, char *argv[])
    /* Get arguments */
    pname = argv[0];
    if (ParseArgv(&argc, argv, argTable, 0) || (argc < 2)) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
       "\nUsage: %s [options] [<in1.mnc> ...] <out.mnc>\n",
                      pname);
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
         "       %s -help\n\n", pname);
       exit(EXIT_FAILURE);
    }
    nout = 1;
    outfiles = &argv[argc-1];
-   
+
    /* Get the list of input files either from the command line or
       from a file, or report an error if both are specified */
    nfiles = argc - 2;
@@ -428,17 +429,45 @@ int main(int argc, char *argv[])
    else if (nfiles <= 0) {
       infiles = read_file_names(filelist, &nfiles);
       if (infiles == NULL) {
-         (void) fprintf(stderr, 
+         (void) fprintf(stderr,
                         "Error reading in file names from file \"%s\"\n",
                         filelist);
          exit(EXIT_FAILURE);
       }
    }
    else {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Do not specify both -filelist and input file names\n");
       exit(EXIT_FAILURE);
    }
+
+   /* check for infiles */
+   if(verbose){
+      fprintf(stderr, "\n+++ infiles +++\n");
+   }
+   for(i = 0; i < nfiles; i++){
+      if(verbose){
+         fprintf(stderr, " | [%02d]: %s\n", i, infiles[i]);
+      }
+      if(access(infiles[i], F_OK) != 0){
+         fprintf(stderr, "%s: Couldn't find %s\n", argv[0], infiles[i]);
+         exit(EXIT_FAILURE);
+      }
+   }
+
+   /* check for outfiles */
+   if(verbose){
+      fprintf(stderr, "\n+++ outfiles +++\n");
+      }
+   for(i = 0; i < nout; i++){
+      if(verbose){
+         fprintf(stderr, " | [%02d]: %s\n", i, outfiles[i]);
+         }
+      if(access(outfiles[i], F_OK) == 0 && !clobber){
+         fprintf(stderr, "%s: %s exists, use -clobber to overwrite\n\n", argv[0], outfiles[i]);
+         exit(EXIT_FAILURE);
+         }
+      }
 
    /* Make sure that we have something to process */
    if (nfiles == 0) {
@@ -446,7 +475,7 @@ int main(int argc, char *argv[])
       exit(EXIT_FAILURE);
    }
 
-   /* Handle special case of COUNT_OP - it always assume -ignore_nan and 
+   /* Handle special case of COUNT_OP - it always assume -ignore_nan and
       -zero */
    if (operation == COUNT_OP) {
       propagate_nan = FALSE;
@@ -484,9 +513,9 @@ int main(int argc, char *argv[])
       (void) fprintf(stderr, "%s: Expected two input files.\n", pname);
       exit(EXIT_FAILURE);
    }
-   if ((num_operands == NARY_NUMOP) && (nfiles < 1) && 
+   if ((num_operands == NARY_NUMOP) && (nfiles < 1) &&
        (loop_dimension == NULL)) {
-      (void) fprintf(stderr, "%s: Expected at least one input files.\n", 
+      (void) fprintf(stderr, "%s: Expected at least one input files.\n",
                      pname);
       exit(EXIT_FAILURE);
    }
@@ -501,10 +530,10 @@ int main(int argc, char *argv[])
    math_data.propagate_nan = propagate_nan;
    math_data.num_constants = num_constants;
    switch (num_constants) {
-   case 1: 
+   case 1:
       math_data.constants[0] = constant;
       break;
-   case 2: 
+   case 2:
       math_data.constants[0] = constant2[0];
       math_data.constants[1] = constant2[1];
       break;
@@ -523,7 +552,7 @@ int main(int argc, char *argv[])
 #if MINC2
    set_loop_v2format(loop_options, minc2_format);
 #endif /* MINC2 */
-   set_loop_datatype(loop_options, datatype, is_signed, 
+   set_loop_datatype(loop_options, datatype, is_signed,
                      valid_range[0], valid_range[1]);
    if (num_operands == NARY_NUMOP) {
       math_function = accum_math;
@@ -549,13 +578,13 @@ int main(int argc, char *argv[])
 @OUTPUT     : Standard for voxel loop
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine doing math operations.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : April 25, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void do_math(void *caller_data, long num_voxels, 
+static void do_math(void *caller_data, long num_voxels,
                     int input_num_buffers, int input_vector_length,
                     double *input_data[],
                     int output_num_buffers, int output_vector_length,
@@ -575,7 +604,7 @@ static void do_math(void *caller_data, long num_voxels,
    math_data = (Math_Data *) caller_data;
 
    /* Check arguments */
-   if ((input_num_buffers > 2) || (output_num_buffers != 1) || 
+   if ((input_num_buffers > 2) || (output_num_buffers != 1) ||
        (output_vector_length != input_vector_length)) {
       (void) fprintf(stderr, "Bad arguments to do_math!\n");
       exit(EXIT_FAILURE);
@@ -602,7 +631,7 @@ static void do_math(void *caller_data, long num_voxels,
    /* Loop through the voxels */
    for (ivox=0; ivox < num_voxels*input_vector_length; ivox++) {
       value1 = input_data[0][ivox];
-      if (input_num_buffers == 2) 
+      if (input_num_buffers == 2)
          value2 = input_data[1][ivox];
       if ((value1 == INVALID_DATA) || (value2 == INVALID_DATA)) {
          switch(operation) {
@@ -655,7 +684,7 @@ static void do_math(void *caller_data, long num_voxels,
             output_data[0][ivox] = constants[1] * exp(value1 * constants[0]);
             break;
          case LOG_OP:
-            if ((value1 <= 0.0) || (constants[1] <= 0.0) || 
+            if ((value1 <= 0.0) || (constants[1] <= 0.0) ||
                 (constants[0] == 0.0))
                output_data[0][ivox] = illegal_value;
             else
@@ -706,11 +735,11 @@ static void do_math(void *caller_data, long num_voxels,
          case LE_OP:
             output_data[0][ivox] = value1 <= value2; break;
          case AND_OP:
-            output_data[0][ivox] = 
+            output_data[0][ivox] =
                (((rint(value1) != 0.0) && (rint(value2) != 0.0)) ? 1.0 : 0.0);
             break;
          case OR_OP:
-            output_data[0][ivox] = 
+            output_data[0][ivox] =
                (((rint(value1) != 0.0) || (rint(value2) != 0.0)) ? 1.0 : 0.0);
             break;
          case NOT_OP:
@@ -738,13 +767,13 @@ static void do_math(void *caller_data, long num_voxels,
 @OUTPUT     : Standard for voxel loop
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine for doing accumulation math operations.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : April 25, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void accum_math(void *caller_data, long num_voxels, 
+static void accum_math(void *caller_data, long num_voxels,
                        int input_num_buffers, int input_vector_length,
                        double *input_data[],
                        int output_num_buffers, int output_vector_length,
@@ -762,7 +791,7 @@ static void accum_math(void *caller_data, long num_voxels,
    math_data = (Math_Data *) caller_data;
 
    /* Check arguments */
-   if ((input_num_buffers != 1) || (output_num_buffers != 1) || 
+   if ((input_num_buffers != 1) || (output_num_buffers != 1) ||
        (output_vector_length != input_vector_length)) {
       (void) fprintf(stderr, "Bad arguments to accum_math!\n");
       exit(EXIT_FAILURE);
@@ -802,11 +831,11 @@ static void accum_math(void *caller_data, long num_voxels,
             output_data[0][ivox] = oldvalue * value;
             break;
          case AND_OP:
-            output_data[0][ivox] = 
+            output_data[0][ivox] =
                (((oldvalue != 0.0) && (rint(value) != 0.0)) ? 1.0 : 0.0);
             break;
          case OR_OP:
-            output_data[0][ivox] = 
+            output_data[0][ivox] =
                (((oldvalue != 0.0) || (rint(value) != 0.0)) ? 1.0 : 0.0);
             break;
          case MAX_OP:
@@ -837,13 +866,13 @@ static void accum_math(void *caller_data, long num_voxels,
 @OUTPUT     : Standard for voxel loop
 @RETURNS    : (nothing)
 @DESCRIPTION: Start routine for math accumulation.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : April 25, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void start_math(void *caller_data, long num_voxels, 
+static void start_math(void *caller_data, long num_voxels,
                        int output_num_buffers, int output_vector_length,
                        double *output_data[],
                        Loop_Info *loop_info)
@@ -865,7 +894,7 @@ static void start_math(void *caller_data, long num_voxels,
    operation = math_data->operation;
 
    /* Loop through the voxels, marking them all as uninitialized. We treat
-      COUNT_OP as a special case since it always has a value. This is 
+      COUNT_OP as a special case since it always has a value. This is
       especially important to prevent it from going through
       the code in accum_math for handling the first valid voxel which
       just assigns the first value. */
@@ -889,13 +918,13 @@ static void start_math(void *caller_data, long num_voxels,
 @OUTPUT     : Standard for voxel loop
 @RETURNS    : (nothing)
 @DESCRIPTION: Start routine for math accumulation.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : April 25, 1995 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void end_math(void *caller_data, long num_voxels, 
+static void end_math(void *caller_data, long num_voxels,
                      int output_num_buffers, int output_vector_length,
                      double *output_data[],
                      Loop_Info *loop_info)
