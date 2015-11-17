@@ -200,7 +200,7 @@ foreach $space (@{$opt{'dirs'}}){
            "-attvalue $ordering{$space}[0]:step ". 
            "-attvalue $ordering{$space}[1]:step ".
            "-dimnames ".
-           $infile;
+           "\"$infile\"";
    ($n_slices, $img_x, $img_y, $img_step_x, $img_step_y, $dim_names) = split("\n", `$args`);
 
    if(defined($opt{'width'})){ 
