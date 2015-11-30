@@ -685,7 +685,7 @@ main(int argc, char **argv)
         return (-1);
     }
 
-    ncopts = 0;
+    set_ncopts(0);
 
     /* Set the dimension names.  This is done here since the correct 
      * arrangement depends on the value of _orient_flag 

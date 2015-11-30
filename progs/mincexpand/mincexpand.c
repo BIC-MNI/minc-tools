@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
       tempfile = NULL;
 
    /* Expand the file */
-   ncopts = 0;
+   set_ncopts(0);
    newfile = miexpand_file(filename, tempfile, header_only, &created_tempfile);
    if (newfile == NULL)
       newfile = strdup(filename);

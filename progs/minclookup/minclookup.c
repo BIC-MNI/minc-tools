@@ -778,9 +778,9 @@ static void get_full_range(int mincid, double range[2])
          sign = +1.0;
          extreme = &range[1];
       }
-      ncopts = 0;
+      set_ncopts(0);
       varid = ncvarid(mincid, string);
-      ncopts = NCOPTS_DEFAULT;
+      set_ncopts(NCOPTS_DEFAULT);
       if (varid != MI_ERROR) {
          (void) ncvarinq(mincid, varid, NULL, NULL, &ndims, dim, NULL);
          num_values = 1;

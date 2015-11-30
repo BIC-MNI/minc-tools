@@ -163,7 +163,7 @@ main(int argc, char **argv)
     };
 
 
-    ncopts = 0;                 /* Clear global netCDF error reporting flag */
+    set_ncopts(0);                 /* Clear global netCDF error reporting flag */
 
     mnc_hist = time_stamp(argc, argv);
     mnc_vtype = NC_NAT;

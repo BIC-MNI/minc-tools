@@ -406,7 +406,7 @@ create_minc_file(const char *minc_file,
     };
       
     /* Turn off fatal errors */
-    ncopts = NCOPTS_DEFAULT;
+    set_ncopts(NCOPTS_DEFAULT);
 
     /* Create the file name if needed */
     if (minc_file != NULL) {
@@ -1330,10 +1330,10 @@ save_minc_image(int icvid, General_Info *gi_ptr,
              * In order to avoid a nasty and unnecessary error message
              * we have to disable netCDF errors here.
              */
-            ncopts_prev = ncopts;
-            ncopts = 0;
+            ncopts_prev =get_ncopts();
+            set_ncopts(0);
             varid = ncvarid(mincid, MItime_width); /* Get the variable id */
-            ncopts = ncopts_prev;
+            set_ncopts(ncopts_prev);
 
             /* If the variable was created, update it as needed.
              */

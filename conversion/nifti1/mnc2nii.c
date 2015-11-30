@@ -242,7 +242,7 @@ main(int argc, char **argv)
         {NULL, ARGV_END, NULL, NULL, NULL}
     };
 
-    ncopts = 0;                 /* Clear global netCDF error reporting flag */
+    set_ncopts(0);                 /* Clear global netCDF error reporting flag */
 
     /* Default NIfTI file type is "NII", single binary file
      */

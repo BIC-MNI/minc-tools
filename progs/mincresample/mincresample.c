@@ -963,10 +963,10 @@ static void get_file_info(char *filename, int initialized_volume_def,
 
    /* Get variable identifiers */
    file_info->imgid = ncvarid(file_info->mincid, MIimage);
-   ncopts = 0;
+   set_ncopts(0);
    file_info->maxid = ncvarid(file_info->mincid, MIimagemax);
    file_info->minid = ncvarid(file_info->mincid, MIimagemin);
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Get information about datatype dimensions of variable */
    (void) miget_datatype(file_info->mincid, file_info->imgid,
@@ -1039,13 +1039,13 @@ static void get_file_info(char *filename, int initialized_volume_def,
       volume_def->nelements[cur_axis] = file_info->nelements[idim];
 
       /* Check for existence of variable */
-      ncopts = 0;
+      set_ncopts(0);
       dimid = ncvarid(file_info->mincid, dimname);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
       if (dimid == MI_ERROR) continue;
 
       /* Get attributes from variable */
-      ncopts = 0;
+      set_ncopts(0);
       (void) miattget1(file_info->mincid, dimid, MIstep,
                        NC_DOUBLE, &volume_def->step[cur_axis]);
       if (volume_def->step[cur_axis] == 0.0)
@@ -1059,13 +1059,13 @@ static void get_file_info(char *filename, int initialized_volume_def,
                          MI_MAX_ATTSTR_LEN, volume_def->units[cur_axis]);
       (void) miattgetstr(file_info->mincid, dimid, MIspacetype,
                          MI_MAX_ATTSTR_LEN, volume_def->spacetype[cur_axis]);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
 
       /* Normalize the direction cosine */
       normalize_vector(volume_def->dircos[cur_axis]);
 
       /* Look for irregular coordinates for dimension variable */
-      ncopts = 0;
+      set_ncopts(0);
       coord_spacing = UNKNOWN;
       dimlength = volume_def->nelements[cur_axis];
       if (miattgetstr(file_info->mincid, dimid, MIspacing, MI_MAX_ATTSTR_LEN,
@@ -1077,7 +1077,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
       }
       if (ncvarinq(file_info->mincid, dimid, NULL, NULL,
                    &varndims, vardim, NULL) == MI_ERROR) {
-         ncopts = NC_VERBOSE | NC_FATAL;
+         set_ncopts(NC_VERBOSE | NC_FATAL);
          continue;
       }
       if ((coord_spacing != REGULAR) &&
@@ -1094,7 +1094,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
          if (mivarget(file_info->mincid, dimid, &varstart, &varcount,
                       NC_DOUBLE, MI_SIGNED, volume_def->coords[cur_axis])
                    == MI_ERROR) {
-            ncopts = NC_VERBOSE | NC_FATAL;
+            set_ncopts(NC_VERBOSE | NC_FATAL);
             free(volume_def->coords[cur_axis]);
             volume_def->coords[cur_axis] = NULL;
             continue;
@@ -1115,7 +1115,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
             }
          }
       }
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
 
    }   /* End of loop over dimensions */
 
@@ -1376,7 +1376,7 @@ static void create_output_file(char *filename, int cflags,
 
    /* Create the list of excluded variables */
    nexcluded = 0;
-   ncopts = 0;
+   set_ncopts(0);
    if ((varid=ncvarid(in_file->mincid, MIxspace)) != MI_ERROR)
       excluded_vars[nexcluded++] = varid;
    if ((varid=ncvarid(in_file->mincid, MIyspace)) != MI_ERROR)
@@ -1393,7 +1393,7 @@ static void create_output_file(char *filename, int cflags,
    if ((varid=ncvarid(in_file->mincid, MIvector_dimension)) != MI_ERROR)
       excluded_vars[nexcluded++] = varid;
 #endif /* MINC2 */
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Create the file */
    out_file->mincid = micreate(filename, cflags);
@@ -1403,7 +1403,7 @@ static void create_output_file(char *filename, int cflags,
                               nexcluded, excluded_vars);
 
    /* Add the time stamp */
-   ncopts=0;
+   set_ncopts(0);
    if ((ncattinq(out_file->mincid, NC_GLOBAL, MIhistory, &datatype,
                  &att_length) == MI_ERROR) ||
        (datatype != NC_CHAR))
@@ -1413,7 +1413,7 @@ static void create_output_file(char *filename, int cflags,
    string[0] = '\0';
    (void) miattgetstr(out_file->mincid, NC_GLOBAL, MIhistory, att_length,
                       string);
-   ncopts=NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
    (void) strcat(string, tm_stamp);
    (void) miattputstr(out_file->mincid, NC_GLOBAL, MIhistory, string);
    free(string);
@@ -1452,9 +1452,9 @@ static void create_output_file(char *filename, int cflags,
       (void) ncdiminq(in_file->mincid, in_dims[in_index], dimname, NULL);
 
       /* Check to see if the dimension already exists */
-      ncopts = 0;
+      set_ncopts(0);
       out_dims[out_index] = ncdimid(out_file->mincid, dimname);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
       dim_exists = (out_dims[out_index] != MI_ERROR);
 
       /* If we have a volume dimension and it exists already with the wrong
@@ -1462,13 +1462,13 @@ static void create_output_file(char *filename, int cflags,
       if (is_volume_dimension && dim_exists &&
           (out_file->nelements[out_index] != in_file->nelements[in_index])) {
          string = malloc(MAX_NC_NAME);
-         ncopts = 0;
+         set_ncopts(0);
          idim = 0;
          do {
             (void) sprintf(string, "%s%d", dimname, idim);
             idim++;
          } while (ncdimid(out_file->mincid, string) != MI_ERROR);
-         ncopts = NC_VERBOSE | NC_FATAL;
+         set_ncopts(NC_VERBOSE | NC_FATAL);
          (void) ncdimrename(out_file->mincid, out_dims[out_index], string);
          free(string);
          out_dims[out_index] = ncdimdef(out_file->mincid, dimname,
@@ -1546,7 +1546,7 @@ static void create_output_file(char *filename, int cflags,
 
    if (transform_info->file_name != NULL) {
 
-      ncopts = 0;
+      set_ncopts(0);
 
       /* Get id of processing variable (create it if needed) */
       varid = ncvarid(out_file->mincid, PROCESSING_VAR);
@@ -1567,7 +1567,7 @@ static void create_output_file(char *filename, int cflags,
       itrans--;
 
       /* Reset error handling */
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
 
       /* Add the attributes describing the transformation */
       (void) miattputstr(out_file->mincid, varid, string,

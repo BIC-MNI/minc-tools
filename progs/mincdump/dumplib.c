@@ -108,10 +108,10 @@ has_c_format_att(
     int old_nc_opts;
     int nc_stat;
 
-    old_nc_opts = ncopts;
-    ncopts = 0;
+    old_nc_opts =get_ncopts();
+    set_ncopts(0);
     nc_stat = ncattinq(ncid, varid, "C_format", &cfmt_type, &cfmt_len);
-    ncopts = old_nc_opts;
+    set_ncopts(old_nc_opts);
 
     if (nc_stat == -1) {
         return 0;

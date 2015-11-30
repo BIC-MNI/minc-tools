@@ -319,7 +319,7 @@ static void get_dimension_info(char *infile, int icvid, VIO_Volume *volume)
       volume->step[idim] = 1.0;
       volume->start[idim] = 0.0;
    }
-   ncopts = 0;
+   set_ncopts(0);
    (void) miicv_inqdbl(icvid, MI_ICV_ADIM_STEP, &volume->step[COLUMN]);
    (void) miicv_inqdbl(icvid, MI_ICV_ADIM_START, &volume->start[COLUMN]);
    (void) miicv_inqdbl(icvid, MI_ICV_BDIM_STEP, &volume->step[ROW]);
@@ -330,7 +330,7 @@ static void get_dimension_info(char *infile, int icvid, VIO_Volume *volume)
       (void) miattget1(mincid, varid, MIstart, NC_DOUBLE,
                        &volume->start[SLICE]);
    }
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
 
 }
 
@@ -477,14 +477,14 @@ static void setup_variables(int inmincid, int mincid, VIO_Volume *volume,
       dimensions are not standard, then no variable is created. */
 
    for (idim=0; idim < ndims; idim++) {
-      ncopts = 0;
+      set_ncopts(0);
       varid = ncvarid(mincid, volume->dimension_names[idim]);
       if (varid == MI_ERROR) {
          varid = micreate_std_variable(mincid, 
                                        volume->dimension_names[idim],
                                        NC_INT, 0, NULL);
       }
-      ncopts = NC_OPTS_VAL;
+      set_ncopts(NC_OPTS_VAL);
       if (varid != MI_ERROR) {
          (void) miattputdbl(mincid, varid, MIstep, 
                             volume->step[idim]);
@@ -548,10 +548,10 @@ static void setup_image_variables(int inmincid, int mincid,
    if (inmincid != MI_ERROR) {
       (void) micopy_all_atts(inmincid, ncvarid(inmincid, MIimage),
                              mincid, imgid);
-      ncopts = 0;
+      set_ncopts(0);
       (void) ncattdel(mincid, imgid, MIvalid_max);
       (void) ncattdel(mincid, imgid, MIvalid_min);
-      ncopts = NC_OPTS_VAL;
+      set_ncopts(NC_OPTS_VAL);
    }
    (void) miattputstr(mincid, imgid, MIsigntype, MI_UNSIGNED);
    (void) miset_valid_range(mincid, imgid, valid_range);
@@ -579,7 +579,7 @@ static void update_history(int mincid, char *arg_string)
    char *string;
 
    /* Get the history attribute length */
-   ncopts=0;
+   set_ncopts(0);
    if ((ncattinq(mincid, NC_GLOBAL, MIhistory, &datatype,
                  &att_length) == MI_ERROR) ||
        (datatype != NC_CHAR))
@@ -591,7 +591,7 @@ static void update_history(int mincid, char *arg_string)
    string[0] = '\0';
    (void) miattgetstr(mincid, NC_GLOBAL, MIhistory, att_length, 
                       string);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
 
    /* Add the new command and put the new history. */
    (void) strcat(string, arg_string);

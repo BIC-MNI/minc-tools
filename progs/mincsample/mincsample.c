@@ -587,10 +587,10 @@ void get_minc_attribute(int mincid, char *varname, char *attname,
    if(!mivar_exists(mincid, varname))
       return;
    varid = ncvarid(mincid, varname);
-   old_ncopts = ncopts;
-   ncopts = 0;
+   old_ncopts =get_ncopts();
+   set_ncopts(0);
    (void)miattget(mincid, varid, attname, NC_DOUBLE, maxvals, vals, &att_length);
-   ncopts = old_ncopts;
+   set_ncopts(old_ncopts);
    }
 
 /* Get the total number of image dimensions in a minc file -- from mincstats */
