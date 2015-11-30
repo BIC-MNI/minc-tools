@@ -984,7 +984,7 @@ static int ecat_read_directory(Ecat_file *file)
       file->num_subhdrs += num_used;
       if (num_alloc < file->num_subhdrs) {
          num_alloc = file->num_subhdrs;
-         REALLOC(file->subhdr_offsets, 
+         file->subhdr_offsets=REALLOC(file->subhdr_offsets, 
                  num_alloc * sizeof(file->subhdr_offsets[0]));
       }
 
