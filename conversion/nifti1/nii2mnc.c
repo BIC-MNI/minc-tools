@@ -201,7 +201,10 @@ main(int argc, char **argv)
 
         fp = fopen(argv[1], "rb");
         if (fp != NULL) {
-            fread(&ana_hdr, sizeof (ana_hdr), 1, fp);
+            if (fread(&ana_hdr, sizeof (ana_hdr), 1, fp) != 1) {
+                fprintf(stderr, "Unable to read file header.\n");
+                return (-1);
+            }
             fclose(fp);
 
             must_swap = 0;
