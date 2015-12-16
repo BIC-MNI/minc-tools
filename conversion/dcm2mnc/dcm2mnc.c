@@ -252,6 +252,18 @@ ArgvInfo argTable[] = {
      (char *) &G.abort_on_error,
      "Stop processing immediately if a file is not parsed properly."},
 
+    {"-adjust_frame_time",
+     ARGV_CONSTANT,
+     (char *) TRUE,
+     (char *) &G.adjust_frame_time,
+     "Try to set frame times to the beginning of the frame."},
+
+    {"-accept_period",
+     ARGV_CONSTANT,
+     (char *) FALSE,
+     (char *) &G.ignore_leading_dot,
+     "Don't ignore filenames that begin with an initial period ('.')."},
+
     {NULL, ARGV_END, NULL, NULL, NULL}
 
 };
@@ -282,7 +294,8 @@ main(int argc, char *argv[])
     G.minc_history = time_stamp(argc, argv); /* Create minc history string */
     G.prefer_coords = FALSE;
     G.abort_on_error = FALSE;
-
+    G.adjust_frame_time = FALSE;
+    G.ignore_leading_dot = TRUE;
     G.pname = argv[0];          /* get program name */
     
     /* Get the input parameters and file names.
@@ -345,6 +358,9 @@ main(int argc, char *argv[])
             dp = opendir(argv[ifile + 1]);
             if (dp != NULL) {
                 while ((np = readdir(dp)) != NULL) {
+                    /* Ignore files with names beginning with '.' */
+                    if (np->d_name[0] == '.' && G.ignore_leading_dot)
+                        continue;
                     /* Generate the full path to the file.
                      */
                     tmp_str = malloc(length + strlen(np->d_name) + 2);

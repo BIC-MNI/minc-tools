@@ -193,7 +193,7 @@ check_regular(double step, double coordinates[], int length)
          * less the average step value.
          */
         diff = (coordinates[index] - coordinates[index - 1]) - step;
-        
+
         if (diff < 0.0) {
             diff = -diff;
         }
@@ -598,7 +598,7 @@ minc_set_spacing(int mincid, int varid, Mri_Index imri, General_Info *gi_ptr)
          */
         avg = sum / (length - 1);     /* compute mean */
 
-        if (step != 0.0 && avg != step) {
+        if (step != 0.0 && fabs(avg - step) / avg > 0.01) {
             printf("WARNING: Sample width (%g) not equal to average delta (%g)\n",
                    step, avg);
         }
@@ -776,13 +776,19 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         dimname = spatial_dimnames[iworld];
         dim[ndims] = ncdimdef(mincid, dimname, dimsize);
         if (ivol == VSLICE) {
-            varid = micreate_std_variable(mincid, dimname, NC_DOUBLE, 
-                                          1, &dim[ndims]);
             /* Check for regular slices */
             if (check_regular(general_info->step[general_info->slice_world],
                               general_info->coordinates[SLICE],
                               general_info->cur_size[SLICE])) {
+
+                varid = micreate_std_variable(mincid, dimname, NC_DOUBLE,
+                                              0, NULL);
                 miattputstr(mincid, varid, MIspacing, MI_REGULAR);
+            }
+            else {
+                varid = micreate_std_variable(mincid, dimname, NC_DOUBLE,
+                                              1, &dim[ndims]);
+                miattputstr(mincid, varid, MIspacing, MI_IRREGULAR);
             }
         }
         else {

@@ -758,6 +758,17 @@ is_siemens_mosaic(Acr_Group group_list)
 
 #define MAXVM 32
 
+int
+is_siemens_proto2(Acr_Element element)
+{
+    size_t byte_cnt = element->data_length;
+    char *byte_ptr = element->data_pointer;
+
+    return (byte_cnt >= 8 &&
+            byte_ptr[0] == 'S' && byte_ptr[1] == 'V' &&
+            byte_ptr[2] == '1' && byte_ptr[3] == '0');
+}
+
 Acr_Group
 parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
 {
@@ -802,6 +813,8 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
 #define CSA_ELEMENT_SIZE (84)
 
     if (n_items * CSA_ELEMENT_SIZE >= byte_cnt) {
+      if (G.Debug >= HI_LOGGING)
+        printf("SV10 group length appears invalid.\n");
       return group_list;        /* Return list unmodified. */
     }
 
@@ -909,18 +922,16 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
                                    orientation);
             }
         }
-#if 0
-        if (G.Debug >= HI_LOGGING) {
+        else if (G.Debug >= HI_LOGGING) {
             printf("%s VM=%d VR=%s %d ", name, vm, vr, n_values);
 
             if (n_values != 0) {
                 for (i = 0; i < vm && i < MAXVM; i++) {
-                    printf("%s ", value[i]);
+                    printf("*** %d: %s ", i, value[i]);
                 }
             }
             printf("\n");
         }
-#endif
     }
     return (group_list);
 }
@@ -936,6 +947,7 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
   Acr_String str_ptr2;
   int temp;
   int num_directions = 0;
+  double bval;
 
   /* Modified by ilana to handle the common types of diffusion scans (ref: siemens_dicom_to_minc for dicomserver)
      
@@ -1031,16 +1043,16 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
         strtol(str_buf, NULL, 0) != 0) { /*num b0 images for MGH sequence*/
       /* get number of b=0 images*/
       num_b0 = strtol(str_buf, NULL, 0);
-		  
+
       /* try to get b value */
       prot_find_string(protocol, "sDiffusion.alBValue[1]", str_buf);
-
-      acr_insert_numeric(&group_list, EXT_Diffusion_b_value,
-                         (double)strtol(str_buf, NULL, 0));
-
+      bval = (double) strtol(str_buf, NULL, 0);
+      acr_insert_numeric(&group_list, EXT_Diffusion_b_value, bval);
+      if (!acr_find_group_element(group_list, ACR_Diffusion_b_value)) {
+          acr_insert_double(&group_list, ACR_Diffusion_b_value, 1, &bval);
+      }
     }
-    else
-      {
+    else {
         prot_find_string(protocol, "sDiffusion.ulMode", str_buf);
         if (str_buf[0] != '\0') {
           unsigned long mode = strtol(str_buf, NULL, 0);

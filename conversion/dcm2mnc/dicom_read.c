@@ -1810,7 +1810,17 @@ get_coordinate_info(Acr_Group group_list,
       start_time = (double)acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
       frame_time = (double)acr_find_double(group_list, ACR_Actual_frame_duration, -1.0);
       if (start_time > 0.0 && frame_time > 0.0) {
-        frame_time = start_time / 1000.0; /* Convert msec to seconds. */
+        if (G.adjust_frame_time) {
+            double new_time = (start_time - frame_time / 2.0) / 1000.0;
+            if (new_time < -1.0) {
+              fprintf(stderr, "WARNING: adjusting the frame time gives a negative time.\n");
+              fprintf(stderr, "         %g %g\n", start_time, frame_time);
+            }
+            frame_time = new_time;
+        }
+        else {
+            frame_time = start_time / 1000.0; /* Convert msec to seconds. */
+        }
       }
       else {
         /* Try to use the repetition time if it is legit. For now we 

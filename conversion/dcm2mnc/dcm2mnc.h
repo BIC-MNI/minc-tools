@@ -265,6 +265,8 @@ struct globals {
     int min_img_num;            /* Minimum image number (0020,0013). */
     int max_img_num;            /* Maximum image number. */
     int abort_on_error;         /* Abort on parse errors. */
+    int adjust_frame_time;      /* Adjust frame times to beginning of frame. */
+    int ignore_leading_dot;     /* If TRUE, ignore files with leading '.' */
 };
 
 /* Values for options flags */
