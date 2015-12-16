@@ -1107,6 +1107,38 @@ static void sort_coords(Concat_Info *concat_info)
    int index, icoord;
    double mean_step, mean_width, diff;
    int regular_spacing, constant_width, have_widths;
+   int n_widths_found = 0;
+
+   for (ifile = 0; ifile < concat_info->num_input_files; ifile++) {
+      if (concat_info->file_widths[ifile] != NULL)
+         n_widths_found++;      /* Count files with width information. */
+   }
+   for (ifile = 0; ifile < concat_info->num_input_files; ifile++) {
+      if (concat_info->file_widths[ifile] == NULL && n_widths_found > 0) {
+         /* We did not find dimension widths in this file, but we
+          * did find them for another file. In order to retain the
+          * information, we ADD simple dimension widths here.
+          */
+         int n_coords = concat_info->num_file_coords[ifile];
+         double *p_coords = concat_info->file_coords[ifile];
+         double sum_widths = 0.0;
+         double mean_width;
+         double *p_widths;
+         int i;
+
+         for (i = 1; i < n_coords; i++)
+            sum_widths += p_coords[i] - p_coords[i - 1];
+         mean_width = sum_widths / (n_coords - 1);
+         p_widths = malloc(sizeof(double) * n_coords);
+         if (p_widths == NULL) {
+            fprintf(stderr, "Can't get memory for coordinate widths.\n");
+            exit(EXIT_FAILURE);
+         }
+         for (i = 0; i < n_coords; i++)
+            p_widths[i] = mean_width;
+         concat_info->file_widths[ifile] = p_widths;
+      }
+   }
 
    /* Allocate space for the ordering information */
    concat_info->file_to_dim_order = 
@@ -1149,7 +1181,7 @@ static void sort_coords(Concat_Info *concat_info)
       mean_width = concat_info->file_widths[0][0];
    regular_spacing = TRUE;
    constant_width = TRUE;
-   have_widths = TRUE;
+   have_widths = (n_widths_found > 0);
    for (index=0; index < concat_dimension_length; index++) {
       ifile = sort_list[index].curfile;
       icoord = sort_list[index].curcoord;
@@ -1159,8 +1191,6 @@ static void sort_coords(Concat_Info *concat_info)
          exit(EXIT_FAILURE);
       }
       concat_info->file_to_dim_order[ifile][icoord] = index;
-      if (concat_info->file_widths[ifile] == NULL)
-         have_widths = FALSE;
       if (index > 0) {
          diff = (sort_list[index].coord - sort_list[index-1].coord)
             - mean_step;
