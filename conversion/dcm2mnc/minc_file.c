@@ -1076,6 +1076,52 @@ void setup_minc_variables(int mincid, General_Info *general_info,
 	ncattput(mincid, varid, "b_matrix", NC_DOUBLE, num_elements*length, tmp_ptr2); 
     }
 
+    /** PET STUFF **/
+    if (strlen(general_info->pet.injection_time) > 0) {
+      miattputstr(mincid, varid, MIinjection_time, 
+                  general_info->pet.injection_time);
+      miattputint(mincid, varid, MIinjection_year, 
+                  general_info->pet.injection_year);
+      miattputint(mincid, varid, MIinjection_month, 
+                  general_info->pet.injection_month);
+      miattputint(mincid, varid, MIinjection_day, 
+                  general_info->pet.injection_day);
+      miattputint(mincid, varid, MIinjection_hour, 
+                  general_info->pet.injection_hour);
+      miattputint(mincid, varid, MIinjection_minute, 
+                  general_info->pet.injection_minute);
+      miattputdbl(mincid, varid, MIinjection_seconds, 
+                  general_info->pet.injection_seconds);
+    }
+    if (general_info->pet.injection_volume > 0) {
+      miattputdbl(mincid, varid, MIinjection_volume,
+                  general_info->pet.injection_volume);
+    }
+    if (general_info->pet.injection_dose > 0) {
+      miattputdbl(mincid, varid, MIinjection_dose,
+                  general_info->pet.injection_dose);
+      miattputstr(mincid, varid, MIdose_units, "Bq");
+    }
+    if (strlen(general_info->pet.tracer) > 0) {
+      miattputstr(mincid, varid, MItracer, general_info->pet.tracer);
+    }
+    if (strlen(general_info->pet.radionuclide) > 0) {
+      miattputstr(mincid, varid, MIradionuclide,
+                  general_info->pet.radionuclide);
+    }
+    if (strlen(general_info->pet.injection_route) > 0) {
+      miattputstr(mincid, varid, MIinjection_route,
+                  general_info->pet.injection_route);
+    }
+    if (general_info->pet.radionuclide_halflife > 0) {
+      miattputdbl(mincid, varid, MIradionuclide_halflife,
+                  general_info->pet.radionuclide_halflife);
+    }
+    if (general_info->pet.positron_fraction > 0) {
+      miattputdbl(mincid, varid, "positron_fraction",
+                  general_info->pet.positron_fraction);
+    }
+
     /* Create the dicom info variable */
     varid = ncvardef(mincid, "dicominfo", NC_LONG, 0, NULL);
     miattputstr(mincid, varid, MIvartype, MI_GROUP);

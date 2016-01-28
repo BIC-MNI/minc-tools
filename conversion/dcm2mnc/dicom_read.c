@@ -1941,8 +1941,7 @@ static void
 get_string_field(char *out_str, Acr_Group group_list, 
                  Acr_Element_Id element_id)
 {
-    strncpy(out_str, acr_find_string(group_list, element_id, ""), 
-            STRING_T_LEN);
+   strncpy(out_str, acr_find_string(group_list, element_id, ""), STRING_T_LEN);
 }
                  
 void
@@ -1950,6 +1949,7 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
 {
     int length;
     char *string;
+    Acr_Element element;
 
     if (G.Debug) {
         printf("SOP Class UID: %s\n",
@@ -2166,6 +2166,113 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
 
     string = (char*)acr_find_string(group_list, ACR_Acquisition_contrast, "");
     gi_ptr->acq.dti = (strstr(string, "DIFFUSION") != NULL);
+
+    /** GET PET STUFF */
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radiopharmaceutical);
+    if (element != NULL) {
+        strncpy(gi_ptr->pet.tracer, acr_get_element_string(element), 
+                STRING_T_LEN);
+    }
+    else {
+        gi_ptr->pet.tracer[0] = 0;
+    }
+
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radiopharmaceutical_start_datetime);
+    if (element != NULL) {
+        string_t temp;
+
+        strncpy(gi_ptr->pet.injection_time, acr_get_element_string(element),
+                STRING_T_LEN);
+        strncpy(temp, &gi_ptr->pet.injection_time[0], 4);
+        temp[4] = 0;
+        gi_ptr->pet.injection_year = atoi(temp);
+        strncpy(temp, &gi_ptr->pet.injection_time[4], 2);
+        temp[2] = 0;
+        gi_ptr->pet.injection_month = atoi(temp);
+        strncpy(temp, &gi_ptr->pet.injection_time[6], 2);
+        temp[2] = 0;
+        gi_ptr->pet.injection_day = atoi(temp);
+        strncpy(temp, &gi_ptr->pet.injection_time[8], 2);
+        temp[2] = 0;
+        gi_ptr->pet.injection_hour = atoi(temp);
+        strncpy(temp, &gi_ptr->pet.injection_time[10], 2);
+        temp[2] = 0;
+        gi_ptr->pet.injection_minute = atoi(temp);
+
+        strncpy(temp, &gi_ptr->pet.injection_time[12], sizeof(temp));
+        gi_ptr->pet.injection_seconds = atof(temp);
+    }
+
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radionuclide_half_life);
+    if (element != NULL) {
+        gi_ptr->pet.radionuclide_halflife = acr_get_element_numeric(element);
+    }
+    else {
+        gi_ptr->pet.radionuclide_halflife = -1;
+    }
+
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radionuclide_total_dose);
+    if (element != NULL) {
+        gi_ptr->pet.injection_dose = acr_get_element_numeric(element);
+    }
+    else {
+        gi_ptr->pet.injection_dose = -1;
+    }
+    
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radiopharmaceutical_volume);
+    if (element != NULL) {
+        gi_ptr->pet.injection_volume = acr_get_element_numeric(element);
+    }
+    else {
+        gi_ptr->pet.injection_volume = -1;
+    }
+    
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radionuclide_positron_fraction);
+    if (element != NULL) {
+        gi_ptr->pet.positron_fraction = acr_get_element_numeric(element);
+    }
+    else {
+        gi_ptr->pet.positron_fraction = -1;
+    }
+    
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radiopharmaceutical_route);
+    if (element != NULL) {
+        strncpy(gi_ptr->pet.injection_route, acr_get_element_string(element), 
+                STRING_T_LEN);
+    }
+    else {
+        gi_ptr->pet.injection_route[0] = 0;
+    }
+
+    gi_ptr->pet.radionuclide[0] = 0;
+
+    element = acr_recurse_for_element( group_list, 0,
+                                       ACR_Radiopharmaceutical_information_sequence,
+                                       ACR_Radionuclide_code_sequence);
+    if (element != NULL) {
+        int n = 0;
+        Acr_Element el2;
+        el2 = acr_recursive_search((Acr_Element) acr_get_element_data(element),
+                                   &n, ACR_Code_meaning);
+        if (el2 != NULL) {
+            strncpy(gi_ptr->pet.radionuclide, acr_get_element_string(el2),
+                    STRING_T_LEN);
+        }
+    }
 }
 
 /* ----------------------------- MNI Header -----------------------------------

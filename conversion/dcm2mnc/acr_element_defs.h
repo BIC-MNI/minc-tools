@@ -176,6 +176,21 @@ GLOBAL_ELEMENT(ACR_Pixel_measurement_seq , 0x0020, 0x9118, SQ);
 GLOBAL_ELEMENT(ACR_Perframe_func_groups_seq, 0x5200, 0x9230, SQ);
 GLOBAL_ELEMENT(ACR_Plane_position_seq    , 0x0020, 0x9113, SQ);
 
+/* PET-specific details. */
+GLOBAL_ELEMENT(ACR_Radiopharmaceutical_information_sequence, 0x0054, 0x0016, SQ);
+GLOBAL_ELEMENT(ACR_Radiopharmaceutical, 0x0018, 0x0031, LO);
+GLOBAL_ELEMENT(ACR_Radiopharmaceutical_route, 0x0018, 0x1070, LO); /*???*/
+GLOBAL_ELEMENT(ACR_Radiopharmaceutical_volume, 0x0018, 0x1071, DS); /*???*/
+GLOBAL_ELEMENT(ACR_Radiopharmaceutical_start_time, 0x0018, 0x1072, TM);
+GLOBAL_ELEMENT(ACR_Radiopharmaceutical_stop_time, 0x0018, 0x1073, TM);
+GLOBAL_ELEMENT(ACR_Radionuclide_total_dose, 0x0018, 0x1074, DS); /* in Bq */
+GLOBAL_ELEMENT(ACR_Radionuclide_half_life, 0x0018, 0x1075, DS); /* in sec */
+GLOBAL_ELEMENT(ACR_Radionuclide_positron_fraction, 0x0018, 0x1076, DS);
+GLOBAL_ELEMENT(ACR_Radiopharmaceutical_start_datetime, 0x0018, 0x1078, DT);
+
+GLOBAL_ELEMENT(ACR_Radionuclide_code_sequence, 0x0054, 0x0300, SQ);
+GLOBAL_ELEMENT(ACR_Code_meaning, 0x0008, 0x0104, LO);
+
 GLOBAL_ELEMENT(ACR_Pixel_data            , ACR_IMAGE_GID, ACR_IMAGE_EID, OW);
 
 

@@ -1275,7 +1275,8 @@ add_siemens_info(Acr_Group group_list)
                              "sCoilSelectMeas[0].asList[0].sCoilElementID.tCoilID",
                              str_buf);
         }
-        acr_insert_string(&group_list, ACR_Receive_coil_name, str_buf);
+        if (str_buf[0] != 0)
+            acr_insert_string(&group_list, ACR_Receive_coil_name, str_buf);
 
         /* add MrProt dump
          */
@@ -2371,6 +2372,7 @@ prot_find_string(Acr_Element elem_ptr, const char *name_str, char *value)
     /* bail if we didn't find the protocol
      */
     if (cur_offset == max_offset) {
+        *value = 0;
         return (0);
     }
 
