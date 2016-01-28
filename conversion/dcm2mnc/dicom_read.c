@@ -1,11 +1,11 @@
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : dicom_read.c
    @DESCRIPTION: Code to read siemens dicom files and get info from them.
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : January 28, 1997 (Peter Neelin)
-   @MODIFIED   : 
+   @MODIFIED   :
    * $Log: dicom_read.c,v $
    * Revision 1.29  2010-11-23 23:30:50  claude
    * dcm2mnc: fixed seg fault bug (Claude) and added b-matrix (Ilana)
@@ -161,7 +161,7 @@
    *  problems with test introduced in 6.1)
    * -added code to detect use of acquisition loop and also to handle
    *  `corrected' siemens acq loop scans
-   * -changed code to use registration time instead of scan time for 
+   * -changed code to use registration time instead of scan time for
    *  session id
    * -got rid of extraneous acquisition id digit
    * -added technical information about data acquisition
@@ -197,7 +197,7 @@
    * Initial revision
    *
    @COPYRIGHT  :
-   Copyright 1997 Peter Neelin, McConnell Brain Imaging Centre, 
+   Copyright 1997 Peter Neelin, McConnell Brain Imaging Centre,
    Montreal Neurological Institute, McGill University.
    Permission to use, copy, modify, and distribute this
    software and its documentation for any purpose and without
@@ -225,9 +225,11 @@ static void get_coordinate_info(Acr_Group group_list, File_Info *file_info,
 static void get_general_header_info(Acr_Group group_list,
                                     General_Info *general_info);
 //static void convert_numa3_coordinate(double coordinate[WORLD_NDIMS]);
-static void get_identification_info(Acr_Group group_list, 
-                                    double *study_id, int *acq_id, 
+static void get_identification_info(Acr_Group group_list,
+                                    double *study_id, int *acq_id,
                                     int *rec_num, int *image_type);
+
+static void get_pet_info(Acr_Group group_list, struct Pet_info *pet_ptr);
 
 static int irnd(double x)
 {
@@ -243,9 +245,9 @@ static int irnd(double x)
 int
 is_numaris3(Acr_Group group_list)
 {
-    return (strstr(acr_find_string(group_list, ACR_Manufacturer, ""), 
+    return (strstr(acr_find_string(group_list, ACR_Manufacturer, ""),
                    "SIEMENS") != NULL &&
-            strstr(acr_find_string(group_list, ACR_Software_versions, ""), 
+            strstr(acr_find_string(group_list, ACR_Software_versions, ""),
                    "VB33") != NULL);
 }
 
@@ -269,21 +271,21 @@ get_subimage_count(const Acr_Group group_list)
                  dircos - direction cosines
                  steps - width of each voxel for each spatial dimension
                  starts - starting position for each spatial dimension
-                 coordinate - 
+                 coordinate -
    @OUTPUT     : gi_ptr - general information about files in this series
 
-                 
+
    @RETURNS    : (nothing)
    @DESCRIPTION: Initializes a "General_Info" structure based upon several
                  bits of information, including a previously initialized
                  File_Info structure (fi_ptr) and the DICOM group_list.
                  Broken out from the get_file_info() function to help
                  simplify that function.
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : April 19, 2005 (Bert Vincent)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
 static void
 init_general_info(General_Info *gi_ptr, /* OUT */
@@ -307,7 +309,7 @@ init_general_info(General_Info *gi_ptr, /* OUT */
     gi_ptr->nrows = spatial_sizes[VROW];
     gi_ptr->ncolumns = spatial_sizes[VCOLUMN];
 
-    // Save the study, acquisition, reconstruction and image type 
+    // Save the study, acquisition, reconstruction and image type
     //   identifiers
     gi_ptr->study_id = study_id;
     gi_ptr->acq_id = acq_id;
@@ -374,7 +376,7 @@ init_general_info(General_Info *gi_ptr, /* OUT */
 
     gi_ptr->pixel_min = fi_ptr->pixel_min;
     gi_ptr->pixel_max = fi_ptr->pixel_max;
-        
+
     /* Save display window info */
     gi_ptr->window_min = fi_ptr->window_min;
     gi_ptr->window_max = fi_ptr->window_max;
@@ -392,7 +394,7 @@ init_general_info(General_Info *gi_ptr, /* OUT */
         acr_find_int(group_list, EXT_Mosaic_rows, 1);
     gi_ptr->num_mosaic_cols =
         acr_find_int(group_list, EXT_Mosaic_columns, 1);
-    gi_ptr->num_slices_in_file = 
+    gi_ptr->num_slices_in_file =
         acr_find_int(group_list, EXT_Slices_in_file, 1);
     gi_ptr->sub_image_rows =
         (int)acr_find_short(group_list, EXT_Sub_image_rows,
@@ -427,14 +429,14 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
   mri_total_list[PHASE] = NULL;
   mri_total_list[CHEM_SHIFT] = NULL;
 
-  /* Get dimension information 
+  /* Get dimension information
    */
   for (imri = 0; imri < MRI_NDIMS; imri++) {
 
-    /* Get sizes along "MRI" dimensions... 
+    /* Get sizes along "MRI" dimensions...
      */
     gi_ptr->cur_size[imri] = 1;
-    
+
     if (mri_total_list[imri] != NULL) {
       int def_val = 1;
 
@@ -445,7 +447,7 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
          */
         def_val = acr_find_int(group_list, ACR_Number_of_slices, 0);
 
-        /* If we have a multiframe image (MOSAIC), use the number of 
+        /* If we have a multiframe image (MOSAIC), use the number of
          * frames. This may not be present in some MOSAIC files.
          */
         if (def_val == 0) {
@@ -498,7 +500,7 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
           if (gi_ptr->max_size[SLICE] > 1) {
             int num_per_file = get_subimage_count(group_list);
             int num_images = gi_ptr->num_files * num_per_file;
-            printf("%d images (%d, %d)\n", num_images, gi_ptr->num_files, 
+            printf("%d images (%d, %d)\n", num_images, gi_ptr->num_files,
                    num_per_file);
             if ((num_images % gi_ptr->max_size[SLICE]) == 0) {
               def_val = num_images / gi_ptr->max_size[SLICE];
@@ -536,7 +538,7 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
       /* Get number of 3D partitions for working out number of
        * slices
        */
-      int number_of_3D_partitions =  
+      int number_of_3D_partitions =
         acr_find_int(group_list, SPI_Number_of_3D_raw_partitions_nominal, 1);
       if (number_of_3D_partitions < 1) {
         number_of_3D_partitions = 1;
@@ -549,17 +551,17 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
     }
 
     gi_ptr->image_index[imri] = -1;
-	
+
     /* Allocate space for index and coordinate arrays.
      * Set the first values.
      */
 
     gi_ptr->indices[imri] = malloc(gi_ptr->max_size[imri] * sizeof(int));
-    
-    gi_ptr->coordinates[imri] = 
+
+    gi_ptr->coordinates[imri] =
       malloc(gi_ptr->max_size[imri] * sizeof(double));
-    
-    gi_ptr->widths[imri] = 
+
+    gi_ptr->widths[imri] =
       malloc(gi_ptr->max_size[imri] * sizeof(double));
 
     for (index = 0; index < gi_ptr->max_size[imri]; index++) {
@@ -568,7 +570,7 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
       gi_ptr->widths[imri][index] = 0; /* default */
     }
     gi_ptr->search_start[imri] = 0;
-    
+
     if (G.Debug) {
       printf("%2d. %s axis length %d\n",
              imri, Mri_Names[imri], gi_ptr->max_size[imri]);
@@ -606,7 +608,7 @@ get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_In
         }
         /* Perform this range check only if absolutely needed.
          */
-        if (tmp_index >= 1 && 
+        if (tmp_index >= 1 &&
             gi_ptr->max_size[SLICE] > 1 &&
             gi_ptr->max_size[TIME] > 1) {
           tmp_index = ((tmp_index - 1) % gi_ptr->max_size[SLICE]) + 1;
@@ -617,7 +619,7 @@ get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_In
        */
       if (imri == TIME && tmp_index < 0) {
         int range_check = 1;
-        /* Only use the acquisition number if we've determined it is 
+        /* Only use the acquisition number if we've determined it is
          * not constant.
          */
         if (G.min_acq_num != G.max_acq_num) {
@@ -682,15 +684,15 @@ get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_In
    general_info - general information about files
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to extract information from a group list
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : November 25, 1993 (Peter Neelin)
    @MODIFIED   : Modified Feb. 2000 by Rick Hoge to handle Acquisition loop mode
-   : if assume_acq_loop is FALSE the other added variables don't 
-   : matter 
+   : if assume_acq_loop is FALSE the other added variables don't
+   : matter
    ---------------------------------------------------------------------------- */
-void 
+void
 get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, const char *file_name)
 {
     Mri_Index imri;             /* MRI index (SLICE, ECHO, TIME, PHASE...) */
@@ -755,7 +757,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
     }
 
     get_file_indices(group_list, gi_ptr, fi_ptr);
-    
+
     if (!gi_ptr->initialized) {
       for (imri = 0; imri < MRI_NDIMS; imri++) {
         gi_ptr->default_index[imri] = fi_ptr->index[imri];
@@ -780,16 +782,16 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
     /* Set up general info on first pass
      */
     if (!gi_ptr->initialized) {
-        init_general_info(gi_ptr, 
-                          fi_ptr, 
-                          group_list, 
+        init_general_info(gi_ptr,
+                          fi_ptr,
+                          group_list,
                           volume_to_world,
                           spatial_sizes,
                           dircos,
                           steps,
                           starts,
-                          study_id, 
-                          acq_id, 
+                          study_id,
+                          acq_id,
                           rec_num);
 
         for (imri = 0; imri < MRI_NDIMS; imri++) {
@@ -797,13 +799,13 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
           gi_ptr->coordinates[imri][0] = fi_ptr->coordinate[imri];
           gi_ptr->widths[imri][0] = fi_ptr->width[imri];
 
-          printf("First %s at %d,%f,%f\n", Mri_Names[imri], 
+          printf("First %s at %d,%f,%f\n", Mri_Names[imri],
                  fi_ptr->index[imri],
                  fi_ptr->coordinate[imri],
                  fi_ptr->width[imri]);
         }
     }
-    /* Update general info and validate file on later passes 
+    /* Update general info and validate file on later passes
      */
     else {
 
@@ -823,9 +825,9 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
             }
 #endif
         }
-     
+
         /* Check for consistent data type */
-        if (((gi_ptr->datatype == NC_BYTE) && (fi_ptr->bits_alloc > 8)) || 
+        if (((gi_ptr->datatype == NC_BYTE) && (fi_ptr->bits_alloc > 8)) ||
             ((gi_ptr->datatype == NC_SHORT) && (fi_ptr->bits_alloc <= 8))) {
             printf("Inconsistent datatype, marking invalid\n");
             fi_ptr->valid = FALSE;
@@ -838,7 +840,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
             fi_ptr->valid = FALSE;
             return;
         }
-     
+
         /* Check study and acquisition id's */
         if ((gi_ptr->study_id != study_id) || (gi_ptr->acq_id != acq_id)) {
             printf("Mismatched acquisition/study, marking invalid\n");
@@ -847,11 +849,11 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
         }
 
         // Update display window info
-        if (gi_ptr->window_min > fi_ptr->window_min) 
+        if (gi_ptr->window_min > fi_ptr->window_min)
           gi_ptr->window_min = fi_ptr->window_min;
         if (gi_ptr->window_max < fi_ptr->window_max)
           gi_ptr->window_max = fi_ptr->window_max;
-     
+
 
         /* Look to see if indices have changed */
         for (imri = 0; imri < MRI_NDIMS; imri++) {
@@ -871,21 +873,21 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
             }
             continue;
           }
-       
+
           /* Get current index */
           cur_index = fi_ptr->index[imri];
-       
+
           /* Check whether this index is in the list.
            */
           if (gi_ptr->cur_size[imri] == 1) {
             index = ((cur_index == gi_ptr->default_index[imri]) ? 0 : -1);
           }
           else {
-            /* Search list of indices for 'cur_index'.  Search is 
+            /* Search list of indices for 'cur_index'.  Search is
                started at search_start[] and has maximum length of
                cur_size[imri].
             */
-            index = search_list(cur_index, 
+            index = search_list(cur_index,
                                 gi_ptr->indices[imri],
                                 gi_ptr->cur_size[imri],
                                 gi_ptr->search_start[imri]);
@@ -903,20 +905,20 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
             /* Check whether we can add a new index */
             if (gi_ptr->cur_size[imri] >= gi_ptr->max_size[imri]) {
               gi_ptr->max_size[imri]++;
-              gi_ptr->indices[imri] = 
+              gi_ptr->indices[imri] =
                 realloc(gi_ptr->indices[imri],
                         gi_ptr->max_size[imri] * sizeof(int));
-          
-              gi_ptr->coordinates[imri] = 
+
+              gi_ptr->coordinates[imri] =
                 realloc(gi_ptr->coordinates[imri],
                         gi_ptr->max_size[imri] * sizeof(double));
 
-              gi_ptr->widths[imri] = 
+              gi_ptr->widths[imri] =
                 realloc(gi_ptr->widths[imri],
                         gi_ptr->max_size[imri] * sizeof(double));
             }
 
-        
+
             /* Add the index and coordinate to the lists */
             index = gi_ptr->cur_size[imri];
             gi_ptr->search_start[imri] = index;
@@ -926,18 +928,18 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
             gi_ptr->cur_size[imri]++;
 
             if (G.Debug) {
-              printf("Added %s coordinate %f at %d %f %f %f\n", 
+              printf("Added %s coordinate %f at %d %f %f %f\n",
                      Mri_Names[imri], gi_ptr->coordinates[imri][index],
                      cur_index, coordinate[0], coordinate[1], coordinate[2]);
             }
           }
           else if (G.Debug) {
             /*
-            printf("%s: %s index %d is already on the list.\n", 
+            printf("%s: %s index %d is already on the list.\n",
                    file_name,
-                   Mri_Names[imri], 
+                   Mri_Names[imri],
                    cur_index);
-            printf("Existing coordinate: %f, file coordinate: %f\n", 
+            printf("Existing coordinate: %f, file coordinate: %f\n",
                    gi_ptr->coordinates[imri][index],
                    fi_ptr->coordinate[imri]);
             */
@@ -950,18 +952,18 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
         //print ("*******Time coordinate IS: %i\n\n",test);
     }
 
-    /* Get DTI information if available. 
+    /* Get DTI information if available.
      */
     fi_ptr->b_value = (double)acr_find_double(group_list, ACR_Diffusion_b_value, -1);
 
-    element = acr_find_group_element(group_list, 
+    element = acr_find_group_element(group_list,
                                      ACR_Diffusion_gradient_orientation);
-    
+
     Acr_Double grad_direction[WORLD_NDIMS];
     if (element == NULL ||
         acr_get_element_double_array(element, WORLD_NDIMS, grad_direction) != WORLD_NDIMS) {
-        grad_direction[XCOORD] = 
-            grad_direction[YCOORD] = 
+        grad_direction[XCOORD] =
+            grad_direction[YCOORD] =
             grad_direction[ZCOORD] = 0; /*this should be 0 for the b=0 images*/
     }
     fi_ptr->grad_direction[XCOORD] = (double)grad_direction[XCOORD];
@@ -971,12 +973,12 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
     /* Want to add B-matrix if it exists, the problem is that
        the b=0 image does not even have the field while
        the other directions might (AND b=0 is ofen the first image!).
-       Initialize to all 0s and decide later whether to include in header? 
+       Initialize to all 0s and decide later whether to include in header?
     */
     if (gi_ptr->acq.dti) {
         element = acr_find_group_element(group_list, SPI_B_matrix);
         if (element == NULL ||
-            acr_get_element_double_array(element, B_MATRIX_COUNT, 
+            acr_get_element_double_array(element, B_MATRIX_COUNT,
                                          fi_ptr->b_matrix) != B_MATRIX_COUNT) {
             int i;
             for (i = 0; i < B_MATRIX_COUNT; i++) {
@@ -984,7 +986,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
             }
         }
     }
-    
+
     // If we get to here, then we have a valid file
     fi_ptr->valid = TRUE;
     return;
@@ -999,15 +1001,15 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
    image_type
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to get image identification information.
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : February 28, 1997 (Peter Neelin)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
-static void 
-get_identification_info(Acr_Group group_list, 
-                        double *study_id, int *acq_id, 
+static void
+get_identification_info(Acr_Group group_list,
+                        double *study_id, int *acq_id,
                         int *rec_num, int *image_type)
 {
     int number_of_frames;
@@ -1023,17 +1025,17 @@ get_identification_info(Acr_Group group_list,
 
         *acq_id = acr_find_int(group_list, ACR_Series, 0);
 
-        number_of_frames = 
+        number_of_frames =
             acr_find_int(group_list, ACR_Acquisitions_in_series, 1);
 
-        number_of_averages = 
+        number_of_averages =
             acr_find_int(group_list, ACR_Nr_of_averages, 1);
 
         /* Determine if measurement loop was used (rhoge) -
 
         if so, we replace the different series numbers with
         ACR_Study_time, which is the same for all frames in a run.
-        This will aid in grouping the files later on.  
+        This will aid in grouping the files later on.
 
         Criteria used for identification of meast loop:
 
@@ -1049,7 +1051,7 @@ get_identification_info(Acr_Group group_list,
         different frames will be placed in different series.  To fix
         this, we'd really need to look at the series numbers of
         future and past files.  It's also unlikely to happen but I'm
-        sure it will... 
+        sure it will...
 
         This also means we should NOT correct the number of signal
         averages on the sending side */
@@ -1059,7 +1061,7 @@ get_identification_info(Acr_Group group_list,
 
         if ( (G.file_type == N3DCM) &&
              (number_of_frames > 1) &&
-             (number_of_frames != number_of_averages)) { 
+             (number_of_frames != number_of_averages)) {
 
             *acq_id = acr_find_int(group_list, ACR_Study_time, 0);
 
@@ -1077,11 +1079,11 @@ get_identification_info(Acr_Group group_list,
    @OUTPUT     : fi_ptr - file-specific info
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to get intensity information from a group list
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : February 28, 1997 (Peter Neelin)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
 static void
 get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
@@ -1143,7 +1145,7 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
     }
     else {
         /* for now, use bits_stored to determine dynamic range
-         * DICOM info on largest pixel applies to first slice, 
+         * DICOM info on largest pixel applies to first slice,
          * not whole volume - this caused problems (roundoff?)
          * in Siemens Numaris 4 scans
          */
@@ -1158,7 +1160,7 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
     rescale_intercept = (double)acr_find_double(group_list, ACR_Rescale_intercept, 0);
     rescale_slope = (double)acr_find_double(group_list, ACR_Rescale_slope, 1);
 
-    /* If the rescale slope is set to zero, force the default value of 
+    /* If the rescale slope is set to zero, force the default value of
      * one and issue a warning.
      */
     if (rescale_slope == 0.0) {
@@ -1172,12 +1174,12 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
     /* Get window min and max */
     window_centre = (fi_ptr->slice_max + fi_ptr->slice_min) / 2.0;
     window_width  = fi_ptr->slice_max - fi_ptr->slice_min;
-    window_centre = 
+    window_centre =
         (double)acr_find_double(group_list, ACR_Window_centre, window_centre);
-    window_width = 
+    window_width =
         (double)acr_find_double(group_list, ACR_Window_width, window_width);
     fi_ptr->window_min = window_centre - window_width / 2.0;
-    fi_ptr->window_max = window_centre + window_width / 2.0; 
+    fi_ptr->window_max = window_centre + window_width / 2.0;
 
 }
 
@@ -1191,7 +1193,7 @@ acr_recursive_search(Acr_Element el_lst, int *nskip, Acr_Element_Id srch_id)
     Acr_Element el_ret = NULL;
     Acr_Element el_tmp;
 
-    for (el_tmp = el_lst; el_tmp != NULL; 
+    for (el_tmp = el_lst; el_tmp != NULL;
          el_tmp = acr_get_element_next(el_tmp)) {
 
         /* If we find what we're looking for, return it.
@@ -1224,24 +1226,24 @@ acr_recursive_search(Acr_Element el_lst, int *nskip, Acr_Element_Id srch_id)
  * Function to search a group list for a particular element.  Unlike other
  * functions along these lines, this function will recursively descend into
  * compound datatypes (DICOM sequences) to hunt for instances of a particular
- * element.  
+ * element.
  *
- * The search proceeds in two stages: The first is to search for 
+ * The search proceeds in two stages: The first is to search for
  * a particular sequence object.  This must be found or else the search is
  * called off.  Once the expected sequences is found, the function will
- * recursively search all of the substructure of that sequence for the 
+ * recursively search all of the substructure of that sequence for the
  * requested subelement.  The "nskip" parameter tells the function to ignore
  * the first "nskip" matches that it locates.
  */
 Acr_Element
-acr_recurse_for_element(Acr_Group group_list, 
-                        int nskip, 
+acr_recurse_for_element(Acr_Group group_list,
+                        int nskip,
                         Acr_Element_Id seq_id,
                         Acr_Element_Id srch_id)
 {
     Acr_Element el_seq;
 
-    /* Hunt for the necessary sequence object. 
+    /* Hunt for the necessary sequence object.
      */
     el_seq = acr_find_group_element(group_list, seq_id);
     if (el_seq == NULL || !acr_element_is_sequence(el_seq)) {
@@ -1252,7 +1254,7 @@ acr_recurse_for_element(Acr_Group group_list,
 
     /* Otherwise proceed to "stage 2" and hunt for the requested subelement.
      */
-    return acr_recursive_search((Acr_Element) acr_get_element_data(el_seq), 
+    return acr_recursive_search((Acr_Element) acr_get_element_data(el_seq),
                                 &nskip, srch_id);
 }
 
@@ -1282,12 +1284,12 @@ dicom_read_position(Acr_Group group_list, int n, double coordinate[3])
                                           ACR_Image_position_patient);
 
         if (element == NULL) {
-            element = acr_find_group_element(group_list, 
+            element = acr_find_group_element(group_list,
                                              ACR_Image_position_patient);
         }
 
         if (element == NULL) {
-            element = acr_find_group_element(group_list, 
+            element = acr_find_group_element(group_list,
                                              ACR_Image_position_patient_old);
         }
     }
@@ -1296,14 +1298,14 @@ dicom_read_position(Acr_Group group_list, int n, double coordinate[3])
         printf("WARNING: Failed to find image position\n");
     }
     else {
-        if (acr_get_element_numeric_array(element, 
-                                          WORLD_NDIMS, 
+        if (acr_get_element_numeric_array(element,
+                                          WORLD_NDIMS,
                                           coordinate) == WORLD_NDIMS) {
             return (result);
         }
-        
+
         if (G.Debug) {
-            printf("WARNING: Failed to read image position ('%s')\n", 
+            printf("WARNING: Failed to read image position ('%s')\n",
                    (char *)acr_get_element_string(element));
         }
     }
@@ -1321,7 +1323,7 @@ dicom_read_orientation(Acr_Group group_list, double orientation[6])
 
     /* Look for single global header with slices all in same file. */
 
-    element = acr_recurse_for_element(group_list, 0, 
+    element = acr_recurse_for_element(group_list, 0,
                                       ACR_Shared_func_groups_seq,
                                       ACR_Image_orientation_patient);
 
@@ -1344,7 +1346,7 @@ dicom_read_orientation(Acr_Group group_list, double orientation[6])
 
     /* Look for header with slices in separate files. */
     if (element == NULL) {
-        element = acr_find_group_element(group_list, 
+        element = acr_find_group_element(group_list,
                                          ACR_Image_orientation_patient);
     }
     if (element == NULL) {
@@ -1358,16 +1360,16 @@ dicom_read_orientation(Acr_Group group_list, double orientation[6])
         printf("WARNING: Failed to find image orientation!\n");
         return (0);
     }
-    else if ((result = acr_get_element_numeric_array(element, 6, 
+    else if ((result = acr_get_element_numeric_array(element, 6,
                                                      orientation)) != 6) {
-        printf("WARNING: Failed to read image orientation! (%d, '%s')\n", 
+        printf("WARNING: Failed to read image orientation! (%d, '%s')\n",
                result, (char *)acr_get_element_string(element));
         return (0);
     }
     return (1);
 }
 
-/* 
+/*
  * Read the pixel size, an array of 2 floating point numbers, from the
  * DICOM group list.
  */
@@ -1441,17 +1443,17 @@ dicom_read_pixel_size(Acr_Group group_list, double pixel_size[IMAGE_NDIMS])
    starts - start positions for spatial dimensions (for a slice)
    coordinate - coordinate of centre of slice
    @RETURNS    : (nothing)
-   @DESCRIPTION: Routine to get coordinate information for a slice from 
+   @DESCRIPTION: Routine to get coordinate information for a slice from
    a group list
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : February 28, 1997 (Peter Neelin)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
 
 static void
-get_coordinate_info(Acr_Group group_list, 
+get_coordinate_info(Acr_Group group_list,
                     File_Info *fi_ptr,
                     Orientation *orientation,
                     World_Index volume_to_world[VOL_NDIMS],
@@ -1492,10 +1494,10 @@ get_coordinate_info(Acr_Group group_list,
     /* TODO: For now this appears to be necessary.  In cases I don't fully
      * understand, the Siemens Numaris 3 DICOM image orientation does not
      * give the correct direction cosines, so we use the nonstandard Siemens
-     * fields instead.  Someday I should figure out the relation (if any) 
+     * fields instead.  Someday I should figure out the relation (if any)
      * between the standard fields and these fields, and try to normalize
      * this mess.
-     * 
+     *
      * We only attempt this for files that are clearly marked as SIEMENS
      * files, with a version string that looks like VB33 (VB33D, VB33G, etc.)
      * Later versions do not seem to use these fields.
@@ -1506,13 +1508,13 @@ get_coordinate_info(Acr_Group group_list,
         /* Set direction cosine element ids. Note that the reversal of
          * rows and columns is intentional - their idea of the meaning
          * of theses labels is different from ours. (Their row vector
-         * points along the row and not along the row dimension.) 
+         * points along the row and not along the row dimension.)
          */
 
         dircos_elid[VSLICE] = SPI_Image_normal;
         dircos_elid[VROW] = SPI_Image_column;
         dircos_elid[VCOLUMN] = SPI_Image_row;
-     
+
         /* Get direction cosines
          */
         for (ivolume = 0; ivolume < VOL_NDIMS; ivolume++) {
@@ -1520,7 +1522,7 @@ get_coordinate_info(Acr_Group group_list,
             if (element == NULL) {
                 continue;
             }
-            if (acr_get_element_numeric_array(element, WORLD_NDIMS, 
+            if (acr_get_element_numeric_array(element, WORLD_NDIMS,
                                               dircos[ivolume]) != WORLD_NDIMS) {
                 continue;
             }
@@ -1554,15 +1556,15 @@ get_coordinate_info(Acr_Group group_list,
             /* slice direction unit vector is cross product of row,
                col vectors:
              */
-            dircos[VSLICE][XCOORD] = 
+            dircos[VSLICE][XCOORD] =
                 dircos[VCOLUMN][YCOORD] * dircos[VROW][ZCOORD] -
                 dircos[VCOLUMN][ZCOORD] * dircos[VROW][YCOORD];
 
-            dircos[VSLICE][YCOORD] = 
+            dircos[VSLICE][YCOORD] =
                 dircos[VCOLUMN][ZCOORD] * dircos[VROW][XCOORD] -
                 dircos[VCOLUMN][XCOORD] * dircos[VROW][ZCOORD];
 
-            dircos[VSLICE][ZCOORD] = 
+            dircos[VSLICE][ZCOORD] =
                 dircos[VCOLUMN][XCOORD] * dircos[VROW][YCOORD] -
                 dircos[VCOLUMN][YCOORD] * dircos[VROW][XCOORD];
             found_dircos[VSLICE] = TRUE;
@@ -1611,7 +1613,7 @@ get_coordinate_info(Acr_Group group_list,
 
         for (ivolume = 0; ivolume < VOL_NDIMS; ivolume++) {
             for (iworld = 0; iworld < WORLD_NDIMS; iworld++) {
-                dircos[ivolume][iworld] = 
+                dircos[ivolume][iworld] =
                     ((ivolume == (WORLD_NDIMS-iworld-1)) ? -1.0 : 0.0);
                 found_dircos[iworld] = TRUE;
             }
@@ -1646,7 +1648,7 @@ get_coordinate_info(Acr_Group group_list,
     *orientation = orientation_list[volume_to_world[VSLICE]];
     if (G.Debug >= HI_LOGGING) {
         printf(" Orientation is %s\n",
-               (*orientation == SAGITTAL) ? "SAGITTAL" : 
+               (*orientation == SAGITTAL) ? "SAGITTAL" :
                (*orientation == CORONAL) ? "CORONAL" : "TRANSVERSE");
     }
 
@@ -1660,11 +1662,11 @@ get_coordinate_info(Acr_Group group_list,
 
     /* Figure out the slice thickness.  It could be from either one of
      * two possible places in the file.
-     * 
+     *
      * This code has changed several times, and there may be no single
      * correct way of deriving the true slice spacing from the official
      * DICOM slice thickness and slice spacing fields.  My best guess is
-     * to look for both fields, and to adopt the 
+     * to look for both fields, and to adopt the
      */
     slice_thickness = (double)acr_find_double(group_list, ACR_Slice_thickness, 0);
     slice_spacing = (double)acr_find_double(group_list, ACR_Spacing_between_slices, 0);
@@ -1699,7 +1701,7 @@ get_coordinate_info(Acr_Group group_list,
          */
         if (G.Debug && !NEARLY_EQUAL(slice_thickness, slice_spacing)) {
             printf("WARNING: slice thickness conflict: ");
-            printf("old = %.10f, new = %.10f\n", 
+            printf("old = %.10f, new = %.10f\n",
                    slice_thickness, slice_spacing);
         }
         steps[VSLICE] = slice_spacing;
@@ -1713,7 +1715,7 @@ get_coordinate_info(Acr_Group group_list,
         iworld = volume_to_world[ivolume];
         if (dircos[ivolume][iworld] < 0.0) {
             if (G.Debug >= HI_LOGGING) {
-                printf("Swapping direction of %s %s\n", 
+                printf("Swapping direction of %s %s\n",
                        Volume_Names[ivolume],
                        World_Names[iworld]);
             }
@@ -1738,23 +1740,23 @@ get_coordinate_info(Acr_Group group_list,
         /* If the coordinates are untrustworthy, just generate something
          * reasonable for the slice coordinate.  Ignore the rest.
          */
-        coordinate[volume_to_world[VSLICE]] = 
+        coordinate[volume_to_world[VSLICE]] =
             (steps[VSLICE] * fi_ptr->index[SLICE]);
         found_coordinate = TRUE;
     }
     else {
-        found_coordinate = dicom_read_position(group_list, 
-                                               fi_ptr->index[SLICE] - 1, 
+        found_coordinate = dicom_read_position(group_list,
+                                               fi_ptr->index[SLICE] - 1,
                                                coordinate);
         if (!found_coordinate) {
             /* Last gasp - try to interpret the slice location as our slice
              * position.  It might work.
              */
             if (!found_coordinate) {
-                coordinate[volume_to_world[VSLICE]] = 
+                coordinate[volume_to_world[VSLICE]] =
                     (double)acr_find_double(group_list, ACR_Slice_location, 1.0);
             }
-        
+
             found_coordinate = TRUE;
         }
     }
@@ -1764,12 +1766,12 @@ get_coordinate_info(Acr_Group group_list,
     /* Work out start positions in volume coordinates
      */
     for (ivolume=0; ivolume < VOL_NDIMS; ivolume++) {
-       
-        if (found_coordinate && 
-            found_dircos[VSLICE] && 
+
+        if (found_coordinate &&
+            found_dircos[VSLICE] &&
             found_dircos[VROW] &&
             found_dircos[VCOLUMN]) {
-            starts[ivolume] = 
+            starts[ivolume] =
                 coordinate[XCOORD] * dircos[ivolume][XCOORD] +
                 coordinate[YCOORD] * dircos[ivolume][YCOORD] +
                 coordinate[ZCOORD] * dircos[ivolume][ZCOORD];
@@ -1780,7 +1782,7 @@ get_coordinate_info(Acr_Group group_list,
     }
 
     if (G.Debug >= HI_LOGGING) {
-        printf(" coordinate %f %f %f, start %f %f %f\n", 
+        printf(" coordinate %f %f %f, start %f %f %f\n",
                coordinate[XCOORD], coordinate[YCOORD], coordinate[ZCOORD],
                starts[VROW], starts[VCOLUMN], starts[VSLICE]);
     }
@@ -1788,7 +1790,7 @@ get_coordinate_info(Acr_Group group_list,
     /* Find position along each dimension
      */
     fi_ptr->coordinate[SLICE] = starts[VSLICE];
-    fi_ptr->coordinate[ECHO] = 
+    fi_ptr->coordinate[ECHO] =
         (double)acr_find_double(group_list, ACR_Echo_time, 0.0) / MS_PER_SECOND;
 
 
@@ -1823,7 +1825,7 @@ get_coordinate_info(Acr_Group group_list,
         }
       }
       else {
-        /* Try to use the repetition time if it is legit. For now we 
+        /* Try to use the repetition time if it is legit. For now we
          * make this test very restrictive.
          */
         double tr = acr_find_double(group_list, ACR_Repetition_time, -1.0);
@@ -1856,7 +1858,7 @@ get_coordinate_info(Acr_Group group_list,
               start_time = 0;
             }
           }
-          
+
           start_time = convert_time_to_seconds(start_time);
           frame_time = convert_time_to_seconds(frame_time) - start_time;
 
@@ -1885,13 +1887,13 @@ get_coordinate_info(Acr_Group group_list,
    @OUTPUT     : coordinate
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to convert a coordinate to the correct orientation
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : February 28, 1997 (Peter Neelin)
    @MODIFIED   : made version specific to Numaris 3 SPI data (rhoge)
    ---------------------------------------------------------------------------- */
-static void 
+static void
 convert_numa3_coordinate(double coordinate[WORLD_NDIMS])
 {
     coordinate[XCOORD] = -coordinate[XCOORD];
@@ -1905,9 +1907,9 @@ convert_numa3_coordinate(double coordinate[WORLD_NDIMS])
    @OUTPUT     : coordinate
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to convert a coordinate to the correct orientation
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : February 28, 1997 (Peter Neelin)
    @MODIFIED   : made new dicom version (rhoge)
    ---------------------------------------------------------------------------- */
@@ -1930,20 +1932,20 @@ convert_dicom_coordinate(double coordinate[WORLD_NDIMS])
    @OUTPUT     : gi_ptr - general information about files
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to extract general header information from a group list
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : February 28, 1997 (Peter Neelin)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
 
 static void
-get_string_field(char *out_str, Acr_Group group_list, 
+get_string_field(char *out_str, Acr_Group group_list,
                  Acr_Element_Id element_id)
 {
    strncpy(out_str, acr_find_string(group_list, element_id, ""), STRING_T_LEN);
 }
-                 
+
 void
 get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
 {
@@ -1954,11 +1956,11 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
     if (G.Debug) {
         printf("SOP Class UID: %s\n",
                acr_find_string(group_list, ACR_SOP_Class_UID, ""));
-        printf("Images in acquisition: %d\n", 
+        printf("Images in acquisition: %d\n",
                acr_find_int(group_list, ACR_Images_in_acquisition, -1));
-        printf("Acquisitions in series: %d\n", 
+        printf("Acquisitions in series: %d\n",
                acr_find_int(group_list, ACR_Acquisitions_in_series, -1));
-        printf("3D raw partitions: %d\n", 
+        printf("3D raw partitions: %d\n",
                acr_find_int(group_list, SPI_Number_of_3D_raw_partitions_nominal, -1));
     }
     /* Get intensity units */
@@ -1976,93 +1978,93 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
                      group_list, ACR_Patient_age);
 
     string = (char*)acr_find_string(group_list, ACR_Patient_sex, "");
-    if (*string == 'M') 
+    if (*string == 'M')
         strncpy(gi_ptr->patient.sex, MI_MALE, STRING_T_LEN);
-    else if (*string == 'F') 
+    else if (*string == 'F')
         strncpy(gi_ptr->patient.sex, MI_FEMALE, STRING_T_LEN);
-    else if (*string == 'O') 
+    else if (*string == 'O')
         strncpy(gi_ptr->patient.sex, MI_OTHER, STRING_T_LEN);
-    else 
+    else
         strncpy(gi_ptr->patient.sex, "", STRING_T_LEN);
 
-    gi_ptr->patient.weight = 
+    gi_ptr->patient.weight =
         (double)acr_find_double(group_list, ACR_Patient_weight, -DBL_MAX);
 
     /* added by rhoge - registration timing info */
     get_string_field(gi_ptr->patient.reg_date,
                      group_list, ACR_Study_date);
 
-    get_string_field(gi_ptr->patient.reg_time, 
+    get_string_field(gi_ptr->patient.reg_time,
                      group_list, ACR_Study_time);
-    
+
     get_string_field(gi_ptr->patient.position, /*position of patient added by ilana*/
                      group_list, ACR_Patient_position);
-    
+
     /* Get study info */
-    
+
     /*some more timing info added by ilana*/
     get_string_field(gi_ptr->acq.series_time, group_list, ACR_Series_time);
-        
-    get_string_field(gi_ptr->study.start_time, 
+
+    get_string_field(gi_ptr->study.start_time,
                      group_list, ACR_Study_date);
 
     length = strlen(gi_ptr->study.start_time);
     gi_ptr->study.start_time[length] = ' ';
     length++;
-    strncpy(&gi_ptr->study.start_time[length], 
+    strncpy(&gi_ptr->study.start_time[length],
             acr_find_string(group_list, ACR_Study_time, ""), STRING_T_LEN - length);
     string = (char*)acr_find_string(group_list, ACR_Modality, "");
     if (strcmp(string, ACR_MODALITY_MR) == 0)
         strncpy(gi_ptr->study.modality, MI_MRI, STRING_T_LEN);
     else if (strcmp(string, ACR_MODALITY_PT) == 0)
         strncpy(gi_ptr->study.modality, MI_PET, STRING_T_LEN);
-    get_string_field(gi_ptr->study.manufacturer, 
+    get_string_field(gi_ptr->study.manufacturer,
                      group_list, ACR_Manufacturer);
-    get_string_field(gi_ptr->study.model, 
+    get_string_field(gi_ptr->study.model,
                      group_list, ACR_Manufacturer_model);
-    gi_ptr->study.field_value = 
+    gi_ptr->study.field_value =
         (double)acr_find_double(group_list, ACR_Magnetic_field_strength, -DBL_MAX);
-    get_string_field(gi_ptr->study.software_version, 
+    get_string_field(gi_ptr->study.software_version,
                      group_list, ACR_Software_versions);
-    get_string_field(gi_ptr->study.serial_no, 
+    get_string_field(gi_ptr->study.serial_no,
                      group_list, ACR_Device_serial_number);
-    get_string_field(gi_ptr->study.calibration_date, 
+    get_string_field(gi_ptr->study.calibration_date,
                      group_list, ACR_Calibration_date);
     get_string_field(gi_ptr->study.calibration_time, /*add time as well ilana*/
                      group_list, ACR_Calibration_time);
-    get_string_field(gi_ptr->study.institution, 
+    get_string_field(gi_ptr->study.institution,
                      group_list, ACR_Institution_id);
-    get_string_field(gi_ptr->study.station_id, 
+    get_string_field(gi_ptr->study.station_id,
                      group_list, ACR_Station_id);
-    get_string_field(gi_ptr->study.referring_physician, 
+    get_string_field(gi_ptr->study.referring_physician,
                      group_list, ACR_Referring_physician);
-    get_string_field(gi_ptr->study.performing_physician, 
+    get_string_field(gi_ptr->study.performing_physician,
                      group_list, ACR_Performing_physician);
-    get_string_field(gi_ptr->study.operator, 
+    get_string_field(gi_ptr->study.operator,
                      group_list, ACR_Operators_name);
-    get_string_field(gi_ptr->study.procedure, 
+    get_string_field(gi_ptr->study.procedure,
                      group_list, ACR_Procedure_description);
     sprintf(gi_ptr->study.study_id, "%.6f",gi_ptr->study_id);
 
-    /* Acquisition id modified by rhoge to get rid of first digit that 
+    /* Acquisition id modified by rhoge to get rid of first digit that
        is not required for identification of run */
     /*   sprintf(gi_ptr->study.acquisition_id, "%d_%d",
          acr_find_int(group_list, ACR_Series, 0), gi_ptr->acq_id); */
     sprintf(gi_ptr->study.acquisition_id, "%d", gi_ptr->acq_id);
 
 
-    
+
     /* Get acquisition information */
-    
+
     get_string_field(gi_ptr->acq.acquisition_time, group_list, ACR_Acquisition_time); /*add acquisition start time ilana*/
     get_string_field(gi_ptr->acq.image_time, group_list, ACR_Image_time);
     get_string_field(gi_ptr->acq.scan_seq, group_list, ACR_Sequence_name);
     get_string_field(gi_ptr->acq.protocol_name, group_list, ACR_Protocol_name);
     get_string_field(gi_ptr->acq.series_description,         /*add series description ilana*/
                      group_list, ACR_Series_description);
-    get_string_field(gi_ptr->acq.receive_coil, group_list, 
+    get_string_field(gi_ptr->acq.receive_coil, group_list,
                      ACR_Receive_coil_name);
-    get_string_field(gi_ptr->acq.transmit_coil, group_list, 
+    get_string_field(gi_ptr->acq.transmit_coil, group_list,
                      ACR_Transmit_coil_name);
     get_string_field(gi_ptr->acq.slice_order, group_list,
 		     EXT_Slice_order);
@@ -2076,67 +2078,67 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
     else if(!strcmp(gi_ptr->acq.slice_order,"0x4 "))
 	strncpy(gi_ptr->acq.slice_order, "interleaved", STRING_T_LEN);
 
-    gi_ptr->acq.rep_time = 
+    gi_ptr->acq.rep_time =
         (double)acr_find_double(group_list, ACR_Repetition_time, -DBL_MAX);
     if (gi_ptr->acq.rep_time != -DBL_MAX)
         gi_ptr->acq.rep_time /= 1000.0;
 
-    gi_ptr->acq.echo_time = 
+    gi_ptr->acq.echo_time =
         (double)acr_find_double(group_list, ACR_Echo_time, -DBL_MAX);
     if (gi_ptr->acq.echo_time != -DBL_MAX)
         gi_ptr->acq.echo_time /= 1000.0;
 
-    gi_ptr->acq.echo_train_length = 
+    gi_ptr->acq.echo_train_length =
         (double)acr_find_double(group_list, ACR_Echo_train_length, -DBL_MAX); /*added echo train length ilana*/
-    
-    gi_ptr->acq.echo_number = 
+
+    gi_ptr->acq.echo_number =
         (double)acr_find_double(group_list, ACR_Echo_number, -DBL_MAX);
 
-    gi_ptr->acq.inv_time = 
+    gi_ptr->acq.inv_time =
         (double)acr_find_double(group_list, ACR_Inversion_time, -DBL_MAX);
     if (gi_ptr->acq.inv_time != -DBL_MAX)
         gi_ptr->acq.inv_time /= 1000.0;
-    gi_ptr->acq.delay_in_TR = 
+    gi_ptr->acq.delay_in_TR =
         (double)acr_find_double(group_list, EXT_Delay_in_TR, -DBL_MAX);  /*added delay in TR ilana*/
     if (gi_ptr->acq.delay_in_TR != -DBL_MAX)
-        gi_ptr->acq.delay_in_TR /= 1000000.0; /*write in seconds*/ 
-    gi_ptr->acq.b_value = 
+        gi_ptr->acq.delay_in_TR /= 1000000.0; /*write in seconds*/
+    gi_ptr->acq.b_value =
         (double)acr_find_double(group_list, EXT_Diffusion_b_value, -DBL_MAX);
-    gi_ptr->acq.flip_angle = 
+    gi_ptr->acq.flip_angle =
         (double)acr_find_double(group_list, ACR_Flip_angle, -DBL_MAX);
-    gi_ptr->acq.slice_thickness = 
+    gi_ptr->acq.slice_thickness =
         (double)acr_find_double(group_list, ACR_Slice_thickness, -DBL_MAX);
-    gi_ptr->acq.num_slices = 
+    gi_ptr->acq.num_slices =
         (double)acr_find_double(group_list, ACR_Images_in_acquisition, -DBL_MAX);
-    gi_ptr->acq.num_dyn_scans = 
+    gi_ptr->acq.num_dyn_scans =
         (double)acr_find_double(group_list, ACR_Acquisitions_in_series, -DBL_MAX);
-    gi_ptr->acq.num_avg = 
+    gi_ptr->acq.num_avg =
         (double)acr_find_double(group_list, ACR_Nr_of_averages, -DBL_MAX);
-    gi_ptr->acq.imaging_freq = 
+    gi_ptr->acq.imaging_freq =
         (double)acr_find_double(group_list, ACR_Imaging_frequency, -DBL_MAX);
     if (gi_ptr->acq.imaging_freq != -DBL_MAX)
         gi_ptr->acq.imaging_freq *= 1e6;
-    get_string_field(gi_ptr->acq.imaged_nucl, 
+    get_string_field(gi_ptr->acq.imaged_nucl,
                      group_list, ACR_Imaged_nucleus);
-    gi_ptr->acq.win_center = 
+    gi_ptr->acq.win_center =
         (double)acr_find_double(group_list, ACR_Window_centre, -DBL_MAX);
-    gi_ptr->acq.win_width = 
+    gi_ptr->acq.win_width =
         (double)acr_find_double(group_list, ACR_Window_width, -DBL_MAX);
 
-    gi_ptr->acq.num_phase_enc_steps = 
+    gi_ptr->acq.num_phase_enc_steps =
         (double)acr_find_double(group_list, ACR_Number_of_phase_encoding_steps, -DBL_MAX);
-    gi_ptr->acq.percent_sampling = 
+    gi_ptr->acq.percent_sampling =
 		    (double)acr_find_double(group_list, ACR_Percent_sampling, -DBL_MAX); /*don't need to multiply by 100 ilana*/
 
-    gi_ptr->acq.percent_phase_fov = 
+    gi_ptr->acq.percent_phase_fov =
 		    (double)acr_find_double(group_list, ACR_Percent_phase_field_of_view, -DBL_MAX); /*don't need to multiply by 100 ilana*/
 
-    gi_ptr->acq.pixel_bandwidth = 
+    gi_ptr->acq.pixel_bandwidth =
         (double)acr_find_double(group_list, ACR_Pixel_bandwidth, -DBL_MAX);
 
     gi_ptr->acq.sar = (double)acr_find_double(group_list, ACR_SAR, -DBL_MAX);
 
-    get_string_field(gi_ptr->acq.mr_acq_type, 
+    get_string_field(gi_ptr->acq.mr_acq_type,
                      group_list, ACR_MR_acquisition_type);
 
     get_string_field(gi_ptr->acq.image_type, group_list, ACR_Image_type);
@@ -2146,12 +2148,12 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
         }
     }
 
-    get_string_field(gi_ptr->acq.phase_enc_dir, 
+    get_string_field(gi_ptr->acq.phase_enc_dir,
                      group_list, ACR_Phase_encoding_direction);
 
     /*Add image comments*/
     /*strncpy(gi_ptr->acq.comments, "", STRING_T_LEN);*/
-    get_string_field(gi_ptr->acq.comments, 
+    get_string_field(gi_ptr->acq.comments,
                      group_list, ACR_Image_comments);
 
     /* Siemens Numaris 4 specific!
@@ -2167,112 +2169,175 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
     string = (char*)acr_find_string(group_list, ACR_Acquisition_contrast, "");
     gi_ptr->acq.dti = (strstr(string, "DIFFUSION") != NULL);
 
-    /** GET PET STUFF */
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radiopharmaceutical);
-    if (element != NULL) {
-        strncpy(gi_ptr->pet.tracer, acr_get_element_string(element), 
-                STRING_T_LEN);
-    }
-    else {
-        gi_ptr->pet.tracer[0] = 0;
-    }
+    get_pet_info(group_list, &gi_ptr->pet);
+}
 
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radiopharmaceutical_start_datetime);
-    if (element != NULL) {
-        string_t temp;
+/** Get GE Medical systems private PET information fields.
+ */
+static void
+get_gems_pet_info(Acr_Group group_list, struct Pet_info *pet_ptr)
+{
+  Acr_Element element;
+  string_t temp;
 
-        strncpy(gi_ptr->pet.injection_time, acr_get_element_string(element),
-                STRING_T_LEN);
-        strncpy(temp, &gi_ptr->pet.injection_time[0], 4);
-        temp[4] = 0;
-        gi_ptr->pet.injection_year = atoi(temp);
-        strncpy(temp, &gi_ptr->pet.injection_time[4], 2);
-        temp[2] = 0;
-        gi_ptr->pet.injection_month = atoi(temp);
-        strncpy(temp, &gi_ptr->pet.injection_time[6], 2);
-        temp[2] = 0;
-        gi_ptr->pet.injection_day = atoi(temp);
-        strncpy(temp, &gi_ptr->pet.injection_time[8], 2);
-        temp[2] = 0;
-        gi_ptr->pet.injection_hour = atoi(temp);
-        strncpy(temp, &gi_ptr->pet.injection_time[10], 2);
-        temp[2] = 0;
-        gi_ptr->pet.injection_minute = atoi(temp);
+  get_string_field(temp, group_list, GEMS_Pet_private_creator_id);
+  if (strcmp(temp, "GEMS_PETD_01") != 0)
+    return;
 
-        strncpy(temp, &gi_ptr->pet.injection_time[12], sizeof(temp));
-        gi_ptr->pet.injection_seconds = atof(temp);
-    }
+  printf("\nUsing GE-specific PET information.\n");
+  get_string_field(pet_ptr->tracer, group_list, GEMS_Pet_tracer_name);
+  get_string_field(pet_ptr->radionuclide, group_list, GEMS_Pet_radionuclide_name);
+  get_string_field(pet_ptr->injection_time, group_list, GEMS_Pet_admin_datetime);
+  pet_ptr->radionuclide_halflife = acr_find_double(group_list,
+                                                   GEMS_Pet_halflife, -1.0);
+  pet_ptr->positron_fraction = acr_find_double(group_list,
+                                               GEMS_Pet_positron_fraction, -1.0);
+  /* TODO: Dose and route information does not seem to be present?? */
+}
 
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radionuclide_half_life);
-    if (element != NULL) {
-        gi_ptr->pet.radionuclide_halflife = acr_get_element_numeric(element);
-    }
-    else {
-        gi_ptr->pet.radionuclide_halflife = -1;
-    }
+static void
+get_standard_pet_info(Acr_Group group_list, Acr_Element sequence,
+                      struct Pet_info *pet_ptr)
+{
+  Acr_Element element;
+  int n;
 
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radionuclide_total_dose);
-    if (element != NULL) {
-        gi_ptr->pet.injection_dose = acr_get_element_numeric(element);
-    }
-    else {
-        gi_ptr->pet.injection_dose = -1;
-    }
-    
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radiopharmaceutical_volume);
-    if (element != NULL) {
-        gi_ptr->pet.injection_volume = acr_get_element_numeric(element);
-    }
-    else {
-        gi_ptr->pet.injection_volume = -1;
-    }
-    
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radionuclide_positron_fraction);
-    if (element != NULL) {
-        gi_ptr->pet.positron_fraction = acr_get_element_numeric(element);
-    }
-    else {
-        gi_ptr->pet.positron_fraction = -1;
-    }
-    
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radiopharmaceutical_route);
-    if (element != NULL) {
-        strncpy(gi_ptr->pet.injection_route, acr_get_element_string(element), 
-                STRING_T_LEN);
-    }
-    else {
-        gi_ptr->pet.injection_route[0] = 0;
-    }
+  n = 0;
+  element = acr_recursive_search( sequence, &n, ACR_Radiopharmaceutical);
+  if (element != NULL) {
+    strncpy(pet_ptr->tracer, acr_get_element_string(element),
+            STRING_T_LEN);
+  }
+  else {
+    pet_ptr->tracer[0] = 0;
+  }
 
-    gi_ptr->pet.radionuclide[0] = 0;
-
-    element = acr_recurse_for_element( group_list, 0,
-                                       ACR_Radiopharmaceutical_information_sequence,
-                                       ACR_Radionuclide_code_sequence);
+  n = 0;
+  element = acr_recursive_search(sequence, &n,
+                                 ACR_Radiopharmaceutical_start_datetime);
+  if (element != NULL) {
+    strncpy(pet_ptr->injection_time, acr_get_element_string(element),
+            STRING_T_LEN);
+  }
+  else {
+    n = 0;
+    element = acr_recursive_search(sequence, &n,
+                                   ACR_Radiopharmaceutical_start_time);
     if (element != NULL) {
-        int n = 0;
-        Acr_Element el2;
-        el2 = acr_recursive_search((Acr_Element) acr_get_element_data(element),
-                                   &n, ACR_Code_meaning);
-        if (el2 != NULL) {
-            strncpy(gi_ptr->pet.radionuclide, acr_get_element_string(el2),
-                    STRING_T_LEN);
-        }
+      string_t time_string;
+      string_t date_string;
+      get_string_field(date_string, group_list, ACR_Acquisition_date);
+      strncpy(time_string, acr_get_element_string(element), STRING_T_LEN);
+      sprintf(pet_ptr->injection_time, "%s%s", 
+              date_string, time_string);
     }
+  }
+
+  n = 0;
+  element = acr_recursive_search(sequence, &n, ACR_Radionuclide_half_life);
+  if (element != NULL) {
+    pet_ptr->radionuclide_halflife = acr_get_element_numeric(element);
+  }
+  else {
+    pet_ptr->radionuclide_halflife = -1;
+  }
+
+  n = 0;
+  element = acr_recursive_search(sequence, &n, ACR_Radionuclide_total_dose);
+  if (element != NULL) {
+    pet_ptr->injection_dose = acr_get_element_numeric(element);
+  }
+  else {
+    pet_ptr->injection_dose = -1;
+  }
+
+  n = 0;
+  element = acr_recursive_search(sequence, &n, ACR_Radiopharmaceutical_volume);
+  if (element != NULL) {
+    pet_ptr->injection_volume = acr_get_element_numeric(element);
+  }
+  else {
+    pet_ptr->injection_volume = -1;
+  }
+
+  n = 0;
+  element = acr_recursive_search(sequence, &n,
+                                 ACR_Radionuclide_positron_fraction);
+  if (element != NULL) {
+    pet_ptr->positron_fraction = acr_get_element_numeric(element);
+  }
+  else {
+    pet_ptr->positron_fraction = -1;
+  }
+
+  n = 0;
+  element = acr_recursive_search(sequence, &n,
+                                 ACR_Radiopharmaceutical_route);
+  if (element != NULL) {
+    strncpy(pet_ptr->injection_route, acr_get_element_string(element),
+            STRING_T_LEN);
+  }
+  else {
+    pet_ptr->injection_route[0] = 0;
+  }
+
+  pet_ptr->radionuclide[0] = 0;
+
+  n = 0;
+  element = acr_recursive_search(sequence, &n, ACR_Radionuclide_code_sequence);
+  if (element != NULL) {
+    Acr_Element el2;
+
+    n = 0;
+    el2 = acr_recursive_search((Acr_Element) acr_get_element_data(element),
+                               &n, ACR_Code_meaning);
+    if (el2 != NULL) {
+      strncpy(pet_ptr->radionuclide, acr_get_element_string(el2),
+              STRING_T_LEN);
+    }
+  }
+}
+
+static void
+get_pet_info(Acr_Group group_list, struct Pet_info *pet_ptr)
+{
+  Acr_Element sequence;
+
+  get_gems_pet_info(group_list, pet_ptr);
+
+  sequence = acr_find_group_element(group_list,
+                       ACR_Radiopharmaceutical_information_sequence);
+
+  if (sequence != NULL && acr_element_is_sequence(sequence)) {
+    get_standard_pet_info(group_list,
+                          (Acr_Element)acr_get_element_data(sequence),
+                          pet_ptr);
+  }
+
+  if (pet_ptr->injection_time[0] != 0) {
+    string_t temp;
+
+    /* Convert DICOM datetime field to individual elements.
+     */
+    strncpy(temp, &pet_ptr->injection_time[0], 4);
+    temp[4] = 0;
+    pet_ptr->injection_year = atoi(temp);
+    strncpy(temp, &pet_ptr->injection_time[4], 2);
+    temp[2] = 0;
+    pet_ptr->injection_month = atoi(temp);
+    strncpy(temp, &pet_ptr->injection_time[6], 2);
+    temp[2] = 0;
+    pet_ptr->injection_day = atoi(temp);
+    strncpy(temp, &pet_ptr->injection_time[8], 2);
+    temp[2] = 0;
+    pet_ptr->injection_hour = atoi(temp);
+    strncpy(temp, &pet_ptr->injection_time[10], 2);
+    temp[2] = 0;
+    pet_ptr->injection_minute = atoi(temp);
+
+    strncpy(temp, &pet_ptr->injection_time[12], sizeof(temp));
+    pet_ptr->injection_seconds = atof(temp);
+  }
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -2280,13 +2345,13 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
    @INPUT      : dicom_time
    @OUTPUT     : (none)
    @RETURNS    : real time in seconds from beginning of day
-   @DESCRIPTION: Routine to convert dicom seconds (decimal hhmmss.xxxxx) to 
+   @DESCRIPTION: Routine to convert dicom seconds (decimal hhmmss.xxxxx) to
    real seconds since the start of day.
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : February 28, 1997 (Peter Neelin)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
 static double
 convert_time_to_seconds(double dicom_time)
@@ -2317,13 +2382,13 @@ convert_time_to_seconds(double dicom_time)
    @OUTPUT     : image - image data structure (user must free data)
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to get an image from a group list
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : November 25, 1993 (Peter Neelin)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
-void 
+void
 get_dicom_image_data(Acr_Group group_list, Image_Data *image)
 {
 
@@ -2346,7 +2411,7 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
     /* Figure out type */
     if (bits_alloc > CHAR_BIT)
         datatype = NC_SHORT;
-    else 
+    else
         datatype = NC_BYTE;
 
     /* Set image info */
@@ -2376,7 +2441,7 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
 
         /* Look for unpacked short data */
         if (bits_alloc == nctypelen(datatype) * CHAR_BIT) {
-            acr_get_short(acr_get_element_byte_order(element), 
+            acr_get_short(acr_get_element_byte_order(element),
                           nrows*ncolumns, data, image->data);
         }
 
@@ -2396,11 +2461,11 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
    @OUTPUT     : data_info - information about data object
    @RETURNS    : (nothing)
    @DESCRIPTION: Routine to parse dicom object
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
    @CREATED    : June 2001 (Rick Hoge)
-   @MODIFIED   : 
+   @MODIFIED   :
    ---------------------------------------------------------------------------- */
 
 #define IDEFAULT (-1)
@@ -2421,28 +2486,28 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
                             &(di_ptr->study_id), &(di_ptr->acq_id),
                             &(di_ptr->rec_num), &(di_ptr->image_type));
 
-    /* Get number of echos, echo number, number of dynamic scans and 
+    /* Get number of echos, echo number, number of dynamic scans and
      * dynamic_scan_number
      */
 
     di_ptr->num_echoes = acr_find_int(group_list,
-                                      ACR_Echo_train_length, 
+                                      ACR_Echo_train_length,
                                       IDEFAULT);
 
-    di_ptr->echo_number = acr_find_int(group_list, 
-                                       ACR_Echo_number, 
+    di_ptr->echo_number = acr_find_int(group_list,
+                                       ACR_Echo_number,
                                        IDEFAULT);
 
-    di_ptr->num_dyn_scans = acr_find_int(group_list, 
-                                         ACR_Acquisitions_in_series, 
+    di_ptr->num_dyn_scans = acr_find_int(group_list,
+                                         ACR_Acquisitions_in_series,
                                          IDEFAULT);
 
-    di_ptr->dyn_scan_number = acr_find_int(group_list, 
-                                           ACR_Acquisition, 
+    di_ptr->dyn_scan_number = acr_find_int(group_list,
+                                           ACR_Acquisition,
                                            IDEFAULT);
 
-    di_ptr->global_image_number = acr_find_int(group_list, 
-                                               ACR_Image, 
+    di_ptr->global_image_number = acr_find_int(group_list,
+                                               ACR_Image,
                                                IDEFAULT);
 
     /* rhoge:
@@ -2451,7 +2516,7 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
        acquisition ID number in which there are more files than
        slices.  If the number of signal averages is greater than one,
        we will assume that this means the acquisition loop was used for
-       dynamic scanning.  
+       dynamic scanning.
 
        WARNINGS:  the same thing may need to be done with `number of
        partitions' for it to work with 3D scans  */
@@ -2473,17 +2538,17 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     /* identification info needed to generate unique session id
      * for file names
      */
-    di_ptr->study_date = acr_find_int(group_list, ACR_Study_date, 
-                                      IDEFAULT); 
+    di_ptr->study_date = acr_find_int(group_list, ACR_Study_date,
+                                      IDEFAULT);
 
-    di_ptr->study_time = acr_find_int(group_list, ACR_Study_time, 
-                                      IDEFAULT); 
+    di_ptr->study_time = acr_find_int(group_list, ACR_Study_time,
+                                      IDEFAULT);
 
-    di_ptr->scanner_serialno = acr_find_int(group_list, 
-                                            ACR_Device_serial_number, 
-                                            IDEFAULT); 
+    di_ptr->scanner_serialno = acr_find_int(group_list,
+                                            ACR_Device_serial_number,
+                                            IDEFAULT);
 
-    /* identification info needed to determine if mosaics used 
+    /* identification info needed to determine if mosaics used
      */
 
     element = acr_find_group_element(group_list, ACR_Acquisition_matrix);
@@ -2504,7 +2569,7 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
          */
         di_ptr->acq_rows = ( freq_rows > freq_cols ? freq_rows : freq_cols );
 
-        /* all images are square, at this time 
+        /* all images are square, at this time
          */
         di_ptr->acq_cols = di_ptr->acq_rows;
     }
@@ -2516,9 +2581,9 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     di_ptr->rec_rows = acr_find_int(group_list, ACR_Rows, IDEFAULT);
     di_ptr->rec_cols = acr_find_int(group_list, ACR_Columns, IDEFAULT);
 
-    di_ptr->num_mosaic_rows = acr_find_int(group_list, EXT_Mosaic_rows, 
+    di_ptr->num_mosaic_rows = acr_find_int(group_list, EXT_Mosaic_rows,
                                            IDEFAULT);
-    di_ptr->num_mosaic_cols = acr_find_int(group_list, EXT_Mosaic_columns, 
+    di_ptr->num_mosaic_cols = acr_find_int(group_list, EXT_Mosaic_columns,
                                            IDEFAULT);
     di_ptr->num_slices_in_file = acr_find_int(group_list, EXT_Slices_in_file,
                                               IDEFAULT);

@@ -19,7 +19,20 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-/* This information was derived from the publically available "Advance(TM)
+/* Information derived from publicly available "Discovery VCT Dicom 
+ * Conformance Statement for DICOM v3.0 (ID/Net v3.0)" from GE Healthcare,
+ * Copyright 2006 by GE Medical Systems, and also confirmed in the 
+ * "GE SIGNA PET/MR MP24 DICOM CONFORMANCE STATEMENT", copyright 2014
+ * by General Electric Co.
+ */
+GLOBAL_ELEMENT(GEMS_Pet_private_creator_id, 0x0009, 0x0010, LO);
+GLOBAL_ELEMENT(GEMS_Pet_tracer_name,        0x0009, 0x1036, LO);
+GLOBAL_ELEMENT(GEMS_Pet_admin_datetime,     0x0009, 0x103b, DT);
+GLOBAL_ELEMENT(GEMS_Pet_radionuclide_name,  0x0009, 0x103e, SH);
+GLOBAL_ELEMENT(GEMS_Pet_halflife,           0x0009, 0x103f, FL);
+GLOBAL_ELEMENT(GEMS_Pet_positron_fraction,  0x0009, 0x1040, FL);
+
+/* This information was derived from the publicly available "Advance(TM)
  * 4.05 Conformance Statement for DICOM V3.0" from GE Medical Systems,
  * copyright 2000 by GE Medical Systems.
  */
@@ -53,3 +66,5 @@ GLOBAL_ELEMENT(GEMS_Diffusion_direction, 0x0021, 0x105a, SL);
  */
 GLOBAL_ELEMENT(GEMS_Slop_int_69, 0x0049, 0x1039, IS);
 #endif
+
+

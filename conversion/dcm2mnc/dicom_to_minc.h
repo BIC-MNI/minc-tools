@@ -246,7 +246,7 @@ typedef struct {
         char *MrProt;           // Siemens Numaris 4 specific
         short dti;              /* TRUE if we think this is DTI */
     } acq;
-    struct {
+    struct Pet_info {
         string_t radionuclide;
         string_t tracer;
         double radionuclide_halflife;
