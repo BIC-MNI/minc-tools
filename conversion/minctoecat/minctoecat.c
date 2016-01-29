@@ -401,7 +401,19 @@ minc_info *get_minc_info(char *file) {
     count_time_vector[0] = mi->time_length;
 
     mivarget(minc_fd, ncvarid(minc_fd, MItime), start_time_vector, count_time_vector, NC_DOUBLE, MI_SIGNED, mi->time_points);
-    mivarget(minc_fd, ncvarid(minc_fd, MItime_width), start_time_vector, count_time_vector, NC_DOUBLE, MI_SIGNED, mi->time_widths);
+    if (mivar_exists(minc_fd, MItime_width))
+      mivarget(minc_fd, ncvarid(minc_fd, MItime_width), start_time_vector, count_time_vector, NC_DOUBLE, MI_SIGNED, mi->time_widths);
+    else {
+      int t_index;
+      double t_step;
+
+      var_id = ncvarid(minc_fd, MItime);
+      miattget1(minc_fd, var_id, MIstep, NC_DOUBLE, &t_step);
+
+      for (t_index = 0; t_index < mi->time_length; t_index++) {
+        mi->time_widths[t_index] = t_step;
+      }
+    }
   }
 
   /*defining the modality*/
