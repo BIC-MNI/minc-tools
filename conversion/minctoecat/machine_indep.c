@@ -2,6 +2,7 @@
 #include <string.h>
 #define __USE_XOPEN
 #include <unistd.h>
+#include "machine_indep.h"
 #include "ecat_write.h"
 
 #define OK 0
@@ -172,9 +173,8 @@ int nblks, dtype;
 }
 
 
-int read_matrix_data(FILE *fptr,
-                     int strtblk, int nblks, int dtype,
-                     char * dptr)
+int read_matrix_data(FILE *fptr, int strtblk, int nblks, char * dptr,
+                     int dtype)
 {
 	int  err;
 
@@ -183,9 +183,7 @@ int read_matrix_data(FILE *fptr,
 	return file_data_to_host(dptr,nblks,dtype);
 }
 
-int write_matrix_data(FILE *fptr,
-                      int strtblk, int nblks, int dtype,
-                      char *dptr)
+int write_matrix_data(FILE *fptr, int strtblk, int nblks, char *dptr, int dtype)
 {
 	int error_flag = 0;
 	int i, j, k;
