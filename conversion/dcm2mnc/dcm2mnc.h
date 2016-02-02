@@ -267,6 +267,7 @@ struct globals {
     int abort_on_error;         /* Abort on parse errors. */
     int adjust_frame_time;      /* Adjust frame times to beginning of frame. */
     int ignore_leading_dot;     /* If TRUE, ignore files with leading '.' */
+    int file_format;            /* Preferred MINC file format (1 or 2). */
 };
 
 /* Values for options flags */

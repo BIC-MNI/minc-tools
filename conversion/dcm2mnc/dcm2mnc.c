@@ -264,6 +264,9 @@ ArgvInfo argTable[] = {
      (char *) &G.ignore_leading_dot,
      "Don't ignore filenames that begin with an initial period ('.')."},
 
+    {"-1", ARGV_CONSTANT, (char *) 1, (char *) &G.file_format,
+     "Force MINC 1.0 (NetCDF) format files."},
+
     {NULL, ARGV_END, NULL, NULL, NULL}
 
 };
@@ -296,6 +299,7 @@ main(int argc, char *argv[])
     G.abort_on_error = FALSE;
     G.adjust_frame_time = FALSE;
     G.ignore_leading_dot = TRUE;
+    G.file_format = 2;          /* default file format */
     G.pname = argv[0];          /* get program name */
     
     /* Get the input parameters and file names.

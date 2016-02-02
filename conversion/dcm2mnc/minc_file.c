@@ -395,6 +395,7 @@ create_minc_file(const char *minc_file,
     char file_name[1024];
     const char *filename;
     int minc_clobber;
+    int minc_version;
     int mincid, icvid;
     static char full_path[1024];
     const char *fn_fmt_ptr;
@@ -494,8 +495,13 @@ create_minc_file(const char *minc_file,
     else 
         minc_clobber = NC_NOCLOBBER;
 
+    if (G.file_format == 1)
+        minc_version = MI2_CREATE_V1;
+    else
+        minc_version = MI2_CREATE_V2;
+
     /* Create the file */
-    mincid = micreate(filename, minc_clobber);
+    mincid = micreate(filename, minc_clobber | minc_version);
     if (mincid == MI_ERROR) {
         return MI_ERROR;
     }
