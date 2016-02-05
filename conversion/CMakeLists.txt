@@ -47,15 +47,29 @@ ADD_EXECUTABLE(minctoecat
 TARGET_LINK_LIBRARIES(minctoecat ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
 
 
-ADD_EXECUTABLE(mnc2nii
-   nifti1/mnc2nii.c
-   )
-TARGET_LINK_LIBRARIES(mnc2nii ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
+IF(NIFTI_FOUND)
+  INCLUDE_DIRECTORIES(${NIFTI_INCLUDE_DIR} ${ZNZ_INCLUDE_DIR})
+  
+  ADD_EXECUTABLE(mnc2nii
+    nifti1/mnc2nii.c
+    )
+  TARGET_LINK_LIBRARIES(mnc2nii ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} ${NIFTI_LIBRARY} ${ZNZ_LIBRARY} m)
 
-ADD_EXECUTABLE(nii2mnc
-   nifti1/nii2mnc.c
-   )
-TARGET_LINK_LIBRARIES(nii2mnc ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} m)
+  ADD_EXECUTABLE(nii2mnc
+    nifti1/nii2mnc.c
+    )
+  TARGET_LINK_LIBRARIES(nii2mnc ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} ${NIFTI_LIBRARY} ${ZNZ_LIBRARY} m)
+
+  INSTALL(TARGETS
+    mnc2nii
+    nii2mnc
+    DESTINATION bin)
+  
+  INSTALL_MAN_PAGES( ${CMAKE_INSTALL_PREFIX}/man
+    nifti1/mnc2nii.man1
+    nifti1/nii2mnc.man1
+  )
+ENDIF(NIFTI_FOUND)
 
 ADD_EXECUTABLE(upet2mnc
    micropet/upet2mnc.c
@@ -63,12 +77,12 @@ ADD_EXECUTABLE(upet2mnc
 
 IF(BUILD_MINC2)
 
-ADD_EXECUTABLE(vff2mnc
-   vff2mnc/vff2mnc.c
-   )
-INSTALL(TARGETS
-   vff2mnc
-   DESTINATION bin)
+  ADD_EXECUTABLE(vff2mnc
+    vff2mnc/vff2mnc.c
+    )
+  INSTALL(TARGETS
+    vff2mnc
+    DESTINATION bin)
 
 ENDIF(BUILD_MINC2)
 
@@ -78,8 +92,6 @@ INSTALL(TARGETS
    dcm2mnc
    ecattominc
    minctoecat
-   mnc2nii
-   nii2mnc
    upet2mnc
    DESTINATION bin)
 
@@ -89,7 +101,5 @@ INSTALL_MAN_PAGES( ${CMAKE_INSTALL_PREFIX}/man
   ecattominc/ecattominc.man1
   micropet/upet2mnc.man1
   minctoecat/minctoecat.man1
-  nifti1/mnc2nii.man1
-  nifti1/nii2mnc.man1
   vff2mnc/vff2mnc.man1
 )
