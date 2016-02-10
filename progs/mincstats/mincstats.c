@@ -539,6 +539,9 @@ otsu_threshold(const double histo[], const double hist_centre[], int hist_bins)
     for (k_high = hist_bins-1; (histo[k_high] <= 0) && (k_high > 0); k_high--)
         ;
 
+    if (k_high < k_low)         /* Check for pathological histogram. */
+      return 0.0;               /* Nothing to see here. */
+
     sum = 0L;
     mu_T = 0.0;
     for (i = k_low; i <= k_high; i++) {
