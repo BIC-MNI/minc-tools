@@ -1277,15 +1277,15 @@ dicom_read_position(Acr_Group group_list, int n, double coordinate[3])
     else {
         result = DICOM_POSITION_GLOBAL; /* Found a global position */
 
-        /* bert-look for field in weird XMedCon location
-         */
-        element = acr_recurse_for_element(group_list, 0,
-                                          ACR_Detector_information_seq,
-                                          ACR_Image_position_patient);
+        element = acr_find_group_element(group_list,
+                                         ACR_Image_position_patient);
 
         if (element == NULL) {
-            element = acr_find_group_element(group_list,
-                                             ACR_Image_position_patient);
+            /* bert-look for field in weird XMedCon location
+             */
+            element = acr_recurse_for_element(group_list, 0,
+                                              ACR_Detector_information_seq,
+                                              ACR_Image_position_patient);
         }
 
         if (element == NULL) {
