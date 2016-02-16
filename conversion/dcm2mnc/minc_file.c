@@ -853,7 +853,7 @@ void setup_minc_variables(int mincid, General_Info *general_info,
                     general_info->patient.birth_date);
     if (strlen(general_info->patient.age) > 0) {
         string_t temp;
-        int i;
+        int i = 0;
         double age;
 
         strncpy(temp, general_info->patient.age, STRING_T_LEN - 1);
