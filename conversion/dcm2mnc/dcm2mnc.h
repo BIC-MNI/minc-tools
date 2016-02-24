@@ -222,6 +222,7 @@ typedef struct {
     string_t patient_id;
     double slice_location;
     int coord_found;
+    int tpos_id;
 } Data_Object_Info;
 
 #include "dicom_to_minc.h"
@@ -264,6 +265,8 @@ struct globals {
     int max_acq_num;            /* Maximum acquisition number. */
     int min_img_num;            /* Minimum image number (0020,0013). */
     int max_img_num;            /* Maximum image number. */
+    int min_tpos_id;            /* Minimum temporal position identifier */
+    int max_tpos_id;            /* Maximum temporal position identifier */
     int abort_on_error;         /* Abort on parse errors. */
     int adjust_frame_time;      /* Adjust frame times to beginning of frame. */
     int ignore_leading_dot;     /* If TRUE, ignore files with leading '.' */

@@ -75,6 +75,17 @@ GLOBAL_ELEMENT(PMS_Stack_Type                         , 0x2001, 0x1036, CS);
 GLOBAL_ELEMENT(PMS_Number_of_Stacks                   , 0x2001, 0x1060, SL);
 GLOBAL_ELEMENT(PMS_Examination_Source                 , 0x2001, 0x1063, CS);
 
+GLOBAL_ELEMENT(PMS_Acquisition_parameters_seq, 0x2005, 0x140f, SQ);
+
+/* These values indicate the index of the B-values and gradient
+ * orientations within the scan, and the total number of B-values and
+ * gradient orientations used in the scan.
+ */
+GLOBAL_ELEMENT(PMS_B_value_index, 0x2005, 0x1412, IS);
+GLOBAL_ELEMENT(PMS_Gradient_orientation_index, 0x2005, 0x1413, IS);
+GLOBAL_ELEMENT(PMS_B_value_count, 0x2005, 0x1414, SL);
+GLOBAL_ELEMENT(PMS_Gradient_orientation_count, 0x2005, 0x1415, SL);
+
 /* additional undefined elements include:
    xx60-xx62, xx6e, xx7b, xx81-xx8b, 9000
 

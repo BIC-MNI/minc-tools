@@ -465,7 +465,21 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
                                ACR_Number_of_temporal_positions,
                                -1);
         if (G.Debug > 1)
-          printf("(0021,0105)=%d\n", def_val);
+          printf("(0020,0105)=%d\n", def_val);
+
+        /* Some Philips scans DO NOT PROPERLY SET the (0020,0105) value.
+         * Here's a first try at a workaround:
+         */
+        if (def_val == 1 &&
+            gi_ptr->num_files % gi_ptr->max_size[SLICE] == 0 &&
+            gi_ptr->num_files > gi_ptr->max_size[SLICE]) {
+          /* Extra paranoia - only ignore this if the manufacturer
+           * checks out.
+           */
+          char *mfg_str = acr_find_string(group_list, ACR_Manufacturer, "");
+          if (strstr(mfg_str, "Philips") != NULL)
+            def_val = -1;        /* Ignore the field. */
+        }
 
         /* Now look in the equally official but different field.
          */
@@ -2167,6 +2181,16 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
 #endif
 
     string = (char*)acr_find_string(group_list, ACR_Acquisition_contrast, "");
+    if (string[0] == 0) {
+      /* In at least one case, Philips makes you look inside of a proprietary
+       * sequence field in order to find this value. I have no idea why.
+       */
+      Acr_Element el = acr_recurse_for_element(group_list, 0,
+                                               PMS_Acquisition_parameters_seq,
+                                               ACR_Acquisition_contrast);
+      if (el != NULL)
+        string = acr_get_element_string(el);
+    }
     gi_ptr->acq.dti = (strstr(string, "DIFFUSION") != NULL);
 
     get_pet_info(group_list, &gi_ptr->pet);
@@ -2587,6 +2611,9 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
                                            IDEFAULT);
     di_ptr->num_slices_in_file = acr_find_int(group_list, EXT_Slices_in_file,
                                               IDEFAULT);
+
+    di_ptr->tpos_id = acr_find_int(group_list, ACR_Temporal_position_identifier,
+                                   IDEFAULT);
 
     /* sequence, protocol names (useful for debugging):
      */

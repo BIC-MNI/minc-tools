@@ -1789,6 +1789,28 @@ add_philips_info(Acr_Group group_list)
                                (double) slice_index);
         }
     }
+
+    int i1 = acr_find_int(group_list, PMS_B_value_index, -1);
+    int i2 = acr_find_int(group_list, PMS_Gradient_orientation_index, -1);
+    int c1 = acr_find_int(group_list, PMS_B_value_count, -1);
+    int c2 = acr_find_int(group_list, PMS_Gradient_orientation_count, -1);
+    if (i1 > 0 && i2 > 0 && c1 > 0 && c2 > 0) {
+      int id = (i1 < c1) ? i1 : (c1 + i2);
+      /* Replace broken acquisition number (0020,0012).
+       */
+      acr_insert_numeric(&group_list, ACR_Acquisition, id);
+
+      /* Set the temporal position identifier.
+       */
+      acr_insert_numeric(&group_list, ACR_Temporal_position_identifier, id);
+
+      /* Fake a real trigger time. This may be incorrect usage, but the
+       * existing trigger time is probably not helpful.
+       * TODO: examine whether trigger time is ever useful in MRI.
+       */
+      acr_insert_numeric(&group_list, ACR_Trigger_time, id * 1000.0);
+    }
+
     return (group_list);
 }
 

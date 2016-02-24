@@ -893,11 +893,15 @@ use_the_files(int num_files,
          * They are sometimes absent, constant, or otherwise strange.
          * Determining this ahead of time helps us make good decisions
          * about how to treat these fields later.
+         * We also check the temporal position identifier, as it can also
+         * be useless.
          */
         G.max_acq_num = INT_MIN;
         G.min_acq_num = INT_MAX;
         G.max_img_num = INT_MIN;
         G.min_img_num = INT_MAX;
+        G.max_tpos_id = INT_MIN;
+        G.min_tpos_id = INT_MAX;
 
         for (ifile = 0; ifile < acq_num_files; ifile++) {
           int ix = acq_file_index[ifile];
@@ -914,6 +918,13 @@ use_the_files(int num_files,
           }
           if (di_ptr[ix]->global_image_number > G.max_img_num) {
             G.max_img_num = di_ptr[ix]->global_image_number;
+          }
+
+          if (di_ptr[ix]->tpos_id < G.min_tpos_id) {
+            G.min_tpos_id = di_ptr[ix]->tpos_id;
+          }
+          if (di_ptr[ix]->tpos_id > G.max_tpos_id) {
+            G.max_tpos_id = di_ptr[ix]->tpos_id;
           }
         }
 
@@ -972,10 +983,13 @@ use_the_files(int num_files,
         if (G.min_img_num < 0 || G.min_img_num > 1) {
           printf("WARNING: Minimum image number is %d\n", G.min_img_num);
         }
+
+        if (G.min_tpos_id == G.max_tpos_id || G.min_tpos_id > 1)
+          printf("WARNING: Temporal position identifier is useless.\n");
         
         printf("INFO: Acquisition number ranges from %d to %d\n", G.min_acq_num, G.max_acq_num);
         printf("INFO: Image number ranges from %d to %d\n", G.min_img_num, G.max_img_num);
-
+        printf("INFO: Temporal position id ranges from %d to %d.\n", G.min_tpos_id, G.max_tpos_id);
 
         /* Create minc file
          */
