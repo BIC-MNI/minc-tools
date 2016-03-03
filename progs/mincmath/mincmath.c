@@ -240,6 +240,7 @@ static int use_nan_for_illegal_values = TRUE;
 static double value_for_illegal_operations = DEFAULT_DBL;
 static int check_dim_info = TRUE;
 static char *filelist = NULL;
+static int is_labels = FALSE;
 #if MINC2
 static int minc2_format = FALSE;
 #endif /* MINC2 */
@@ -288,6 +289,8 @@ static ArgvInfo argTable[] = {
        "Write signed integer data."},
    {"-unsigned", ARGV_CONSTANT, (char *) FALSE, (char *) &is_signed,
        "Write unsigned integer data (default if type specified)."},
+   {"-labels", ARGV_CONSTANT, (char *) TRUE, (char *) &is_labels,
+       "integer operation on labels"},
    {"-range", ARGV_FLOAT, (char *) 2, (char *) valid_range,
        "Valid range for output data."},
    {"-max_buffer_size_in_kb", ARGV_INT, (char *) 1,
@@ -562,6 +565,7 @@ int main(int argc, char *argv[])
       math_function = do_math;
    }
    set_loop_copy_all_header(loop_options, copy_all_header);
+   set_loop_labels(loop_options, is_labels);
    set_loop_dimension(loop_options, loop_dimension);
    set_loop_buffer_size(loop_options, (long) 1024 * max_buffer_size_in_kb);
    set_loop_check_dim_info(loop_options, check_dim_info);
