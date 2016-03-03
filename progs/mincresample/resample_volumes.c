@@ -259,16 +259,19 @@ void resample_volumes(Program_Flags *program_flags,
          if (minimum < valid_range[0]) valid_range[0] = minimum;
 
          /* Write the max, min and slice */
-         (void) mivarput1(ofp->mincid, ofp->maxid, 
-                          mitranslate_coords(ofp->mincid, 
-                                             ofp->imgid, out_start,
-                                             ofp->maxid, mm_start),
-                          NC_DOUBLE, NULL, &maximum);
-         (void) mivarput1(ofp->mincid, ofp->minid, 
-                          mitranslate_coords(ofp->mincid, 
-                                             ofp->imgid, out_start,
-                                             ofp->minid, mm_start),
-                          NC_DOUBLE, NULL, &minimum);
+         if( ! ofp->labels )
+         {
+            (void) mivarput1(ofp->mincid, ofp->maxid, 
+                              mitranslate_coords(ofp->mincid, 
+                                                ofp->imgid, out_start,
+                                                ofp->maxid, mm_start),
+                              NC_DOUBLE, NULL, &maximum);
+            (void) mivarput1(ofp->mincid, ofp->minid, 
+                              mitranslate_coords(ofp->mincid, 
+                                                ofp->imgid, out_start,
+                                                ofp->minid, mm_start),
+                              NC_DOUBLE, NULL, &minimum);
+         }
          (void) miicv_put(ofp->icvid, out_start, out_count,
                           out_vol->slice->data);
 
@@ -304,7 +307,16 @@ void resample_volumes(Program_Flags *program_flags,
    if ((ofp->datatype == NC_FLOAT) || (ofp->datatype == NC_DOUBLE)) {
       (void) miset_valid_range(ofp->mincid, ofp->imgid, valid_range);
    }
-
+   
+   if( ofp->labels )
+   {
+      /*Have to write out global valid range and global image range*/
+      (void) mivarput1(ofp->mincid, ofp->minid, 0, NC_DOUBLE, NULL, &valid_range[0]);
+      (void) mivarput1(ofp->mincid, ofp->maxid, 0, NC_DOUBLE, NULL, &valid_range[1]);
+      (void) miset_valid_range(ofp->mincid, ofp->imgid, valid_range);
+   }
+   
+   
    /* Recompute slices and free vectors, if needed */
    if (ofp->do_slice_renormalization) {
       renormalize_slices(program_flags, out_vol, slice_min, slice_max);
