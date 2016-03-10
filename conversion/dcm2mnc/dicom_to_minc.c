@@ -936,6 +936,46 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
     return (group_list);
 }
 
+/* 
+ * The acquisition number (0020,0012) sometimes give the temporal
+ * position, but in some scans it is useless. If it is useless, we
+ * look at the sequence name to derive a relative temporal position,
+ * based on the numbering B0 and diffusion-weighted scans.
+ */
+static int
+get_time_index_from_sequence_name(Acr_Group group_list, int num_b0)
+{
+  Acr_String str_ptr = acr_find_string(group_list, ACR_Sequence_name, "");
+  Acr_String str_ptr1 = strstr(str_ptr, "b");
+  Acr_String str_ptr2 = strstr(str_ptr, "#");
+  int acq_no = acr_find_int(group_list, ACR_Acquisition, 0);
+  int enc_ix = 0;
+
+  /* If the acquisition number is informative, use it for the temporal
+     position.
+   */
+  if (G.min_acq_num != G.max_acq_num) {
+    enc_ix = acq_no;
+  }
+  else {
+    if (str_ptr1 == NULL || str_ptr2 == NULL) {
+      printf("WARNING: Can't get acquisition number from sequence name '%s'.\n",
+             str_ptr);
+      enc_ix = acq_no;
+    } 
+    else if (strtol(str_ptr1 + 1, NULL, 0) == 0) { 
+      /* a 0 after the b means b=0 image */
+      enc_ix = strtol(str_ptr2 + 1, NULL, 0);
+    }
+    else {
+      /* should be in diffusion weighted images now */
+      enc_ix = strtol(str_ptr2 + 1, NULL, 0) + num_b0;
+    }
+  }
+  acr_insert_numeric(&group_list, ACR_Temporal_position_identifier, 
+                     (double)enc_ix);
+  return enc_ix;
+}
 
 void
 do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
@@ -944,7 +984,6 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
   int enc_ix, num_encodings, num_b0; 
   int EXT = 0; /* special handling when an external diffusion vector file is used*/
   Acr_String str_ptr;
-  Acr_String str_ptr2;
   int temp;
   int num_directions = 0;
   double bval;
@@ -1096,37 +1135,9 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
       acr_insert_numeric(&group_list, ACR_Acquisitions_in_series, 
                          num_encodings *
                          acr_find_double(group_list, ACR_Nr_of_averages, 1));
+      acr_insert_numeric(&group_list, ACR_Cardiac_number_of_images, -1);
 
-      /* time index of current scan: */
-
-      /* For multi-series scans, we DO USE THIS BECAUSE global
-       * image number may be broken!!
-       */
-	    
-      /*Have to also take care of numbered b=0 images (ep_b0#0, etc...) ilana*/
-      /*the Siemems-based sequences, in MDDW mode with 2 diff weightings have b=0 images called ep_b0*/
-
-      str_ptr = strstr(acr_find_string(group_list, ACR_Sequence_name, ""), "b");
-      str_ptr2 = strstr(acr_find_string(group_list, ACR_Sequence_name, ""), "#");
-
-      if (str_ptr == NULL || str_ptr2 == NULL) {
-        printf("WARNING: Failing to get acquisition number from sequence name '%s'.\n", acr_find_string(group_list, ACR_Sequence_name, ""));
-        enc_ix = 0;
-      }
-      else if(strtol(str_ptr + 1, NULL, 0) == 0) { /*a 0 after the b means b=0 image*/
-        enc_ix = strtol(str_ptr2 + 1, NULL, 0);
-      }
-      else {
-        enc_ix = strtol(str_ptr2 + 1, NULL, 0) + num_b0; /*should be in diffusion weighted images now*/
-      }  
-      /* however with the current sequence, we get usable
-       * time indices from floor(global_image_num/num_slices)*/ /*i'm not sure that works here*/
-
-      acr_insert_numeric(&group_list, ACR_Acquisition, (double)enc_ix);
-      /*acr_insert_numeric(&group_list, ACR_Acquisition, 
-        (acr_find_int(group_list, ACR_Image, 1)-1) / 
-        num_slices);*/
-
+      enc_ix = get_time_index_from_sequence_name(group_list, num_b0);
     } 
     else { /* averages in different series - no special handling needed? */
 	    
@@ -1137,25 +1148,8 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
       /* number of 'time points' */
       acr_insert_numeric(&group_list, ACR_Acquisitions_in_series,
                          (double)num_encodings);
-                
-      /* For multi-series scans, we DO USE THIS BECAUSE global
-       * image number may be broken!!
-       */
-      /*Have to also take care of numbered b=0 images (ep_b0#0, etc...) ilana*/
-	    
-      str_ptr = strstr(acr_find_string(group_list, ACR_Sequence_name, ""), "b");
-      str_ptr2 = strstr(acr_find_string(group_list, ACR_Sequence_name, ""), "#");
-	    
-      if (str_ptr == NULL || str_ptr2 == NULL) {
-        enc_ix = 0;
-      } 
-      else if(strtol(str_ptr + 1, NULL, 0) == 0){ /*a 0 after the b means b=0 image*/
-        enc_ix = strtol(str_ptr2 + 1, NULL, 0);
-      }
-      else {
-        enc_ix = strtol(str_ptr2 + 1, NULL, 0) + num_b0; /*should be in diffusion weighted images now*/
-      }
-      acr_insert_numeric(&group_list, ACR_Acquisition, (double)enc_ix);
+
+      enc_ix = get_time_index_from_sequence_name(group_list, num_b0);
     }
     if (EXT == 1) {
       /*if an external DiffusionVectors was used, the encoding index can be wrong
