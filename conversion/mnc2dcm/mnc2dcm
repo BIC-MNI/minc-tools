@@ -1,0 +1,574 @@
+#! /usr/bin/env perl
+#
+# A simple MINC to Dicom converter
+#
+# Copyright Andrew Janke - a.janke@gmail.com
+# Permission to use, copy, modify, and distribute this software and its
+# documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright notice appear in all copies.  The
+# author makes no representations about the suitability of this software
+# for any purpose.  It is provided "as is" without express or implied warranty.
+
+
+#use strict;
+use warnings "all";
+use Getopt::Long;
+use Pod::Usage;
+use File::Basename;
+use File::Temp qw/ tempdir /;
+use Time::HiRes qw(gettimeofday);
+use Cwd;
+
+use DICOM;
+use DICOM::Element;
+
+# UID prefix -- you should change this
+# (x)medcon uses 777.777.0.0.0
+# see: http://xmedcon.sourceforge.net/Docs/Dicom
+my $uid_prefix = '777.776.0.0.0';
+
+# until I get organised and do this properly
+my $PACKAGE = &basename($0);
+my $VERSION = '1.0.0';
+my $PACKAGE_BUGREPORT = '"Andrew Janke" <a.janke@gmail.com>';
+
+my($me, %opt, @command, $script);
+
+$me = &basename($0);
+%opt = (
+   verbose => 0,
+   fake => 0,
+   man => 0,
+   help => 0,
+   );
+
+# Get the history string
+chomp($history = `date`);
+$history .= '>>>> ' . join(' ', $me, @ARGV);
+
+# Check arguments
+&GetOptions(
+   'help|?' => \$opt{'help'},
+   'man' => \$opt{'man'},
+   'v|verbose' => \$opt{'verbose'},
+   'version' => sub { &print_version_info },
+   'f|fake' => \$opt{'fake'},
+   ) or pod2usage(-verbose => 1) && exit;
+
+# handle -man, -help or missing args
+pod2usage(-verbose => 1) if $opt{help};
+pod2usage(-exitstatus => 0, -verbose => 2) if $opt{man};
+pod2usage(-verbose => 0) && exit if ($#ARGV != 1);
+
+# get arguments
+$infile = $ARGV[0];
+$outdir = $ARGV[1];
+
+# set up tmpdir
+$opt{tmpdir} = &tempdir( "$me-XXXXXXXX", TMPDIR => 1, CLEANUP => 1 );
+
+## initialise the dictionary using defaults
+#foreach my $line (@dicom_fields) {
+#   next if ($line =~ /^\#/);
+#   my ($group, $elem, $code, $numa, $name) = split(/\s+/, $line);
+#   my @lst = ($code, $name);
+#   $dict{$group}{$elem} = [@lst];
+#   }
+
+# check for infile
+if(!-e $infile){
+   die "$me: Couldn't find input file: $infile\n\n";
+   }
+
+# make outdir if it doesn't exist
+if(!-e $outdir){
+   &do_cmd('mkdir', '-p', $outdir);
+   }
+
+# reshape the image to zyx
+print STDOUT "+ Reshaping $infile to zyx +dir\n";
+&do_cmd('mincreshape', '-clobber',
+        '-dimorder', 'zspace,yspace,xspace',
+        '+direction',
+        '-dimsize', 'xspace=-1',
+        '-dimsize', 'yspace=-1',
+        '-dimsize', 'zspace=-1',
+        $infile, "$opt{'tmpdir'}/res.mnc");
+
+
+# create the dicom mess
+my $d = DICOM->new();
+
+
+# Dicom things (0x0002 group)
+
+# MetaElementGroupLength
+$d->create_element(0x0002, 0x0000, 0);
+
+# FileMetaInformationVersion
+$d->create_element(0x0002, 0x0001, '00');
+$d->{0x0002}{0x0001}->{'value'} = pack('cc', 0x00, 0x01);
+
+# MediaStorageSOPClassUID
+$d->create_element(0x0002, 0x0002, '1.2.840.10008.5.1.4.1.1.20');
+
+# TransferSyntaxUID - explicit VR little
+$d->create_element(0x0002, 0x0010, '1.2.840.10008.1.2.1');
+
+# ImplementationClassUID
+$d->create_element(0x0002, 0x0012, '0.0.0.0');
+
+# ImplementationVersionName
+$d->create_element(0x0002, 0x0013, "mnc2dcm $VERSION");
+
+# SourceApplicationEntityTitle
+$d->create_element(0x0002, 0x0016, 'NOTSPECIFIED');
+
+# calc group size and set it
+$size = &calc_size($d);
+$d->{0x0002}{0x0000}->setValue($size);
+print "+++ Set 0002,0000 (group size) to $size\n" if $opt{'verbose'};
+
+
+# (0x0008 group)
+
+# SpecificCharacterSet
+$d->create_element(0x0008, 0x0005, 'ISO_IR 100');
+
+# ImageType
+$d->create_element(0x0008, 0x0008, 'DERIVED\SECONDARY');
+
+# InstanceCreationDate
+my($seconds, $milliseconds, @t, $dcmtime);
+($seconds, $milliseconds) = gettimeofday();
+@tm = localtime($seconds);
+$tm[5] += 1900;
+$dcmdate = sprintf("%04d%02d%02d", $tm[5], $tm[4], $tm[3]);
+$d->create_element(0x0008, 0x0012, $dcmdate);
+
+# InstanceCreationTime
+$dcmtime = sprintf("%02d%02d%02d.%06d", $tm[2], $tm[1], $tm[0], $milliseconds);
+$d->create_element(0x0008, 0x0013, $dcmtime);
+
+# InstanceCreatorUID
+$d->create_element(0x0008, 0x0014, $uid_prefix);
+
+# SOPClassUID
+$d->create_element(0x0008, 0x0016, '1.2.840.10008.5.1.4.1.1.20');
+
+# StudyDate
+chomp($study_start_date = 
+   `mincinfo -attvalue study:start_date -error_string "$dcmdate" $infile`);
+$d->create_element(0x0008, 0x0020, $study_start_date);
+
+# SeriesDate
+$d->create_element(0x0008, 0x0021, $study_start_date);
+
+# AcquisitionDate
+$d->create_element(0x0008, 0x0022, $study_start_date);
+
+# ImageDate
+$d->create_element(0x0008, 0x0023, $study_start_date);
+
+# AcquisitionDateTime
+$d->create_element(0x0008, 0x002a, "$study_start_date.$seconds");
+
+# StudyTime
+$d->create_element(0x0008, 0x0030, $dcmtime);
+
+# SeriesTime
+$d->create_element(0x0008, 0x0031, $dcmtime);
+
+# AcquisitionTime
+$d->create_element(0x0008, 0x0032, $dcmtime);
+
+# ContentTime
+$d->create_element(0x0008, 0x0033, $dcmtime);
+
+# AccessionNumber
+#$d->create_element(0x0008, 0x0050, 1234);
+
+# Modality
+$d->create_element(0x0008, 0x0060, 'MR');
+
+# Manufacturer
+$d->create_element(0x0008, 0x0070, 'minc2');
+
+# InstitutionName
+$d->create_element(0x0008, 0x0080, 'Unknown');
+
+# ReferringPhysicianName
+$d->create_element(0x0008, 0x0090, 'Unknown');
+
+# StudyDescription
+$d->create_element(0x0008, 0x1030, $history);
+
+# SeriesDescription
+$d->create_element(0x0008, 0x103E, $history);
+
+# OperatorName
+$d->create_element(0x0008, 0x1070, $ENV{'USER'});
+
+# DerivationDescription
+$d->create_element(0x0008, 0x2111, 'mnc2dcm - Andrew Janke <a.janke@gmail.com>');
+
+
+# (0x0010 group)
+# PatientsName
+chomp($patient_name = 
+   `mincinfo -attvalue patient:full_name -error_string "Unknown" $infile`);
+$d->create_element(0x0010, 0x0010, uc($patient_name));
+
+# PatientID
+chomp($patient_identification = 
+   `mincinfo -attvalue patient:identification -error_string "Unknown" $infile`);
+$d->create_element(0x0010, 0x0020, $patient_identification);
+
+# PatientsBirthDate
+chomp($patient_birthdate = 
+   `mincinfo -attvalue patient:birthdate -error_string "00000000" $infile`);
+$d->create_element(0x0010, 0x0030, $patient_birthdate);
+
+# PatientsSex
+chomp($patient_sex = 
+   `mincinfo -attvalue patient:sex -error_string "" $infile`);
+$patient_sex = 'F' if ($patient_sex =~ m/female/);
+$patient_sex = 'M' if ($patient_sex =~ m/male/);
+$d->create_element(0x0010, 0x0040, $patient_sex);
+
+# PatientsAge
+chomp($patient_age = 
+   `mincinfo -attvalue patient:age -error_string "0" $infile`);
+$d->create_element(0x0010, 0x1010, $patient_age);
+
+
+# (0x0018 group)
+# AcquisitionType
+$d->create_element(0x0018, 0x0023, "2D");
+
+# SliceThickness
+# Nominal slice thickness, in mm.
+chomp($z_thick = `mincinfo -attvalue zspace:step $infile`);
+$d->create_element(0x0018, 0x0050, $z_thick * 1);
+
+# NumberOfAverages
+$d->create_element(0x0018, 0x0083, 1);
+
+# EchoNumbers
+$d->create_element(0x0018, 0x0086, 1);
+
+# SpacingBetweenSlices
+$d->create_element(0x0018, 0x0088, 0);
+
+# Sequence name
+$d->create_element(0x0018, 0x1030, "MINC");
+
+# PatientPosition
+chomp($patient_position = 
+   `mincinfo -attvalue patient:position -error_string "HFS" $infile`);
+$d->create_element(0x0018, 0x5100, $patient_position);
+
+
+# (0x0020 group)
+
+# StudyInstanceUID
+$uid_A = &sdbm_hash($dcmtime);
+$uid_B = &sdbm_hash($patient_name .  $patient_identification .
+                    $dcmdate . $dcmtime);
+$uid_C = &sdbm_hash($infile);
+$d->create_element(0x0020, 0x000d, "$uid_prefix.$uid_A.$uid_B");
+
+# SeriesInstanceUID
+$d->create_element(0x0020, 0x000e, "$uid_prefix.$uid_A.$uid_B.$uid_C");
+
+# Image Comment
+$d->create_element(0x0020, 0x4000, "Created by $me ($VERSION)");
+
+# StudyID
+$d->create_element(0x0020, 0x0010, '1');
+
+# SeriesNumber
+$d->create_element(0x0020, 0x0011, '1');
+
+# AcquisitionNumber
+$d->create_element(0x0020, 0x0012, '1');
+
+# ImageOrientation
+#$d->create_element(0x0020, 0x0035, 1);
+
+# ImageOrientationPatient
+$d->create_element(0x0020, 0x0037, 1);
+
+# Get sizes
+@args = ('mincinfo',
+         '-error_string', 0,
+         '-dimlength', 'xspace',
+         '-dimlength', 'yspace',
+         '-dimlength', 'zspace',
+         "$opt{'tmpdir'}/res.mnc");
+$args = join(' ', @args);
+@data = split(/\n/, `$args`);
+($xsize, $ysize, $zsize) = @data[0..2];
+
+# SeriesInStudy
+$d->create_element(0x0020, 0x1000, 1);
+
+# AcquisitionsInSeries
+$d->create_element(0x0020, 0x1001, 1);
+
+# ImagesInAcquisition
+$d->create_element(0x0020, 0x1002, $zsize);
+
+
+# (0x0028 group)
+
+# SamplesPerPixel
+$d->create_element(0x0028, 0x0002, 1);
+
+# Rows
+$d->create_element(0x0028, 0x0010, $xsize);
+
+# Columns
+$d->create_element(0x0028, 0x0011, $ysize);
+
+# PixelSpacing
+$d->create_element(0x0028, 0x0030, "1.0\\1.0");
+
+# BitsAllocated
+$d->create_element(0x0028, 0x0100, 16);
+
+# BitsStored
+$d->create_element(0x0028, 0x0101, 16);
+
+# HighBit
+$d->create_element(0x0028, 0x0102, 15);
+
+# PixelRepresentation
+$d->create_element(0x0028, 0x0103, 1);
+
+# these two set the range strange for some unknown reason
+# SmallestImagePixelValue - real_range[0]
+#$d->create_element(0x0028, 0x0106, 0);
+
+# LargestImagePixelValue - real_range[1]
+#$d->create_element(0x0028, 0x0107, 65535);
+
+
+# first create the required elements (setting to null and/or 0)
+# for the elements that change per slice
+
+# SOPInstanceUID
+$d->create_element(0x0008, 0x0018, '0.0.0.0.0.0.0.0.0');
+
+# InstanceNumber
+$d->create_element(0x0020, 0x0013, 0);
+
+# ImagePositionPatient
+# The x, y, and z coordinates of the upper
+# left hand corner (center of the first voxel
+# transmitted) of the image, in mm.
+$d->create_element(0x0020, 0x0032, "0\\0\\0");
+
+# ImageOrientationPatient
+# The direction cosines of the first row and
+# the first column with respect to the patient.
+chomp($x_dircos = `mincinfo -attvalue xspace:direction_cosines $infile`);
+chomp($y_dircos = `mincinfo -attvalue yspace:direction_cosines $infile`);
+$x_dircos =~ s/\ $//g;
+$y_dircos =~ s/\ $//g;
+$x_dircos =~ s/\ /\\/g;
+$y_dircos =~ s/\ /\\/g;
+$d->create_element(0x0020, 0x0037, $x_dircos . '\\' . $y_dircos);
+
+# SliceLocation
+$d->create_element(0x0020, 0x1041, 0);
+
+# SliceVector
+#$d->create_element(0x0054, 0x0080, join('\\', 1..($zsize+1)));
+
+# NumberOfSlices
+#$d->create_element(0x0054, 0x0081, $zsize);
+
+# PixelData
+$d->create_element(0x7FE0, 0x0010, 0);
+
+# for each slice
+foreach $s (0..($zsize-1)){
+   my(@pos, $s_txt);
+   
+   print STDOUT "  | Working on slice $s\n";
+   
+   $s_txt = sprintf("%05d", $s);
+   $outfile = "$outdir/$s_txt.dcm";
+   
+   # set times
+   ($seconds, $milliseconds) = gettimeofday();
+   @t = localtime($seconds);
+   $dcmtime = sprintf("%02d%02d%02d.%06d", $t[2], $t[1], $t[0], $milliseconds);
+   $d->{0x0008}{0x0013}->setValue($dcmtime);
+   $d->{0x0008}{0x0033}->setValue($dcmtime);
+   
+   # set SOPInstanceUID
+   $uid_D = &sdbm_hash($outfile);
+   $d->{0x0008}{0x0018}->setValue("$uid_prefix.$uid_A.$uid_B.$uid_C.$uid_D");
+
+   # set the image number
+   $d->{0x0020}{0x0013}->setValue($s+1);
+
+   # AcquisitionNumber
+   $d->{0x0020}{0x0012}->setValue($s+1);
+      
+   # ImagePositionPatient
+   $args = "voxeltoworld $opt{'tmpdir'}/res.mnc " .
+           0 . ' ' . ($ysize-1) . ' ' . $s;
+   chomp($buf = `$args`);
+   (@pos) = split(/\ /, $buf);
+   $d->{0x0020}{0x0032}->setValue(sprintf("%.15g\\%.15g\\%.15g", 
+      $pos[0], $pos[1], $pos[2]));
+   
+   # SliceLocation
+   $d->{0x0020}{0x1041}->setValue($pos[2]);
+   
+   # get and set the slice
+   $data = `mincextract -unsigned -short -start $s,0,0 -count 1,$ysize,$xsize $opt{'tmpdir'}/res.mnc`;
+   
+   $d->{0x7FE0}{0x0010}->{'length'} = $xsize * $ysize * 2;
+   $d->{0x7FE0}{0x0010}->{'value'} = $data;
+   
+   # write this slice out
+   $d->write($outfile);
+   }
+
+
+# sub sdbm - hashing function from here:
+#   http://www.cse.yorku.ca/~oz/hash.html
+sub sdbm_hash {
+   use integer; 
+   my ($input) = @_;
+   my $hash_txt;
+   
+   {
+      # generate the hash in uint32
+	  use integer;
+      my ($c, $hash);
+   
+      $hash = 0;
+      foreach $c (0..length($input)-1){
+		 $hash = ord(substr($input, $c, 1)) + ($hash << 6) + ($hash << 16) - $hash;
+         }
+	  
+	  # "cast" to unsigned int (from long)
+	  # to maintain consistency with (x)medcon
+	  $hash_txt = sprintf("%lu", $hash & 0xFFFFFFFF);
+	  }
+   
+   return $hash_txt;
+   }
+
+
+# count total size of elements
+sub calc_size {
+   my ($d) = @_;
+   my(%hash, $gp, $el, $size);
+
+   %hash = %$d;
+   
+   $gp = 0x0002;
+   $size = 0;
+   foreach $el (keys(%{$hash{$gp}})){
+      $size += $hash{$gp}{$el}->{'length'};
+      }
+
+   return $size;
+   }
+
+
+
+
+sub do_cmd {
+   print STDOUT "@_\n" if $opt{verbose};
+   if(!$opt{fake}){
+      system(@_) == 0 or die;
+      }
+   }
+
+sub print_version_info {
+   print STDOUT "\n$PACKAGE version $VERSION\n".
+                "Comments to $PACKAGE_BUGREPORT\n\n";
+   exit;
+   }
+
+
+__END__
+
+=head1 NAME
+
+B<mnc2dcm> - simple MINC to Dicom converter
+
+=head1 SYNOPSIS
+
+B<mnc2dcm> [options] in.mnc outdir
+
+mnc2dcm should work to convert 3D MINC volumes to Dicom "format". By
+Dicom format I mean as much to spec as possible. Mind you this in
+NO WAY means that you will be able to re-import these images into some
+scanner interface as most of these have their own addittions to Dicom
+that are rarely compatible with each other. So yes your images
+might be importable into such scanner interfaces but also might not.
+
+They should however be easily readable with Dicom viewers such as Osirix,
+Sante Dicom Viewer and ImageJ (three of the viewers on which the output
+of mnc2dcm has been tested).
+
+   $ mnc2dcm <in.mnc> <outdir>
+
+=head1 DESCRIPTION
+
+B<mnc2dcm> was wrtten to get MINC data back into DICOM RIS/PACS systems in
+hospitals and the likes. Note that the DICOM creation is by no means complete 
+and a lot of DICOM elements are faked in the process. (eg: operator name).
+
+ eg:
+    $ mnc2dcm <in.mnc> <outdir>
+
+Problems or comments should not be sent to: a.janke@gmail.com
+
+Note that I (Andrew) am really not all that interested in maintaining things
+that pertain to DICOM as it seems to be a constantly moving target. But hey
+you can still email and you might just get lucky, I might be having a good day.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-v>, B<--verbose>
+
+Be noisy when doing things
+
+=item B<--version>
+
+Print version number and exit
+
+=item B<-h>, B<--help>
+
+Dump some quick help output
+
+=item B<--man>
+
+Dump a man page
+
+=item B<-f>, B<--fake>
+
+Do a dry run. This is usually only useful if combined with --verbose so that you can see what is going on.
+
+=back
+
+=head1 SEE ALSO
+
+dconvert(1)
+
+=head1 AUTHOR
+
+Andrew Janke - a.janke@gmail.com
+
+=cut

@@ -1,0 +1,367 @@
+#! /usr/bin/env perl
+#
+# A simple DICOM file moveratoror
+#
+# Copyright Andrew Janke - a.janke@gmail.com
+# Permission to use, copy, modify, and distribute this software and its
+# documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright notice appear in all copies.  The
+# author makes no representations about the suitability of this software
+# for any purpose.  It is provided "as is" without express or implied warranty.
+
+$| = 1;
+
+use strict;
+use warnings "all";
+use Getopt::Long;
+use Pod::Usage;
+use File::Basename;
+use Cwd;
+
+use Term::ANSIColor;
+
+use DICOM;
+
+# until I get organised and do this properly
+my $PACKAGE = &basename($0);
+my $VERSION = '1.0.0';
+my $PACKAGE_BUGREPORT = '"Andrew Janke" <a.janke@gmail.com>';
+
+my($me, %opt, $infile, @infiles);
+
+$me = &basename($0);
+%opt = (verbose => 0,
+        fake => 0,
+        man => 0,
+        help => 0,
+        move => 0,
+        copy => 0,
+        by_id => 0,
+        outdir => '',
+        );
+
+# Check arguments
+&GetOptions(
+   'help|?' => \$opt{'help'},
+   'man' => \$opt{'man'},
+   'v|verbose' => \$opt{'verbose'},
+   'version' => sub { &print_version_info },
+   'f|fake' => \$opt{'fake'},
+   'move' => \$opt{'move'},
+   'copy' => \$opt{'copy'},
+   'by_id' => \$opt{'by_id'},
+   'outdir=s' => \$opt{'outdir'},
+   ) or pod2usage(-verbose => 1) && exit;
+   
+# handle -man, -help or missing args
+pod2usage(-verbose => 1) if $opt{help};
+pod2usage(-exitstatus => 0, -verbose => 2) if $opt{man};
+pod2usage(-verbose => 0) && exit if ($#ARGV < 0);
+
+# get the input file and fill er up.
+@infiles = ();
+foreach (@ARGV){
+   my(@buf);
+
+   # if a file
+   if(-f $_){
+      push(@infiles, $_);
+      next;
+      }
+   
+   # if a directory
+   if(-d $_){
+      @buf = split(/\n/, `find $_ -type f`);
+      push(@infiles, @buf);
+      next;
+      }
+   
+   die "This is bad - $_ probably doesn't exist\n";
+   }
+
+# default to current directory
+if($opt{'outdir'} eq ''){
+   $opt{'outdir'} = &getcwd;
+   }
+
+my(%db, %StudyDate, %SeriesDate, %SeriesTime, %AcquisitionTime,
+   %ImageTime, %SequenceName, %ProtocolName);
+
+# create the DICOM object
+my $d = DICOM->new();
+
+print "Reading $#infiles Images:";
+foreach $infile (@infiles){
+   my($ID);
+   
+   # fill the DICOM object
+   $d->fill($infile);
+
+   #print "CONTENTS ($infile)\n";
+   #$d->printContents();
+   
+   # hunt for a patient name or ID
+   my $PatientName = $d->value('0010', '0010');
+   my $PatientID = $d->value('0010', '0020');
+      
+   # Series, Acquisition, Image IDS
+   my $StudyID = $d->value('0020', '0010');
+   my $SeriesNumber = $d->value('0020', '0011');
+   my $AcquisitionNumber = $d->value('0020', '0012');
+   my $ImageNumber = $d->value('0020', '0013');
+   
+   # clean up numbers
+   $StudyID =~ s/\ //g;
+   $SeriesNumber *= 1;
+   $AcquisitionNumber *= 1;
+   $ImageNumber *= 1;
+   
+   # times
+   my $StudyDate = $d->value('0008', '0020');
+   my $StudyTime = $d->value('0008', '0030');
+   my $SeriesDate = $d->value('0008', '0021');
+   my $SeriesTime = $d->value('0008', '0031');
+   my $AcquisitionTime = $d->value('0008', '0032');
+   my $ImageTime = $d->value('0008', '0033');
+   
+   # Sequence, Protocol Name
+   my $SequenceName = $d->value('0018', '0024');
+   my $ProtocolName = $d->value('0018', '1030');
+   $SequenceName =~ s/\ $//g;
+   $ProtocolName =~ s/\ $//g;
+   
+   # figure out ID and record info
+   if($opt{'by_id'}){
+      $ID = join('-', $PatientID, $StudyDate, $StudyTime);
+      }
+   else{
+      $ID = "$PatientID\_$PatientName-$StudyID";
+      }
+   
+   $ID =~ s/\^/\-/g;
+   $ID =~ s/\ //g;
+   $ID = lc($ID);
+   
+   print "[$ID] [$SeriesNumber][$AcquisitionNumber][$ImageNumber] - " .
+      "$SequenceName - $ProtocolName  -- $infile\n" if $opt{'verbose'};
+   
+   # enter the filename
+   $db{$ID}{$SeriesNumber}{$AcquisitionNumber}{$ImageNumber} = $infile;
+   
+   $StudyDate{$ID} = $StudyDate;
+   $SeriesDate{"$ID:$SeriesNumber"} = $SeriesDate;
+   
+   if(defined($SeriesTime{"$ID:$SeriesNumber"}) && 
+      $SeriesTime{"$ID:$SeriesNumber"} != $SeriesTime){
+      print "ERROR! Series Time does not match($infile)";
+      # exit(1);
+      }
+   $SeriesTime{"$ID:$SeriesNumber"} = $SeriesTime;
+   $AcquisitionTime{"$ID:$SeriesNumber:$AcquisitionNumber"} = $AcquisitionTime;
+   $ImageTime{"$ID:$SeriesNumber:$AcquisitionNumber:$ImageNumber"} = $ImageTime;
+   
+   $SequenceName{"$ID:$SeriesNumber"} = $SequenceName;
+   $ProtocolName{"$ID:$SeriesNumber"} = $ProtocolName;
+   
+   print '.';
+   }
+print "Done\n";
+
+
+my ($id, $ser, $acq, $img, @imgs);
+
+# print out the database
+foreach $id (sort keys(%db)){
+   foreach $ser (sort {$a <=> $b} (keys(%{$db{$id}}))){
+      
+      # pretty output
+      print color 'bold blue';
+      print "[$id]";
+      
+      print color 'reset';
+      print color 'yellow';
+      print '[' . sprintf("%03d", $ser) . 
+            '][' . $SeriesDate{"$id:$ser"} . 
+            '][' . $SeriesTime{"$id:$ser"} . 
+            '] ';
+      
+      print color 'bold red';
+      print $ProtocolName{"$id:$ser"} . '   ';
+      
+      print color 'reset';
+
+      foreach $acq (sort {$a <=> $b} (keys(%{$db{$id}{$ser}}))){
+
+         #print "   Acq[" . $AcquisitionTime{"$ID:$s:$a"} . "]: $a  (";
+         print "$acq ";
+
+         @imgs = (sort {$a <=> $b} (keys(%{$db{$id}{$ser}{$acq}})));
+
+         print '(' . join(' ', @imgs) . ') ' if($#imgs > 0);
+         
+         if($opt{'move'} || $opt{'copy'}){
+            my($outfile, $outdir, $protocol);
+            
+            foreach $img (@imgs){
+               
+               $infile = $db{$id}{$ser}{$acq}{$img};
+               
+               $protocol = lc($ProtocolName{"$id:$ser"});
+               $protocol =~ s/\//\-/g;
+               $protocol =~ s/\ /\-/g;
+               
+               $outdir = "$opt{'outdir'}/$id/" .
+                  sprintf("%04d", $ser) . "_$protocol";
+               
+               $outfile = $outdir . '/' . sprintf("%04d-%04d.dcm", $acq, $img);
+               
+               # print "$infile => $outdir/$outfile\n" if $opt{'verbose'};
+               
+               # make output dir
+               &do_cmd('mkdir', '-p', $outdir);
+               
+               # check if it exists first
+               if(-e $outfile){
+                  warn "$outfile exists, (from: $infile) skipping\n";
+                  }
+               else{
+                  if($opt{'move'}){
+                     &do_cmd('mv', '-i', $infile, $outfile);
+                     }
+                  
+                  if($opt{'copy'}){
+                     &do_cmd('cp', '-i', $infile, $outfile);
+                     }
+                  }
+               }
+            }
+         }
+      print "\n";
+      }
+   }
+
+
+sub do_cmd { 
+   print STDOUT "@_\n" if $opt{verbose};
+   if(!$opt{fake}){
+      system(@_) == 0 or die;
+      }
+   }
+
+sub print_version_info {
+   print STDOUT "\n$PACKAGE version $VERSION\n".
+                "Comments to $PACKAGE_BUGREPORT\n\n";
+   exit;
+   }
+
+
+__END__
+
+=head1 NAME
+
+B<dcmsort> - sort a directory of dicom files
+
+=head1 SYNOPSIS
+
+B<dcmsort> [options] infile1.dcm [ infile2.dcm [ indir1 ] ]
+
+dcmsort will take an input series of dicom files (or directories), 
+find all the dicom files in there and then make an output directory
+structure in the current directory using the paitient ID and sequence
+names as subfolders.
+
+   $ dcmsort 2312323/*.dcm 
+
+or
+
+   $ dcmsort 2312323
+   
+Will achieve the same thing. 
+
+
+=head1 DESCRIPTION
+
+B<dcmsort> digs in the headers of each dicom file in the input list and
+builds a database of the series, acquisision and image's. From there it
+will output the individual dicom files into a more sensical structure
+that will allow the easy conversion of just one series. Note that at this
+stage no real sanity checking of the input dicom files is done such as
+checking for missing images and mismatched headers.
+
+By default dcmsort will just output a listing of what is in the input
+dicom files, if you want it to really move or copy the files in question
+use the --move or --copy options.
+
+Examples:
+
+   # what is in a directory
+   $ dcmsort 05041123/DICOM/*.IMA
+   
+   # Be very noisy about it
+   $ dcmsort --verbose 05041123/DICOM/*.IMA
+   
+   # copy a bunch of DICOM files to a local db from a CD
+   $ dcmsort --copy --by_id --outdir data/db /cdrom/dicom
+
+
+Problems or comments should not be sent to: <a.janke@gmail.com> he really
+is not all that interested in maintaining things that pertain to DICOM
+as it seems to be a constantly moving target. But hey you can
+still email and you might just get lucky, he might be having a good day
+or just happen to have a small amount of self-interest in the problem at
+hand...
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-v>, B<--verbose>
+
+Be noisy(er) when doing things
+
+=item B<--version>
+
+Print version number and exit
+
+=item B<-h>, B<--help>
+
+Dump some quick help output
+
+=item B<--man>
+
+Dump a man page
+
+=item B<-f>, B<--fake>
+
+Do a dry run. This is usually only useful if combined with --verbose so 
+that you can see what is going on.
+
+=item B<--move>
+
+Move the input files
+
+=item B<--copy>
+
+Copy the input files
+
+=item B<--by_id>
+
+Name the resulting top level directory by the PatientID instead of by name
+
+=item B<--outdir>
+
+Place the resulting files (either copied or moved) into this directory, note
+that if the directory does not exist it will be made. By default the current
+working directory is used
+
+=back
+
+=head1 SEE ALSO
+
+DICOM.pm
+
+=head1 AUTHOR
+
+Andrew Janke - a.janke@gmail.com
+
+=cut
