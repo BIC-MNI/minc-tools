@@ -16,6 +16,7 @@ use warnings "all";
 use Getopt::Long;
 use Pod::Usage;
 use File::Basename;
+use File::MimeInfo::Magic;
 use Cwd;
 
 use Term::ANSIColor;
@@ -30,29 +31,34 @@ my $PACKAGE_BUGREPORT = '"Andrew Janke" <a.janke@gmail.com>';
 my($me, %opt, $infile, @infiles);
 
 $me = &basename($0);
-%opt = (verbose => 0,
-        fake => 0,
-        man => 0,
-        help => 0,
-        move => 0,
-        copy => 0,
-        by_id => 0,
-        outdir => '',
-        );
+%opt = (
+   verbose => 0,
+   clobber => 0,
+   fake => 0,
+   man => 0,
+   help => 0,
+   move => 0,
+   copy => 0,
+   by_id => 0,
+   rename_log => undef,
+   outdir => '',
+   );
 
 # Check arguments
 &GetOptions(
    'help|?' => \$opt{'help'},
    'man' => \$opt{'man'},
    'v|verbose' => \$opt{'verbose'},
+   'c|clobber' => \$opt{'clobber'},
    'version' => sub { &print_version_info },
    'f|fake' => \$opt{'fake'},
    'move' => \$opt{'move'},
    'copy' => \$opt{'copy'},
    'by_id' => \$opt{'by_id'},
    'outdir=s' => \$opt{'outdir'},
+   'rename_log=s' => \$opt{'rename_log'},
    ) or pod2usage(-verbose => 1) && exit;
-   
+
 # handle -man, -help or missing args
 pod2usage(-verbose => 1) if $opt{help};
 pod2usage(-exitstatus => 0, -verbose => 2) if $opt{man};
@@ -68,14 +74,14 @@ foreach (@ARGV){
       push(@infiles, $_);
       next;
       }
-   
+
    # if a directory
    if(-d $_){
       @buf = split(/\n/, `find $_ -type f`);
       push(@infiles, @buf);
       next;
       }
-   
+
    die "This is bad - $_ probably doesn't exist\n";
    }
 
@@ -84,8 +90,30 @@ if($opt{'outdir'} eq ''){
    $opt{'outdir'} = &getcwd;
    }
 
+# check for logfile
+if(defined($opt{'rename_log'}) && !$opt{'clobber'} && -e $opt{'rename_log'}){
+   die "$me: $opt{'rename_log'} exists!, use -clobber to overwrite\n\n";
+   }
+
+
 my(%db, %StudyDate, %SeriesDate, %SeriesTime, %AcquisitionTime,
    %ImageTime, %SequenceName, %ProtocolName);
+
+# check the input files, discard those that aren't dicom
+print "Checking mime types:";
+foreach $infile (@infiles){
+
+   my $mime_type = mimetype($infile);
+   if($mime_type ne "application/dicom"){
+      print " + $infile - $mime_type - dropping\n";
+      $infile = "NOT-DICOM-REMOVE";
+      }
+
+   print ".";
+   }
+@infiles = grep(!/NOT-DICOM-REMOVE/, @infiles);
+print "Done\n";
+
 
 # create the DICOM object
 my $d = DICOM->new();
@@ -93,29 +121,38 @@ my $d = DICOM->new();
 print "Reading $#infiles Images:";
 foreach $infile (@infiles){
    my($ID);
-   
+
    # fill the DICOM object
    $d->fill($infile);
 
-   #print "CONTENTS ($infile)\n";
-   #$d->printContents();
-   
    # hunt for a patient name or ID
    my $PatientName = $d->value('0010', '0010');
    my $PatientID = $d->value('0010', '0020');
-      
+
+   # if no name or ID, probably not an image (likely DICOMDIR)
+   if(length($PatientName) == 0 && length($PatientID) == 0){
+      warn "\n  +++ Skipping $infile - probably not a DICOM image\n";
+      next;
+      }
+
+   $PatientID =~ s/\0//;
+   $PatientName =~ s/\0//;
+
    # Series, Acquisition, Image IDS
    my $StudyID = $d->value('0020', '0010');
-   my $SeriesNumber = $d->value('0020', '0011');
-   my $AcquisitionNumber = $d->value('0020', '0012');
-   my $ImageNumber = $d->value('0020', '0013');
-   
+   my $SeriesNumber = &make_numeric($d->value('0020', '0011'));
+   my $AcquisitionNumber = &make_numeric($d->value('0020', '0012'));
+   my $ImageNumber = &make_numeric($d->value('0020', '0013'));
+
+   # sanity check (mainly for pheonix docs)
+   $ImageNumber = 1 if length($ImageNumber) == 0;
+   $AcquisitionNumber = 1 if length($AcquisitionNumber) == 0;
+
+   # print "SI: $StudyID  SN: $SeriesNumber  AN: $AcquisitionNumber  IN: $ImageNumber\n";
+
    # clean up numbers
-   $StudyID =~ s/\ //g;
-   $SeriesNumber *= 1;
-   $AcquisitionNumber *= 1;
-   $ImageNumber *= 1;
-   
+   $StudyID =~ s/(\ |\0)//g;
+
    # times
    my $StudyDate = $d->value('0008', '0020');
    my $StudyTime = $d->value('0008', '0030');
@@ -123,13 +160,20 @@ foreach $infile (@infiles){
    my $SeriesTime = $d->value('0008', '0031');
    my $AcquisitionTime = $d->value('0008', '0032');
    my $ImageTime = $d->value('0008', '0033');
-   
+
+   $StudyTime =~ s/\ //g;
+   $SeriesTime =~ s/\ //g;
+
    # Sequence, Protocol Name
    my $SequenceName = $d->value('0018', '0024');
    my $ProtocolName = $d->value('0018', '1030');
-   $SequenceName =~ s/\ $//g;
-   $ProtocolName =~ s/\ $//g;
-   
+   $SequenceName =~ s/(\ $|\0)//g;
+   $ProtocolName =~ s/(\ $|\0)//g;
+
+   # sanity check
+   $ProtocolName = "no-protocol" if length($ProtocolName) == 0;
+   $SequenceName = "no-sequence" if length($SequenceName) == 0;
+
    # figure out ID and record info
    if($opt{'by_id'}){
       $ID = join('-', $PatientID, $StudyDate, $StudyTime);
@@ -137,89 +181,96 @@ foreach $infile (@infiles){
    else{
       $ID = "$PatientID\_$PatientName-$StudyID";
       }
-   
+
    $ID =~ s/\^/\-/g;
    $ID =~ s/\ //g;
    $ID = lc($ID);
-   
-   print "[$ID] [$SeriesNumber][$AcquisitionNumber][$ImageNumber] - " .
+
+   print "[$ID][$StudyDate:$StudyTime] [$SeriesNumber][$AcquisitionNumber][$ImageNumber] - " .
       "$SequenceName - $ProtocolName  -- $infile\n" if $opt{'verbose'};
-   
-   # enter the filename
-   $db{$ID}{$SeriesNumber}{$AcquisitionNumber}{$ImageNumber} = $infile;
-   
-   $StudyDate{$ID} = $StudyDate;
-   $SeriesDate{"$ID:$SeriesNumber"} = $SeriesDate;
-   
-   if(defined($SeriesTime{"$ID:$SeriesNumber"}) && 
-      $SeriesTime{"$ID:$SeriesNumber"} != $SeriesTime){
-      print "ERROR! Series Time does not match($infile)";
+
+   # generate hashkey
+   my($hashkey) = "$ID.$StudyDate.$StudyTime";
+   $hashkey =~ s/\.\d{6}$//;
+
+   # add file to the db
+   $db{$hashkey}{$SeriesNumber}{$AcquisitionNumber}{$ImageNumber} = $infile;
+
+   # sanity check
+   if(defined($SeriesTime{"$hashkey:$SeriesNumber"}) &&
+      $SeriesTime{"$hashkey:$SeriesNumber"} != $SeriesTime){
+      print "\n +++ ERROR! SeriesTime does not match ($infile)\n";
       # exit(1);
       }
-   $SeriesTime{"$ID:$SeriesNumber"} = $SeriesTime;
-   $AcquisitionTime{"$ID:$SeriesNumber:$AcquisitionNumber"} = $AcquisitionTime;
-   $ImageTime{"$ID:$SeriesNumber:$AcquisitionNumber:$ImageNumber"} = $ImageTime;
-   
-   $SequenceName{"$ID:$SeriesNumber"} = $SequenceName;
-   $ProtocolName{"$ID:$SeriesNumber"} = $ProtocolName;
-   
+
+   $SeriesDate{"$hashkey:$SeriesNumber"} = $SeriesDate;
+   $SeriesTime{"$hashkey:$SeriesNumber"} = $SeriesTime;
+   $ProtocolName{"$hashkey:$SeriesNumber"} = $ProtocolName;
+
+   #$AcquisitionTime{"$hashkey:$SeriesNumber:$AcquisitionNumber"} = $AcquisitionTime;
+   #$ImageTime{"$hashkey:$SeriesNumber:$AcquisitionNumber:$ImageNumber"} = $ImageTime;
+   #$SequenceName{"$hashkey:$SeriesNumber"} = $SequenceName;
+
    print '.';
    }
 print "Done\n";
 
+# set up rename logfile
+if(defined($opt{'rename_log'})){
+   open(LOG, ">$opt{'rename_log'}");
+   }
 
 my ($id, $ser, $acq, $img, @imgs);
 
 # print out the database
 foreach $id (sort keys(%db)){
    foreach $ser (sort {$a <=> $b} (keys(%{$db{$id}}))){
-      
+
       # pretty output
       print color 'bold blue';
       print "[$id]";
-      
+
       print color 'reset';
       print color 'yellow';
-      print '[' . sprintf("%03d", $ser) . 
-            '][' . $SeriesDate{"$id:$ser"} . 
-            '][' . $SeriesTime{"$id:$ser"} . 
+      print '[' . sprintf("%03d", $ser) .
+            '][' . $SeriesDate{"$id:$ser"} .
+            '][' . $SeriesTime{"$id:$ser"} .
             '] ';
-      
+
       print color 'bold red';
       print $ProtocolName{"$id:$ser"} . '   ';
-      
+
       print color 'reset';
-
       foreach $acq (sort {$a <=> $b} (keys(%{$db{$id}{$ser}}))){
-
          #print "   Acq[" . $AcquisitionTime{"$ID:$s:$a"} . "]: $a  (";
          print "$acq ";
 
          @imgs = (sort {$a <=> $b} (keys(%{$db{$id}{$ser}{$acq}})));
 
          print '(' . join(' ', @imgs) . ') ' if($#imgs > 0);
-         
+
          if($opt{'move'} || $opt{'copy'}){
             my($outfile, $outdir, $protocol);
-            
+
             foreach $img (@imgs){
-               
+
                $infile = $db{$id}{$ser}{$acq}{$img};
-               
+
                $protocol = lc($ProtocolName{"$id:$ser"});
                $protocol =~ s/\//\-/g;
                $protocol =~ s/\ /\-/g;
-               
+
                $outdir = "$opt{'outdir'}/$id/" .
                   sprintf("%04d", $ser) . "_$protocol";
-               
+
                $outfile = $outdir . '/' . sprintf("%04d-%04d.dcm", $acq, $img);
-               
-               # print "$infile => $outdir/$outfile\n" if $opt{'verbose'};
-               
+
+               # log
+               print LOG "$infile -> $outfile\n" if defined($opt{'rename_log'});
+
                # make output dir
                &do_cmd('mkdir', '-p', $outdir);
-               
+
                # check if it exists first
                if(-e $outfile){
                   warn "$outfile exists, (from: $infile) skipping\n";
@@ -228,7 +279,7 @@ foreach $id (sort keys(%db)){
                   if($opt{'move'}){
                      &do_cmd('mv', '-i', $infile, $outfile);
                      }
-                  
+
                   if($opt{'copy'}){
                      &do_cmd('cp', '-i', $infile, $outfile);
                      }
@@ -240,8 +291,10 @@ foreach $id (sort keys(%db)){
       }
    }
 
+close(LOG) if defined($opt{'rename_log'});
 
-sub do_cmd { 
+
+sub do_cmd {
    print STDOUT "@_\n" if $opt{verbose};
    if(!$opt{fake}){
       system(@_) == 0 or die;
@@ -252,6 +305,19 @@ sub print_version_info {
    print STDOUT "\n$PACKAGE version $VERSION\n".
                 "Comments to $PACKAGE_BUGREPORT\n\n";
    exit;
+   }
+
+# fix up DICOM messings with numbers
+sub make_numeric {
+   my($in) = shift;
+
+   # remove null character
+   $in =~ s/\0//;
+
+   # force to numeric
+   $in *= 1 if length($in) > 0;
+
+   return $in;
    }
 
 
@@ -265,18 +331,18 @@ B<dcmsort> - sort a directory of dicom files
 
 B<dcmsort> [options] infile1.dcm [ infile2.dcm [ indir1 ] ]
 
-dcmsort will take an input series of dicom files (or directories), 
+dcmsort will take an input series of dicom files (or directories),
 find all the dicom files in there and then make an output directory
 structure in the current directory using the paitient ID and sequence
 names as subfolders.
 
-   $ dcmsort 2312323/*.dcm 
+   $ dcmsort 2312323/*.dcm
 
 or
 
    $ dcmsort 2312323
-   
-Will achieve the same thing. 
+
+Will achieve the same thing.
 
 
 =head1 DESCRIPTION
@@ -296,10 +362,10 @@ Examples:
 
    # what is in a directory
    $ dcmsort 05041123/DICOM/*.IMA
-   
+
    # Be very noisy about it
    $ dcmsort --verbose 05041123/DICOM/*.IMA
-   
+
    # copy a bunch of DICOM files to a local db from a CD
    $ dcmsort --copy --by_id --outdir data/db /cdrom/dicom
 
@@ -319,6 +385,10 @@ hand...
 
 Be noisy(er) when doing things
 
+=item B<-c>, B<--clobber>
+
+Overwrite any existing logfile
+
 =item B<--version>
 
 Print version number and exit
@@ -333,7 +403,7 @@ Dump a man page
 
 =item B<-f>, B<--fake>
 
-Do a dry run. This is usually only useful if combined with --verbose so 
+Do a dry run. This is usually only useful if combined with --verbose so
 that you can see what is going on.
 
 =item B<--move>
@@ -353,6 +423,10 @@ Name the resulting top level directory by the PatientID instead of by name
 Place the resulting files (either copied or moved) into this directory, note
 that if the directory does not exist it will be made. By default the current
 working directory is used
+
+=item B<--rename_log>
+
+Keep a logfile of filenames as they are moved or copied
 
 =back
 
