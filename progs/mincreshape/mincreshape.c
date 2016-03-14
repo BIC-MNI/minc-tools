@@ -7,11 +7,11 @@
               a subrange (or superrange) of dimension indices, eliminating
               dimensions, or re-ordering axes. As well, all icv conversions
               are made accessible on the command line.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : March 10, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
  * $Log: mincreshape.c,v $
  * Revision 6.14  2008-01-17 02:33:02  rotor
  *  * removed all rcsids
@@ -92,15 +92,15 @@
  * Revision 1.3  94/11/22  08:46:09  neelin
  * Fixed handling of normalization for number of image dimensions > 2.
  * Added appropriate default values of image-max and image-min.
- * 
+ *
  * Revision 1.2  94/11/03  08:48:20  neelin
  * Allow chunk_count to have sizes less than full block size.
- * 
+ *
  * Revision 1.1  94/11/02  16:21:24  neelin
  * Initial revision
- * 
+ *
 @COPYRIGHT  :
-              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre, 
+              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre,
               Montreal Neurological Institute, McGill University.
               Permission to use, copy, modify, and distribute this
               software and its documentation for any purpose and without
@@ -117,6 +117,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <float.h>
 #include <limits.h>
 #include <string.h>
@@ -182,13 +183,13 @@ int main(int argc, char *argv[])
               argv - command-line arguments
 @OUTPUT     : reshape_info - information for reshaping file
 @RETURNS    : (nothing)
-@DESCRIPTION: Routine to get information from arguments about input and 
+@DESCRIPTION: Routine to get information from arguments about input and
               output files and reshaping.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : March 11, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void get_arginfo(int argc, char *argv[],
                         Reshape_info *reshape_info)
@@ -226,17 +227,17 @@ static void get_arginfo(int argc, char *argv[],
 
    /* Argument table */
    static ArgvInfo argTable[] = {
-      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
           "General options:"},
-      {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber, 
+      {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber,
           "Overwrite existing file."},
-      {"-noclobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber, 
+      {"-noclobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber,
           "Do not overwrite existing file (default)."},
-      {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose, 
+      {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
           "Print out log messages as processing is being done (default).\n"},
-      {"-quiet", ARGV_CONSTANT, (char *) FALSE, (char *) &verbose, 
+      {"-quiet", ARGV_CONSTANT, (char *) FALSE, (char *) &verbose,
           "Do not print out any log messages."},
-      {"-max_chunk_size_in_kb", ARGV_INT, (char *) 0, 
+      {"-max_chunk_size_in_kb", ARGV_INT, (char *) 0,
           (char *) &max_chunk_size_in_kb,
           "Specify the maximum size of the copy buffer (in kbytes)."},
 #if MINC2
@@ -244,7 +245,7 @@ static void get_arginfo(int argc, char *argv[],
        "Produce a MINC 2.0 format output file."},
 #endif /* MINC2 */
 
-      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
           "Image conversion options (pixel type and range):"},
       {"-filetype", ARGV_CONSTANT, (char *) MI_ORIGINAL_TYPE, (char *) &datatype,
           "Don't do any type conversion (default)."},
@@ -273,57 +274,57 @@ static void get_arginfo(int argc, char *argv[],
           "Normalize images to file minimum and maximum."},
       {"-nonormalize", ARGV_CONSTANT, (char *) FALSE, (char *) &do_norm,
           "Do not normalize images (default)."},
-      {"-nopixfill", ARGV_FUNC, (char *) get_fillvalue, 
+      {"-nopixfill", ARGV_FUNC, (char *) get_fillvalue,
           (char *) &pixfillvalue,
           "Do not convert out-of-range values in input file."},
-      {"-pixfill", ARGV_FUNC, (char *) get_fillvalue, 
+      {"-pixfill", ARGV_FUNC, (char *) get_fillvalue,
           (char *) &pixfillvalue,
           "Replace out-of-range values in input file by smallest value (default)."},
-      {"-pixfillvalue", ARGV_FLOAT, (char *) 0, 
+      {"-pixfillvalue", ARGV_FLOAT, (char *) 0,
           (char *) &pixfillvalue,
           "Specify new value to replace out-of-range values in input file."},
 
-      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
           "Image conversion options (dimension direction and size):"},
       {"-scalar", ARGV_CONSTANT, (char *) TRUE, (char *) &do_scalar,
           "Convert vector images to scalar images."},
       {"-noscalar", ARGV_CONSTANT, (char *) FALSE, (char *) &do_scalar,
           "Do not convert vector images to scalar images (default)."},
 
-      {"+direction", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE, 
+      {"+direction", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE,
           (char *) &direction,
           "Flip images to give positive step value for spatial axes."},
-      {"-direction", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE, 
+      {"-direction", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE,
           (char *) &direction,
           "Flip images to give negative step value for spatial axes."},
-      {"-anydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR, 
+      {"-anydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR,
           (char *) &direction,
           "Don't flip images along spatial axes (default)."},
-      {"+xdirection", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE, 
+      {"+xdirection", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE,
           (char *) &xdirection,
           "Flip images to give positive xspace:step value (left-to-right)."},
-      {"-xdirection", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE, 
+      {"-xdirection", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE,
           (char *) &xdirection,
           "Flip images to give negative xspace:step value (right-to-left)."},
-      {"-xanydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR, 
+      {"-xanydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR,
           (char *) &xdirection,
           "Don't flip images along x-axis."},
-      {"+ydirection", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE, 
+      {"+ydirection", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE,
           (char *) &ydirection,
           "Flip images to give positive yspace:step value (post-to-ant)."},
-      {"-ydirection", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE, 
+      {"-ydirection", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE,
           (char *) &ydirection,
           "Flip images to give negative yspace:step value (ant-to-post)."},
-      {"-yanydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR, 
+      {"-yanydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR,
           (char *) &ydirection,
           "Don't flip images along y-axis."},
-      {"+zdirection", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE, 
+      {"+zdirection", ARGV_CONSTANT, (char *) MI_ICV_POSITIVE,
           (char *) &zdirection,
           "Flip images to give positive zspace:step value (inf-to-sup)."},
-      {"-zdirection", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE, 
+      {"-zdirection", ARGV_CONSTANT, (char *) MI_ICV_NEGATIVE,
           (char *) &zdirection,
           "Flip images to give negative zspace:step value (sup-to-inf)."},
-      {"-zanydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR, 
+      {"-zanydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR,
           (char *) &zdirection,
           "Don't flip images along z-axis."},
 
@@ -338,25 +339,25 @@ static void get_arginfo(int argc, char *argv[],
           "Specify the desired number of rows in the image."},
       {"-colsize", ARGV_INT, (char *) 0, (char *) &col_size,
           "Specify the desired number of columns in the image."},
-      {"-dimsize", ARGV_FUNC, (char *) get_dimsize, 
+      {"-dimsize", ARGV_FUNC, (char *) get_dimsize,
           (char *) &dimsize_list,
           "Specify the size of a named dimension (<dimension>=<size>)."},
 
-      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
           "Reshaping options:"},
-      {"-transverse", ARGV_FUNC, (char *) get_axis_order, 
+      {"-transverse", ARGV_FUNC, (char *) get_axis_order,
           (char *) axis_order,
           "Write out transverse slices"},
-      {"-sagittal", ARGV_FUNC, (char *) get_axis_order, 
+      {"-sagittal", ARGV_FUNC, (char *) get_axis_order,
           (char *) axis_order,
           "Write out sagittal slices"},
-      {"-coronal", ARGV_FUNC, (char *) get_axis_order, 
+      {"-coronal", ARGV_FUNC, (char *) get_axis_order,
           (char *) axis_order,
           "Write out coronal slices"},
-      {"-dimorder", ARGV_FUNC, (char *) get_axis_order, 
+      {"-dimorder", ARGV_FUNC, (char *) get_axis_order,
           (char *) axis_order,
           "Specify dimension order (<dim1>,<dim2>,<dim3>,...)."},
-      {"-dimrange", ARGV_FUNC, (char *) get_axis_range, 
+      {"-dimrange", ARGV_FUNC, (char *) get_axis_range,
           (char *) &axis_ranges,
           "Specify range of dimension subscripts (<dim>=<start>[,<count>])."},
       {"-start", ARGV_FUNC, (char *) get_arg_vector, (char *) hs_start,
@@ -364,15 +365,15 @@ static void get_arginfo(int argc, char *argv[],
       {"-count", ARGV_FUNC, (char *) get_arg_vector, (char *) hs_count,
           "Specifies edge lengths of hyperslab to read"},
 
-      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL, 
+      {NULL, ARGV_HELP, (char *) NULL, (char *) NULL,
           "Missing data options:"},
-      {"-nofill", ARGV_FUNC, (char *) get_fillvalue, 
+      {"-nofill", ARGV_FUNC, (char *) get_fillvalue,
           (char *) &fillvalue,
           "Use value zero for points outside of input volume (default)"},
-      {"-fill", ARGV_FUNC, (char *) get_fillvalue, 
+      {"-fill", ARGV_FUNC, (char *) get_fillvalue,
           (char *) &fillvalue,
           "Use a fill value for points outside of input volume"},
-      {"-fillvalue", ARGV_FLOAT, (char *) 0, 
+      {"-fillvalue", ARGV_FLOAT, (char *) 0,
           (char *) &fillvalue,
           "Specify a fill value for points outside of input volume"},
 
@@ -390,14 +391,27 @@ static void get_arginfo(int argc, char *argv[],
 
    /* Call ParseArgv */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc!=3)) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\nUsage: %s [<options>] <infile> <outfile>\n", pname);
-      (void) fprintf(stderr,   
+      (void) fprintf(stderr,
                      "       %s [-help]\n\n", pname);
       exit(EXIT_FAILURE);
    }
    infile = argv[1];
    outfile = argv[2];
+
+   /* check for the infile */
+   if(access(infile, F_OK) != 0){
+      fprintf(stderr, "%s: Couldn't find %s\n\n", argv[0], infile);
+      exit(EXIT_FAILURE);
+      }
+
+   /* check for output file */
+   if(access(outfile, F_OK) == 0 && !clobber) {
+      fprintf(stderr, "%s: %s exists, use -clobber to overwrite\n\n",
+              argv[0], outfile);
+      exit(EXIT_FAILURE);
+   }
 
    /* Save verbose setting */
    reshape_info->verbose = verbose;
@@ -474,14 +488,14 @@ static void get_arginfo(int argc, char *argv[],
    setup_dim_sizes(icvid, reshape_info->inmincid, &dimsize_list);
 
    /* Save reshaping information */
-   setup_reshaping_info(icvid, reshape_info->inmincid, 
-                        do_norm, fillvalue, do_scalar, 
+   setup_reshaping_info(icvid, reshape_info->inmincid,
+                        do_norm, fillvalue, do_scalar,
                         axis_order, &axis_ranges, hs_start, hs_count,
                         max_chunk_size_in_kb,
                         reshape_info);
 
    /* Attach the icv */
-   (void) miicv_attach(icvid, reshape_info->inmincid, 
+   (void) miicv_attach(icvid, reshape_info->inmincid,
                        ncvarid(reshape_info->inmincid, MIimage));
 
    /* Create the output file */
@@ -507,14 +521,14 @@ static void get_arginfo(int argc, char *argv[],
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : FALSE so that ParseArgv will not discard nextArg
 @DESCRIPTION: Routine called by ParseArgv to set the fill value
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : March 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_fillvalue(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -529,7 +543,7 @@ static int get_fillvalue(char *dst, char *key, char *nextArg)
        (strcmp(key, "-pixfill") == 0)) {
       *dptr = FILL;
    }
-   else if ((strcmp(key, "-nofill") == 0) || 
+   else if ((strcmp(key, "-nofill") == 0) ||
             (strcmp(key, "-nopixfill") == 0)) {
       *dptr = NOFILL;
    }
@@ -542,14 +556,14 @@ static int get_fillvalue(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : TRUE so that ParseArgv will discard nextArg
 @DESCRIPTION: Routine called by ParseArgv to get a dimension size
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : March 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_dimsize(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -564,7 +578,7 @@ static int get_dimsize(char *dst, char *key, char *nextArg)
 
    /* Check for next argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\"%s\" option requires an additional argument\n",
                      key);
       exit(EXIT_FAILURE);
@@ -616,7 +630,7 @@ static int get_dimsize(char *dst, char *key, char *nextArg)
                      key);
       exit(EXIT_FAILURE);
    }
-   
+
    dimsize_list->nentries++;
 
    return TRUE;
@@ -627,15 +641,15 @@ static int get_dimsize(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : TRUE or FALSE (so that ParseArgv will discard nextArg only
               when needed)
 @DESCRIPTION: Routine called by ParseArgv to set the axis order
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : March 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_axis_order(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -669,7 +683,7 @@ static int get_axis_order(char *dst, char *key, char *nextArg)
 
    /* Make sure that we have a "-dimorder" argument */
    if (strcmp(key, "-dimorder") != 0) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Unrecognized option \"%s\": internal program error.\n",
                      key);
       exit(EXIT_FAILURE);
@@ -677,7 +691,7 @@ static int get_axis_order(char *dst, char *key, char *nextArg)
 
    /* Check for next argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\"%s\" option requires an additional argument\n",
                      key);
       exit(EXIT_FAILURE);
@@ -695,7 +709,7 @@ static int get_axis_order(char *dst, char *key, char *nextArg)
       axis_order[ndims] = cur;
 
       /* Search for end of dimension name */
-      while (!ISSPACE(*cur) && (*cur != ARG_SEPARATOR) && 
+      while (!ISSPACE(*cur) && (*cur != ARG_SEPARATOR) &&
              (*cur != '\0')) cur++;
       if (*cur != '\0') {
          *cur = '\0';
@@ -719,14 +733,14 @@ static int get_axis_order(char *dst, char *key, char *nextArg)
 @INPUT      : dst - Pointer to client data from argument table
               key - argument key
               nextArg - argument following key
-@OUTPUT     : (nothing) 
+@OUTPUT     : (nothing)
 @RETURNS    : TRUE so that ParseArgv will discard nextArg
 @DESCRIPTION: Routine called by ParseArgv to set the axis range
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : March 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_axis_range(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -740,7 +754,7 @@ static int get_axis_range(char *dst, char *key, char *nextArg)
 
    /* Check for next argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\"%s\" option requires an additional argument\n",
                      key);
       exit(EXIT_FAILURE);
@@ -777,7 +791,7 @@ static int get_axis_range(char *dst, char *key, char *nextArg)
    /* Get the start */
    num_string++;
    axis_ranges->start[ientry] = ParseLong(num_string, &cur);
-   if ((cur == num_string) || 
+   if ((cur == num_string) ||
        !(ISSPACE(*cur) || (*cur == ARG_SEPARATOR) || (*cur == '\0'))) {
       (void) fprintf(stderr,
          "\"%s\" option requires the argument <dim>=<start>[,<count>]\n",
@@ -787,7 +801,7 @@ static int get_axis_range(char *dst, char *key, char *nextArg)
 
    /* Skip any spaces */
    while (ISSPACE(*cur)) cur++;
-   
+
    /* Skip an optional comma */
    if (*cur == ARG_SEPARATOR) cur++;
 
@@ -808,7 +822,7 @@ static int get_axis_range(char *dst, char *key, char *nextArg)
                      key);
       exit(EXIT_FAILURE);
    }
-   
+
    return TRUE;
 }
 
@@ -820,13 +834,13 @@ static int get_axis_range(char *dst, char *key, char *nextArg)
                  be written (padded with LONG_MIN)
 @RETURNS    : TRUE, since nextArg is used (unless it is NULL)
 @DESCRIPTION: Parses a command-line argument into a vector of longs. The
-              string should contain at most MAX_VAR_DIMS comma separated 
+              string should contain at most MAX_VAR_DIMS comma separated
               integer values (spaces are skipped).
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : June 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static int get_arg_vector(char *dst, char *key, char *nextArg)
      /* ARGSUSED */
@@ -838,7 +852,7 @@ static int get_arg_vector(char *dst, char *key, char *nextArg)
 
    /* Check for following argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "\"%s\" option requires an additional argument\n",
                      key);
       return FALSE;
@@ -861,8 +875,8 @@ static int get_arg_vector(char *dst, char *key, char *nextArg)
       vector[nvals] = ParseLong(prev, &cur);
       if ((cur == prev) ||
           !(ISSPACE(*cur) || (*cur == VECTOR_SEPARATOR) || (*cur == '\0'))) {
-         (void) fprintf(stderr, 
-            "expected vector of integers for \"%s\", but got \"%s\"\n", 
+         (void) fprintf(stderr,
+            "expected vector of integers for \"%s\", but got \"%s\"\n",
                         key, nextArg);
          exit(EXIT_FAILURE);
       }
@@ -893,15 +907,15 @@ static int get_arg_vector(char *dst, char *key, char *nextArg)
               valid_range - DBL_MAX if not known
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to get the datatype info from a file. If datatype
-              is not MI_ORIGINAL_TYPE, then is_signed only is set to its 
-              default. Otherwise, is_signed is only modified if it is set 
-              to INT_MIN and valid_range is only modified if it is set to 
+              is not MI_ORIGINAL_TYPE, then is_signed only is set to its
+              default. Otherwise, is_signed is only modified if it is set
+              to INT_MIN and valid_range is only modified if it is set to
               DBL_MAX.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : March 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void get_default_datatype(int mincid, nc_type *datatype, int *is_signed,
                                  double valid_range[2])
@@ -932,14 +946,14 @@ static void get_default_datatype(int mincid, nc_type *datatype, int *is_signed,
    }
 
    /* Set the valid_range if needed. For integer types, just get the
-      default for the type. For float, get the valid range of the 
-      input if it is also float and is specified, otherwise get the 
+      default for the type. For float, get the valid range of the
+      input if it is also float and is specified, otherwise get the
       image range. */
    if (valid_range[0] == DBL_MAX) {
 
       /* Test for integer types */
       integer_type = (*datatype != NC_FLOAT && *datatype != NC_DOUBLE);
-      file_integer_type = 
+      file_integer_type =
          (file_datatype != NC_FLOAT && file_datatype != NC_DOUBLE);
 
       /* Integer type */
@@ -972,7 +986,7 @@ static void get_default_datatype(int mincid, nc_type *datatype, int *is_signed,
                (void) miget_image_range(mincid, valid_range);
             }
             else if (!file_integer_type) {
-               (void) miget_default_range(*datatype, *is_signed, 
+               (void) miget_default_range(*datatype, *is_signed,
                                           valid_range);
             }
             else {
@@ -995,11 +1009,11 @@ static void get_default_datatype(int mincid, nc_type *datatype, int *is_signed,
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to modify an icv so that the appropriate dimensions
               have given sizes
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : May 18, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void setup_dim_sizes(int icvid, int mincid, Dimsize_list *dimsize_list)
 {
@@ -1065,13 +1079,13 @@ static void setup_dim_sizes(int icvid, int mincid, Dimsize_list *dimsize_list)
 @OUTPUT     : reshape_info - information describing the reshaping
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to set up reshaping information.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : May 26, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void setup_reshaping_info(int icvid, int mincid, 
+static void setup_reshaping_info(int icvid, int mincid,
                                  int do_norm, double fillvalue, int do_scalar,
                                  char *axis_order[], Axis_ranges *axis_ranges,
                                  long hs_start[], long hs_count[],
@@ -1096,30 +1110,30 @@ static void setup_reshaping_info(int icvid, int mincid,
    long first, last;
 
    /* Get input file dimension info */
-   (void) ncvarinq(mincid, ncvarid(mincid, MIimage), NULL, NULL, 
+   (void) ncvarinq(mincid, ncvarid(mincid, MIimage), NULL, NULL,
                    &input_ndims, input_dim, NULL);
    (void) ncdiminq(mincid, input_dim[input_ndims-1], name, NULL);
    has_vector_dimension = (strcmp(name, MIvector_dimension) == 0);
-   fastest_input_img_dim = (has_vector_dimension ? 
+   fastest_input_img_dim = (has_vector_dimension ?
                             input_ndims-2 : input_ndims-1);
    if (do_scalar && has_vector_dimension)
       input_ndims--;
    reshape_info->input_ndims = input_ndims;
 
    /* Check length of hs_start and hs_count vectors */
-   for (nstart=0; (nstart<MAX_VAR_DIMS) && (hs_start[nstart]!=LONG_MIN); 
+   for (nstart=0; (nstart<MAX_VAR_DIMS) && (hs_start[nstart]!=LONG_MIN);
         nstart++) {}
-   for (ncount=0; (ncount<MAX_VAR_DIMS) && (hs_count[ncount]!=LONG_MIN); 
+   for (ncount=0; (ncount<MAX_VAR_DIMS) && (hs_count[ncount]!=LONG_MIN);
         ncount++) {}
 #if 0
    if ((nstart != 0) && (ncount != 0) && (nstart != ncount)) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Dimensions of start or count vectors not equal.\n");
       exit(EXIT_FAILURE);
    }
 #endif
    if ((ncount > input_ndims) || (nstart > input_ndims)) {
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Start and/or count vectors are too long.\n");
       exit(EXIT_FAILURE);
    }
@@ -1127,15 +1141,15 @@ static void setup_reshaping_info(int icvid, int mincid,
    /* Get start and count from file info and from hs_start and hs_count */
    (void) miicv_inqint(icvid, MI_ICV_NUM_IMGDIMS, &num_imgdims);
    for (idim=0; idim < input_ndims; idim++) {
-      (void) ncdiminq(mincid, input_dim[idim], NULL, 
+      (void) ncdiminq(mincid, input_dim[idim], NULL,
                       &reshape_info->input_size[idim]);
 
       /* Save the _original_ size. */
       reshape_info->original_size[idim] = reshape_info->input_size[idim];
 
-      if ((idim > fastest_input_img_dim-num_imgdims) && 
+      if ((idim > fastest_input_img_dim-num_imgdims) &&
           (idim <= fastest_input_img_dim)) {
-         (void) miicv_inqlong(icvid, 
+         (void) miicv_inqlong(icvid,
                               MI_ICV_DIM_SIZE+fastest_input_img_dim-idim,
                               &length);
          if (length > 0) {
@@ -1151,7 +1165,7 @@ static void setup_reshaping_info(int icvid, int mincid,
       else
          reshape_info->input_count[idim] = reshape_info->input_size[idim];
    }
-   
+
    /* Get input dimension start and count from axis_ranges variable */
    for (ientry=0; ientry < axis_ranges->nentries; ientry++) {
       dimid = ncdimid(mincid, axis_ranges->name[ientry]);
@@ -1224,7 +1238,7 @@ static void setup_reshaping_info(int icvid, int mincid,
       /* Check for error */
       if ((jdim < 0) || input_dim_used[jdim]) {
          if (order_idim >= 0) {
-            (void) fprintf(stderr, 
+            (void) fprintf(stderr,
       "Cannot re-order dimension \"%s\" (not found, repeated or removed).\n",
                            axis_order[order_idim]);
          }
@@ -1317,7 +1331,7 @@ static void setup_reshaping_info(int icvid, int mincid,
    }
    else {
       reshape_info->do_block_normalization = FALSE;
-      
+
       /* Loop through block dimensions and check if image-min/max varies
          on the dimension */
       set_ncopts(0);
@@ -1357,13 +1371,13 @@ static void setup_reshaping_info(int icvid, int mincid,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Routine to set up the output file
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : June 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void setup_output_file(int mincid, char *history, 
+static void setup_output_file(int mincid, char *history,
                               Reshape_info *reshape_info)
 {
    int output_ndims, output_dim[MAX_VAR_DIMS];
@@ -1385,8 +1399,8 @@ static void setup_output_file(int mincid, char *history,
 
    /* Get useful info */
    output_ndims = reshape_info->output_ndims;
-   (void) ncvarinq(reshape_info->inmincid, 
-                   ncvarid(reshape_info->inmincid, MIimage), 
+   (void) ncvarinq(reshape_info->inmincid,
+                   ncvarid(reshape_info->inmincid, MIimage),
                    NULL, NULL, &input_ndims, input_dim, NULL);
    input_ndims = reshape_info->input_ndims;
 
@@ -1411,7 +1425,7 @@ static void setup_output_file(int mincid, char *history,
       (void) ncdiminq(reshape_info->inmincid, input_dim[idim], dimname, NULL);
       if ((varid=ncvarid(reshape_info->inmincid, dimname)) != MI_ERROR)
          excluded_vars[nexcluded++] = varid;
-      (void) strncat(dimname, DIM_WIDTH_SUFFIX, 
+      (void) strncat(dimname, DIM_WIDTH_SUFFIX,
                      sizeof(dimname)-strlen(dimname)-1);
       if ((varid=ncvarid(reshape_info->inmincid, dimname)) != MI_ERROR)
          excluded_vars[nexcluded++] = varid;
@@ -1422,14 +1436,14 @@ static void setup_output_file(int mincid, char *history,
       excluded_vars[nexcluded++] = varid;
    if ((varid=ncvarid(reshape_info->inmincid, MIimagemin)) != MI_ERROR)
       excluded_vars[nexcluded++] = varid;
-   (void) micopy_all_var_defs(reshape_info->inmincid, mincid, 
+   (void) micopy_all_var_defs(reshape_info->inmincid, mincid,
                               nexcluded, excluded_vars);
    set_ncopts(NCOPTS_DEFAULT);
 
    /* Create image dimension variables */
    for (odim=0; odim < output_ndims; odim++) {
       idim = reshape_info->map_out_to_in[odim];
-      create_dim_var(mincid, output_dim[odim], 
+      create_dim_var(mincid, output_dim[odim],
                      reshape_info->icvid,
                      fastest_img_dim - idim,
                      reshape_info->inmincid,
@@ -1470,7 +1484,7 @@ static void setup_output_file(int mincid, char *history,
       varid2 = ncvarid(reshape_info->inmincid, string);
       set_ncopts(NCOPTS_DEFAULT);
       if (varid2 != MI_ERROR)
-         (void) micopy_all_atts(reshape_info->inmincid, 
+         (void) micopy_all_atts(reshape_info->inmincid,
                                 varid2, mincid, varid);
    }
 
@@ -1478,7 +1492,7 @@ static void setup_output_file(int mincid, char *history,
    imgid = micreate_std_variable(mincid, MIimage, datatype,
                                  output_ndims, output_dim);
    reshape_info->outimgid = imgid;
-   (void) micopy_all_atts(reshape_info->inmincid, 
+   (void) micopy_all_atts(reshape_info->inmincid,
                           ncvarid(reshape_info->inmincid, MIimage),
                           mincid, imgid);
    (void) miattputstr(mincid, imgid, MIsigntype, signtype);
@@ -1487,7 +1501,7 @@ static void setup_output_file(int mincid, char *history,
 
    /* Add history */
    set_ncopts(0);
-   if ((ncattinq(mincid, NC_GLOBAL, MIhistory, &datatype, &att_length) 
+   if ((ncattinq(mincid, NC_GLOBAL, MIhistory, &datatype, &att_length)
         == MI_ERROR) || (datatype != NC_CHAR))
       att_length = 0;
    att_length += strlen(history) + 1;
@@ -1510,7 +1524,7 @@ static void setup_output_file(int mincid, char *history,
    /* Copy the dimension variable values, if needed */
    for (odim=0; odim < output_ndims; odim++) {
       idim = reshape_info->map_out_to_in[odim];
-      copy_dimension_values(mincid, output_dim[odim], 
+      copy_dimension_values(mincid, output_dim[odim],
                             reshape_info->inmincid,
                             reshape_info->input_start[idim],
                             reshape_info->input_count[idim]);
@@ -1531,14 +1545,14 @@ static void setup_output_file(int mincid, char *history,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Creates a dimension variable and sets attributes properly.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : June 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void create_dim_var(int outmincid, int outdimid,
-                           int inicvid, int cur_image_dim, int inmincid, 
+                           int inicvid, int cur_image_dim, int inmincid,
                            long input_start, long input_count)
 {
    int invarid, outvarid;
@@ -1562,9 +1576,9 @@ static void create_dim_var(int outmincid, int outdimid,
    set_ncopts(0);
    invarid = ncvarid(inmincid, dimname);
    if (invarid != MI_ERROR) {
-      step_found = (miattget1(inmincid, invarid, MIstep, NC_DOUBLE, 
+      step_found = (miattget1(inmincid, invarid, MIstep, NC_DOUBLE,
                               &dim_step) != MI_ERROR);
-      start_found = (miattget1(inmincid, invarid, MIstart, NC_DOUBLE, 
+      start_found = (miattget1(inmincid, invarid, MIstart, NC_DOUBLE,
                                &dim_start) != MI_ERROR);
       (void) ncvarinq(inmincid, invarid, NULL, NULL, &var_ndims, NULL, NULL);
       if (var_ndims > 0) {
@@ -1590,7 +1604,7 @@ static void create_dim_var(int outmincid, int outdimid,
 
    /* If spacing is not changed and the input variable does not exist don't
       create the variable */
-   if (!changed_spacing && (invarid == MI_ERROR)) 
+   if (!changed_spacing && (invarid == MI_ERROR))
       return;
 
    /* Calculate the new dim_start and dim_step (if needed) */
@@ -1600,7 +1614,7 @@ static void create_dim_var(int outmincid, int outdimid,
    /* Create the variable */
    var_ndims = (is_regular ? 0 : 1);
    set_ncopts(0);
-   outvarid = micreate_std_variable(outmincid, dimname, NC_DOUBLE, 
+   outvarid = micreate_std_variable(outmincid, dimname, NC_DOUBLE,
                                         var_ndims, &outdimid);
    set_ncopts(NCOPTS_DEFAULT);
    if (outvarid == MI_ERROR) {
@@ -1615,16 +1629,16 @@ static void create_dim_var(int outmincid, int outdimid,
 
    /* Create width variable if needed */
    set_ncopts(0);
-   (void) strncat(dimname, DIM_WIDTH_SUFFIX, 
+   (void) strncat(dimname, DIM_WIDTH_SUFFIX,
                   sizeof(dimname)-strlen(dimname)-1);
    invarid = ncvarid(inmincid, dimname);
    if (invarid != MI_ERROR) {
       (void) ncvarinq(inmincid, invarid, NULL, NULL, &var_ndims, NULL, NULL);
       if (var_ndims > 0) var_ndims = 1;
-      outvarid = micreate_std_variable(outmincid, dimname, NC_DOUBLE, 
+      outvarid = micreate_std_variable(outmincid, dimname, NC_DOUBLE,
                                            var_ndims, &outdimid);
       if (outvarid == MI_ERROR) {
-         outvarid = ncvardef(outmincid, dimname, NC_DOUBLE, 
+         outvarid = ncvardef(outmincid, dimname, NC_DOUBLE,
                              var_ndims, &outdimid);
       }
       if (invarid != MI_ERROR)
@@ -1644,11 +1658,11 @@ static void create_dim_var(int outmincid, int outdimid,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Copies the data for a dimension variable.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : June 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void copy_dimension_values(int outmincid, int outdimid, int inmincid,
                                   long input_start, long input_count)
@@ -1665,7 +1679,7 @@ static void copy_dimension_values(int outmincid, int outdimid, int inmincid,
                        input_start, input_count);
 
    /* Copy the dimension widths */
-   (void) strncat(varname, DIM_WIDTH_SUFFIX, 
+   (void) strncat(varname, DIM_WIDTH_SUFFIX,
                   sizeof(varname)-strlen(varname)-1);
    copy_dim_var_values(outmincid, dimname, varname, inmincid,
                        input_start, input_count);
@@ -1683,11 +1697,11 @@ static void copy_dimension_values(int outmincid, int outdimid, int inmincid,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Copies the data for a dimension variable.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : June 16, 1994 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
                                 int inmincid,
@@ -1794,4 +1808,3 @@ static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
    }
 
 }
-

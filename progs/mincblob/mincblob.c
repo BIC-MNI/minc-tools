@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
    double   out_real_max, out_real_min;
 
-   char    *in_axis_order[4] = { MIvector_dimension, MIzspace, MIyspace, MIxspace };
+   char    *in_axis_order[4]  = { MIvector_dimension, MIzspace, MIyspace, MIxspace };
    char    *out_axis_order[3] = { MIzspace, MIyspace, MIxspace };
 
    int      x, y, z;

@@ -641,7 +641,8 @@ get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_In
           /* If the acquisition number corresponds to the time axis,
            * we DON'T want to perform the range check below.
            */
-          if (G.max_acq_num == gi_ptr->max_size[TIME]) {
+          if (G.max_acq_num == gi_ptr->max_size[TIME] ||
+              G.max_acq_num == gi_ptr->max_size[TIME] - 1) {
             range_check = 0;
           }
         }
@@ -1965,7 +1966,6 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
 {
     int length;
     char *string;
-    Acr_Element element;
 
     if (G.Debug) {
         printf("SOP Class UID: %s\n",
@@ -2190,6 +2190,8 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
                                                ACR_Acquisition_contrast);
       if (el != NULL)
         string = acr_get_element_string(el);
+      else
+        string = acr_find_string(group_list, ACR_Image_type, "");
     }
     gi_ptr->acq.dti = (strstr(string, "DIFFUSION") != NULL);
 
@@ -2201,7 +2203,6 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
 static void
 get_gems_pet_info(Acr_Group group_list, struct Pet_info *pet_ptr)
 {
-  Acr_Element element;
   string_t temp;
 
   get_string_field(temp, group_list, GEMS_Pet_private_creator_id);
