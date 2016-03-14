@@ -165,7 +165,7 @@ static int check_file_type_consistency(int num_files, char **file_list);
 
 struct globals G;
 
-#define VERSION_STRING "2.01.03 built " __DATE__ " " __TIME__
+#define VERSION_STRING "2.01.04 built " __DATE__ " " __TIME__
 
 #ifndef S_ISDIR
 #define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
@@ -252,6 +252,21 @@ ArgvInfo argTable[] = {
      (char *) &G.abort_on_error,
      "Stop processing immediately if a file is not parsed properly."},
 
+    {"-adjust_frame_time",
+     ARGV_CONSTANT,
+     (char *) TRUE,
+     (char *) &G.adjust_frame_time,
+     "Try to set frame times to the beginning of the frame."},
+
+    {"-accept_period",
+     ARGV_CONSTANT,
+     (char *) FALSE,
+     (char *) &G.ignore_leading_dot,
+     "Don't ignore filenames that begin with an initial period ('.')."},
+
+    {"-1", ARGV_CONSTANT, (char *) 1, (char *) &G.file_format,
+     "Force MINC 1.0 (NetCDF) format files."},
+
     {NULL, ARGV_END, NULL, NULL, NULL}
 
 };
@@ -282,7 +297,9 @@ main(int argc, char *argv[])
     G.minc_history = time_stamp(argc, argv); /* Create minc history string */
     G.prefer_coords = FALSE;
     G.abort_on_error = FALSE;
-
+    G.adjust_frame_time = FALSE;
+    G.ignore_leading_dot = TRUE;
+    G.file_format = 2;          /* default file format */
     G.pname = argv[0];          /* get program name */
     
     /* Get the input parameters and file names.
@@ -345,6 +362,9 @@ main(int argc, char *argv[])
             dp = opendir(argv[ifile + 1]);
             if (dp != NULL) {
                 while ((np = readdir(dp)) != NULL) {
+                    /* Ignore files with names beginning with '.' */
+                    if (np->d_name[0] == '.' && G.ignore_leading_dot)
+                        continue;
                     /* Generate the full path to the file.
                      */
                     tmp_str = malloc(length + strlen(np->d_name) + 2);
@@ -873,11 +893,15 @@ use_the_files(int num_files,
          * They are sometimes absent, constant, or otherwise strange.
          * Determining this ahead of time helps us make good decisions
          * about how to treat these fields later.
+         * We also check the temporal position identifier, as it can also
+         * be useless.
          */
         G.max_acq_num = INT_MIN;
         G.min_acq_num = INT_MAX;
         G.max_img_num = INT_MIN;
         G.min_img_num = INT_MAX;
+        G.max_tpos_id = INT_MIN;
+        G.min_tpos_id = INT_MAX;
 
         for (ifile = 0; ifile < acq_num_files; ifile++) {
           int ix = acq_file_index[ifile];
@@ -894,6 +918,13 @@ use_the_files(int num_files,
           }
           if (di_ptr[ix]->global_image_number > G.max_img_num) {
             G.max_img_num = di_ptr[ix]->global_image_number;
+          }
+
+          if (di_ptr[ix]->tpos_id < G.min_tpos_id) {
+            G.min_tpos_id = di_ptr[ix]->tpos_id;
+          }
+          if (di_ptr[ix]->tpos_id > G.max_tpos_id) {
+            G.max_tpos_id = di_ptr[ix]->tpos_id;
           }
         }
 
@@ -952,10 +983,13 @@ use_the_files(int num_files,
         if (G.min_img_num < 0 || G.min_img_num > 1) {
           printf("WARNING: Minimum image number is %d\n", G.min_img_num);
         }
+
+        if (G.min_tpos_id == G.max_tpos_id || G.min_tpos_id > 1)
+          printf("WARNING: Temporal position identifier is useless.\n");
         
         printf("INFO: Acquisition number ranges from %d to %d\n", G.min_acq_num, G.max_acq_num);
         printf("INFO: Image number ranges from %d to %d\n", G.min_img_num, G.max_img_num);
-
+        printf("INFO: Temporal position id ranges from %d to %d.\n", G.min_tpos_id, G.max_tpos_id);
 
         /* Create minc file
          */

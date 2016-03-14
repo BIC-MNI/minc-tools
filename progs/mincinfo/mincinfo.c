@@ -220,9 +220,9 @@ int main(int argc, char *argv[])
 
    /* Set error handling */
    if (error_string == NULL)
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
    else
-      ncopts = 0;
+      set_ncopts(0);
 
    /* Loop through print options, checking whether we need variable data */
    header_only = TRUE;
@@ -633,8 +633,8 @@ static int print_image_info(char *filename, int mincid)
    (void) printf("\n");
 
    /* Write out dimension info */
-   oldncopts = ncopts;
-   ncopts = 0;
+   oldncopts =get_ncopts();
+   set_ncopts(0);
    (void) printf("    %-20s %8s %12s %12s\n", "dimension name", "length",
                  "step", "start");
    (void) printf("    %-20s %8s %12s %12s\n", "--------------", "------",
@@ -653,7 +653,7 @@ static int print_image_info(char *filename, int mincid)
          (void) printf(" %12s", "unknown");
       (void) printf("\n");
    }
-   ncopts = oldncopts;
+   set_ncopts(oldncopts);
 
    return MI_NOERROR;
 

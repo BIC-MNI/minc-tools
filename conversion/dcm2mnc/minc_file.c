@@ -193,7 +193,7 @@ check_regular(double step, double coordinates[], int length)
          * less the average step value.
          */
         diff = (coordinates[index] - coordinates[index - 1]) - step;
-        
+
         if (diff < 0.0) {
             diff = -diff;
         }
@@ -395,6 +395,7 @@ create_minc_file(const char *minc_file,
     char file_name[1024];
     const char *filename;
     int minc_clobber;
+    int minc_version;
     int mincid, icvid;
     static char full_path[1024];
     const char *fn_fmt_ptr;
@@ -406,7 +407,7 @@ create_minc_file(const char *minc_file,
     };
       
     /* Turn off fatal errors */
-    ncopts = NCOPTS_DEFAULT;
+    set_ncopts(NCOPTS_DEFAULT);
 
     /* Create the file name if needed */
     if (minc_file != NULL) {
@@ -494,8 +495,13 @@ create_minc_file(const char *minc_file,
     else 
         minc_clobber = NC_NOCLOBBER;
 
+    if (G.file_format == 1)
+        minc_version = MI2_CREATE_V1;
+    else
+        minc_version = MI2_CREATE_V2;
+
     /* Create the file */
-    mincid = micreate(filename, minc_clobber);
+    mincid = micreate(filename, minc_clobber | minc_version);
     if (mincid == MI_ERROR) {
         return MI_ERROR;
     }
@@ -598,7 +604,7 @@ minc_set_spacing(int mincid, int varid, Mri_Index imri, General_Info *gi_ptr)
          */
         avg = sum / (length - 1);     /* compute mean */
 
-        if (step != 0.0 && avg != step) {
+        if (step != 0.0 && fabs(avg - step) / avg > 0.01) {
             printf("WARNING: Sample width (%g) not equal to average delta (%g)\n",
                    step, avg);
         }
@@ -776,13 +782,19 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         dimname = spatial_dimnames[iworld];
         dim[ndims] = ncdimdef(mincid, dimname, dimsize);
         if (ivol == VSLICE) {
-            varid = micreate_std_variable(mincid, dimname, NC_DOUBLE, 
-                                          1, &dim[ndims]);
             /* Check for regular slices */
             if (check_regular(general_info->step[general_info->slice_world],
                               general_info->coordinates[SLICE],
                               general_info->cur_size[SLICE])) {
+
+                varid = micreate_std_variable(mincid, dimname, NC_DOUBLE,
+                                              0, NULL);
                 miattputstr(mincid, varid, MIspacing, MI_REGULAR);
+            }
+            else {
+                varid = micreate_std_variable(mincid, dimname, NC_DOUBLE,
+                                              1, &dim[ndims]);
+                miattputstr(mincid, varid, MIspacing, MI_IRREGULAR);
             }
         }
         else {
@@ -839,9 +851,33 @@ void setup_minc_variables(int mincid, General_Info *general_info,
     if (strlen(general_info->patient.birth_date) > 0)
         miattputstr(mincid, varid, MIbirthdate, 
                     general_info->patient.birth_date);
-    if (strlen(general_info->patient.age) > 0)
-        miattputstr(mincid, varid, MIage, 
-                    general_info->patient.age);
+    if (strlen(general_info->patient.age) > 0) {
+        string_t temp;
+        int i = 0;
+        double age;
+
+        strncpy(temp, general_info->patient.age, STRING_T_LEN - 1);
+        while (temp[i] != 0 && !isdigit(temp[i]))
+          i++;
+        if (temp[i] == 0) {
+          fprintf(stderr, "ERROR: Age was not numeric!!\n");
+          exit(-1);
+        }
+        age = atof(&temp[i]);
+        while (temp[i] != 0 && isdigit(temp[i]))
+          i++;
+        if (temp[i] == 'M')     /* age is in months */
+          age /= 12.0;
+        else if (temp[i] == 'W')   /* age is in weeks */
+          age /= 52.0;
+        else if (temp[i] == 'D')   /* age is in days */
+          age /= 365.0;
+        else if (temp[i] != 'Y') { /* age is in years */
+          fprintf(stderr, "ERROR: Age units (%s) unknown.\n", temp);
+          exit(-1);
+        }
+        miattputdbl(mincid, varid, MIage, age);
+    }
     if (strlen(general_info->patient.sex) > 0)
         miattputstr(mincid, varid, MIsex, 
                     general_info->patient.sex);
@@ -1068,6 +1104,52 @@ void setup_minc_variables(int mincid, General_Info *general_info,
 	double *tmp_ptr2 = calloc(length*num_elements,sizeof(double));
 	
 	ncattput(mincid, varid, "b_matrix", NC_DOUBLE, num_elements*length, tmp_ptr2); 
+    }
+
+    /** PET STUFF **/
+    if (strlen(general_info->pet.injection_time) > 0) {
+      miattputstr(mincid, varid, MIinjection_time, 
+                  general_info->pet.injection_time);
+      miattputint(mincid, varid, MIinjection_year, 
+                  general_info->pet.injection_year);
+      miattputint(mincid, varid, MIinjection_month, 
+                  general_info->pet.injection_month);
+      miattputint(mincid, varid, MIinjection_day, 
+                  general_info->pet.injection_day);
+      miattputint(mincid, varid, MIinjection_hour, 
+                  general_info->pet.injection_hour);
+      miattputint(mincid, varid, MIinjection_minute, 
+                  general_info->pet.injection_minute);
+      miattputdbl(mincid, varid, MIinjection_seconds, 
+                  general_info->pet.injection_seconds);
+    }
+    if (general_info->pet.injection_volume > 0) {
+      miattputdbl(mincid, varid, MIinjection_volume,
+                  general_info->pet.injection_volume);
+    }
+    if (general_info->pet.injection_dose > 0) {
+      miattputdbl(mincid, varid, MIinjection_dose,
+                  general_info->pet.injection_dose);
+      miattputstr(mincid, varid, MIdose_units, "Bq");
+    }
+    if (strlen(general_info->pet.tracer) > 0) {
+      miattputstr(mincid, varid, MItracer, general_info->pet.tracer);
+    }
+    if (strlen(general_info->pet.radionuclide) > 0) {
+      miattputstr(mincid, varid, MIradionuclide,
+                  general_info->pet.radionuclide);
+    }
+    if (strlen(general_info->pet.injection_route) > 0) {
+      miattputstr(mincid, varid, MIinjection_route,
+                  general_info->pet.injection_route);
+    }
+    if (general_info->pet.radionuclide_halflife > 0) {
+      miattputdbl(mincid, varid, MIradionuclide_halflife,
+                  general_info->pet.radionuclide_halflife);
+    }
+    if (general_info->pet.positron_fraction > 0) {
+      miattputdbl(mincid, varid, "positron_fraction",
+                  general_info->pet.positron_fraction);
     }
 
     /* Create the dicom info variable */
@@ -1330,10 +1412,10 @@ save_minc_image(int icvid, General_Info *gi_ptr,
              * In order to avoid a nasty and unnecessary error message
              * we have to disable netCDF errors here.
              */
-            ncopts_prev = ncopts;
-            ncopts = 0;
+            ncopts_prev =get_ncopts();
+            set_ncopts(0);
             varid = ncvarid(mincid, MItime_width); /* Get the variable id */
-            ncopts = ncopts_prev;
+            set_ncopts(ncopts_prev);
 
             /* If the variable was created, update it as needed.
              */

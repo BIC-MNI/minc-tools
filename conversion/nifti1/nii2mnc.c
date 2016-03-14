@@ -163,7 +163,7 @@ main(int argc, char **argv)
     };
 
 
-    ncopts = 0;                 /* Clear global netCDF error reporting flag */
+    set_ncopts(0);                 /* Clear global netCDF error reporting flag */
 
     mnc_hist = time_stamp(argc, argv);
     mnc_vtype = NC_NAT;
@@ -201,7 +201,10 @@ main(int argc, char **argv)
 
         fp = fopen(argv[1], "rb");
         if (fp != NULL) {
-            fread(&ana_hdr, sizeof (ana_hdr), 1, fp);
+            if (fread(&ana_hdr, sizeof (ana_hdr), 1, fp) != 1) {
+                fprintf(stderr, "Unable to read file header.\n");
+                return (-1);
+            }
             fclose(fp);
 
             must_swap = 0;

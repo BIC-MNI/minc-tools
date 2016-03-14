@@ -812,7 +812,7 @@ static void get_input_file_info(void *caller_data, int input_mincid,
       regular = TRUE;
 
       /* Look for dimension variable */
-      ncopts = 0;
+      set_ncopts(0);
       varid = ncvarid(input_mincid, dimname);
       if (!Sort_sequential && (varid != MI_ERROR)) {
 
@@ -829,9 +829,9 @@ static void get_input_file_info(void *caller_data, int input_mincid,
 
          /* Expand whole file if irregular dimension */
          if (!regular) {
-            ncopts = NC_OPTS_VAL;
+            set_ncopts(NC_OPTS_VAL);
             input_mincid = get_info_whole_file(loop_info);
-            ncopts = 0;
+            set_ncopts(0);
          }
          /* Otherwise just get start and step */
          else {
@@ -875,9 +875,9 @@ static void get_input_file_info(void *caller_data, int input_mincid,
 
          /* Expand whole file if irregular dimension */
          if (!regular) {
-            ncopts = NC_OPTS_VAL;
+            set_ncopts(NC_OPTS_VAL);
             input_mincid = get_info_whole_file(loop_info);
-            ncopts = 0;
+            set_ncopts(0);
          }
          /* Otherwise just get width */
          else {
@@ -900,7 +900,7 @@ static void get_input_file_info(void *caller_data, int input_mincid,
          
       }            /* If dimension width variable exists */
 
-      ncopts = NC_OPTS_VAL;
+      set_ncopts(NC_OPTS_VAL);
    }
 
 }
@@ -924,9 +924,9 @@ static int get_image_dimension_id(int input_mincid, char *dimension_name)
    int dimid, ndims, dim[MAX_VAR_DIMS], idim;
    int found;
 
-   ncopts = 0;
+   set_ncopts(0);
    dimid = ncdimid(input_mincid, dimension_name);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
    if (dimid == MI_ERROR) return MI_ERROR;
 
    /* Get image variable info */
@@ -1056,9 +1056,9 @@ static void do_concat(void *caller_data, long num_voxels,
          varname = MIimagemax;
          value = 1.0;
       }
-      ncopts = 0;
+      set_ncopts(0);
       invarid = ncvarid(input_mincid, varname);
-      ncopts = NC_OPTS_VAL;
+      set_ncopts(NC_OPTS_VAL);
       if (invarid != MI_ERROR) {
          (void) mitranslate_coords(input_mincid, inimgid, instart,
                                    invarid, mmstart);
@@ -1107,6 +1107,38 @@ static void sort_coords(Concat_Info *concat_info)
    int index, icoord;
    double mean_step, mean_width, diff;
    int regular_spacing, constant_width, have_widths;
+   int n_widths_found = 0;
+
+   for (ifile = 0; ifile < concat_info->num_input_files; ifile++) {
+      if (concat_info->file_widths[ifile] != NULL)
+         n_widths_found++;      /* Count files with width information. */
+   }
+   for (ifile = 0; ifile < concat_info->num_input_files; ifile++) {
+      if (concat_info->file_widths[ifile] == NULL && n_widths_found > 0) {
+         /* We did not find dimension widths in this file, but we
+          * did find them for another file. In order to retain the
+          * information, we ADD simple dimension widths here.
+          */
+         int n_coords = concat_info->num_file_coords[ifile];
+         double *p_coords = concat_info->file_coords[ifile];
+         double sum_widths = 0.0;
+         double mean_width;
+         double *p_widths;
+         int i;
+
+         for (i = 1; i < n_coords; i++)
+            sum_widths += p_coords[i] - p_coords[i - 1];
+         mean_width = sum_widths / (n_coords - 1);
+         p_widths = malloc(sizeof(double) * n_coords);
+         if (p_widths == NULL) {
+            fprintf(stderr, "Can't get memory for coordinate widths.\n");
+            exit(EXIT_FAILURE);
+         }
+         for (i = 0; i < n_coords; i++)
+            p_widths[i] = mean_width;
+         concat_info->file_widths[ifile] = p_widths;
+      }
+   }
 
    /* Allocate space for the ordering information */
    concat_info->file_to_dim_order = 
@@ -1149,7 +1181,7 @@ static void sort_coords(Concat_Info *concat_info)
       mean_width = concat_info->file_widths[0][0];
    regular_spacing = TRUE;
    constant_width = TRUE;
-   have_widths = TRUE;
+   have_widths = (n_widths_found > 0);
    for (index=0; index < concat_dimension_length; index++) {
       ifile = sort_list[index].curfile;
       icoord = sort_list[index].curcoord;
@@ -1159,8 +1191,6 @@ static void sort_coords(Concat_Info *concat_info)
          exit(EXIT_FAILURE);
       }
       concat_info->file_to_dim_order[ifile][icoord] = index;
-      if (concat_info->file_widths[ifile] == NULL)
-         have_widths = FALSE;
       if (index > 0) {
          diff = (sort_list[index].coord - sort_list[index-1].coord)
             - mean_step;
@@ -1268,18 +1298,18 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
    out_ndims = 0;
    outdim[out_ndims] = ncdimdef(outmincid, concat_info->dimension_name,
                                 (long) concat_info->concat_dimension_length);
-   ncopts = 0;
+   set_ncopts(0);
    coordid = micreate_std_variable(outmincid, concat_info->dimension_name,
                                    NC_DOUBLE, 1, &outdim[out_ndims]);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
    if (coordid == MI_ERROR)
       coordid = ncvardef(outmincid, concat_info->dimension_name,
                          NC_DOUBLE, 1, &outdim[out_ndims]);
-   ncopts = 0;
+   set_ncopts(0);
    invarid = ncvarid(inmincid, concat_info->dimension_name);
    if (invarid != MI_ERROR)
       (void) micopy_all_atts(inmincid, invarid, outmincid, coordid);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
    (void) miattputstr(outmincid, coordid, MIspacing,
                       (concat_info->regular_spacing ?
                        MI_REGULAR : MI_IRREGULAR));
@@ -1288,19 +1318,19 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
    if (concat_info->have_widths) {
       (void) strcat(strcpy(dimname, concat_info->dimension_name), 
                     DIM_WIDTH_SUFFIX);
-      ncopts = 0;
+      set_ncopts(0);
       widthid = micreate_std_variable(outmincid, dimname,
                                       NC_DOUBLE, 1, &outdim[out_ndims]);
-      ncopts = NC_OPTS_VAL;
+      set_ncopts(NC_OPTS_VAL);
       if (widthid == MI_ERROR) 
          widthid = ncvardef(outmincid, dimname,
                             NC_DOUBLE, 1, &outdim[out_ndims]);
-      ncopts = 0;
+      set_ncopts(0);
       invarid = ncvarid(inmincid, dimname);
       if (invarid != MI_ERROR)
          (void) micopy_all_atts(inmincid, invarid, outmincid, widthid);
       (void) ncattdel(outmincid, widthid, MIwidth);
-      ncopts = NC_OPTS_VAL;
+      set_ncopts(NC_OPTS_VAL);
       (void) miattputstr(outmincid, widthid, MIspacing,
                          (concat_info->constant_width ?
                           MI_REGULAR : MI_IRREGULAR));
@@ -1327,7 +1357,7 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
 
    /* Copy other variables in file */
    nexcluded = 0;
-   ncopts = 0;
+   set_ncopts(0);
    excluded_vars[nexcluded] = inimgid;
    if (excluded_vars[nexcluded] != MI_ERROR) nexcluded++;
    excluded_vars[nexcluded] = ncvarid(inmincid, MIimagemax);
@@ -1342,7 +1372,7 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
    if (excluded_vars[nexcluded] != MI_ERROR) nexcluded++;
 
    (void) micopy_all_var_defs(inmincid, outmincid, nexcluded, excluded_vars);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
 
    /* Add the time stamp to the history */
    update_history(outmincid, concat_info->history);
@@ -1352,12 +1382,12 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
                                  out_ndims-out_nimgdims, outdim);
    minid = micreate_std_variable(outmincid, MIimagemin, NC_DOUBLE, 
                                  out_ndims-out_nimgdims, outdim);
-   ncopts = 0;
+   set_ncopts(0);
    (void) micopy_all_atts(inmincid, ncvarid(inmincid, MIimagemax),
                           outmincid, maxid);
    (void) micopy_all_atts(inmincid, ncvarid(inmincid, MIimagemin),
                           outmincid, minid);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
 
    /* Create the image variable */
    if (concat_info->output_datatype != MI_ORIGINAL_TYPE) {
@@ -1369,9 +1399,9 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
                                     out_ndims, outdim);
    (void) micopy_all_atts(inmincid, inimgid, outmincid, outimgid);
    if (concat_info->is_floating_type) {
-      ncopts = 0;
+      set_ncopts(0);
       (void) ncattdel(outmincid, outimgid, MIsigntype);
-      ncopts = NC_OPTS_VAL;
+      set_ncopts(NC_OPTS_VAL);
       valid_range[0] = 0;
       valid_range[1] = 1;
       (void) miset_valid_range(outmincid, outimgid,  
@@ -1388,9 +1418,9 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
                                   concat_info->output_valid_range);
       }
       else {
-         ncopts = 0;
+         set_ncopts(0);
          (void) ncattdel(outmincid, outimgid, MIvalid_range);
-         ncopts = NC_OPTS_VAL;
+         set_ncopts(NC_OPTS_VAL);
       }
    }
    (void) miattputstr(outmincid, outimgid, MIcomplete, MI_FALSE);
@@ -1400,10 +1430,10 @@ static void create_concat_file(int inmincid, Concat_Info *concat_info)
    (void) ncendef(outmincid);
 
    /* Copy over variable values */
-   ncopts = 0;
+   set_ncopts(0);
    (void) micopy_all_var_values(inmincid, outmincid,
                                 nexcluded, excluded_vars);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
 
    /* Create the icv and attach it */
    icvid = miicv_create();
@@ -1441,7 +1471,7 @@ static void update_history(int mincid, char *arg_string)
    char *string;
 
    /* Get the history attribute length */
-   ncopts=0;
+   set_ncopts(0);
    if ((ncattinq(mincid, NC_GLOBAL, MIhistory, &datatype,
                  &att_length) == MI_ERROR) ||
        (datatype != NC_CHAR))
@@ -1453,7 +1483,7 @@ static void update_history(int mincid, char *arg_string)
    string[0] = '\0';
    (void) miattgetstr(mincid, NC_GLOBAL, MIhistory, att_length, 
                       string);
-   ncopts = NC_OPTS_VAL;
+   set_ncopts(NC_OPTS_VAL);
 
    /* Add the new command and put the new history. */
    (void) strcat(string, arg_string);

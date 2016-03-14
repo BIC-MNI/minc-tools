@@ -539,6 +539,9 @@ otsu_threshold(const double histo[], const double hist_centre[], int hist_bins)
     for (k_high = hist_bins-1; (histo[k_high] <= 0) && (k_high > 0); k_high--)
         ;
 
+    if (k_high < k_low)         /* Check for pathological histogram. */
+      return 0.0;               /* Nothing to see here. */
+
     sum = 0L;
     mu_T = 0.0;
     for (i = k_low; i <= k_high; i++) {
@@ -1499,10 +1502,10 @@ void get_minc_attribute(int mincid, char *varname, char *attname,
    if(!mivar_exists(mincid, varname))
       return;
    varid = ncvarid(mincid, varname);
-   old_ncopts = ncopts;
-   ncopts = 0;
+   old_ncopts =get_ncopts();
+   set_ncopts(0);
    (void)miattget(mincid, varid, attname, NC_DOUBLE, maxvals, vals, &att_length);
-   ncopts = old_ncopts;
+   set_ncopts(old_ncopts);
 }
 
 /* Get the total number of image dimensions in a minc file */

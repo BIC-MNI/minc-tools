@@ -448,10 +448,10 @@ int main(int argc, char *argv[])
       (void) strncpy(dimname, averaging_dimension, strlength);
       dimname[strlength] = '\0';
       (void) strcat(dimname, WIDTH_SUFFIX);
-      old_ncopts = ncopts; ncopts = 0;
+      old_ncopts =get_ncopts(); set_ncopts(0);
       varid = ncvarid(first_mincid, dimname);
       (void) ncvarinq(first_mincid, varid, NULL, NULL, &ndims, dim, NULL);
-      ncopts = old_ncopts;
+      set_ncopts(old_ncopts);
       if (varid != MI_ERROR) {
 
          /* Check that things match up */
@@ -743,9 +743,9 @@ static void find_mincfile_range(int mincid, double *minimum, double *maximum)
       }
 
       /* Get the variable id */
-      old_ncopts = ncopts; ncopts = 0;
+      old_ncopts =get_ncopts(); set_ncopts(0);
       varid = ncvarid(mincid, varname);
-      ncopts = old_ncopts;
+      set_ncopts(old_ncopts);
       if (varid == MI_ERROR) continue;
 
       /* Get the dimension info */

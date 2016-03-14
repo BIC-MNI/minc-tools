@@ -1037,9 +1037,9 @@ static void setup_dim_sizes(int icvid, int mincid, Dimsize_list *dimsize_list)
 
    /* Loop through list of names, looking for dimensions */
    for (ientry=0; ientry < dimsize_list->nentries; ientry++) {
-      ncopts = 0;
+      set_ncopts(0);
       dimid = ncdimid(mincid, dimsize_list->name[ientry]);
-      ncopts = NCOPTS_DEFAULT;
+      set_ncopts(NCOPTS_DEFAULT);
       for (idim=0; idim < ndims; idim++) {
          if (dim[idim] == dimid) break;
       }
@@ -1334,10 +1334,10 @@ static void setup_reshaping_info(int icvid, int mincid,
 
       /* Loop through block dimensions and check if image-min/max varies
          on the dimension */
-      ncopts = 0;
+      set_ncopts(0);
       minid = ncvarid(mincid, MIimagemin);
       maxid = ncvarid(mincid, MIimagemax);
-      ncopts = NCOPTS_DEFAULT;
+      set_ncopts(NCOPTS_DEFAULT);
       if ((minid != MI_ERROR) && (maxid != MI_ERROR)) {
          (void) ncvarinq(mincid, minid, NULL, NULL, &min_ndims, min_dim, NULL);
          (void) ncvarinq(mincid, maxid, NULL, NULL, &max_ndims, max_dim, NULL);
@@ -1419,7 +1419,7 @@ static void setup_output_file(int mincid, char *history,
    }
 
    /* Copy all variables except dimensions and dimension widths */
-   ncopts = 0;
+   set_ncopts(0);
    nexcluded = 0;
    for (idim = 0; idim < input_ndims; idim++) {
       (void) ncdiminq(reshape_info->inmincid, input_dim[idim], dimname, NULL);
@@ -1438,7 +1438,7 @@ static void setup_output_file(int mincid, char *history,
       excluded_vars[nexcluded++] = varid;
    (void) micopy_all_var_defs(reshape_info->inmincid, mincid,
                               nexcluded, excluded_vars);
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
 
    /* Create image dimension variables */
    for (odim=0; odim < output_ndims; odim++) {
@@ -1480,9 +1480,9 @@ static void setup_output_file(int mincid, char *history,
          string = MIimagemax;
       varid = micreate_std_variable(mincid, string, NC_DOUBLE,
                                     minmax_ndims, minmax_dim);
-      ncopts = 0;
+      set_ncopts(0);
       varid2 = ncvarid(reshape_info->inmincid, string);
-      ncopts = NCOPTS_DEFAULT;
+      set_ncopts(NCOPTS_DEFAULT);
       if (varid2 != MI_ERROR)
          (void) micopy_all_atts(reshape_info->inmincid,
                                 varid2, mincid, varid);
@@ -1500,7 +1500,7 @@ static void setup_output_file(int mincid, char *history,
    (void) miattputstr(mincid, imgid, MIcomplete, MI_FALSE);
 
    /* Add history */
-   ncopts=0;
+   set_ncopts(0);
    if ((ncattinq(mincid, NC_GLOBAL, MIhistory, &datatype, &att_length)
         == MI_ERROR) || (datatype != NC_CHAR))
       att_length = 0;
@@ -1508,7 +1508,7 @@ static void setup_output_file(int mincid, char *history,
    string = malloc(att_length);
    string[0] = '\0';
    (void) miattgetstr(mincid, NC_GLOBAL, MIhistory, att_length, string);
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
    (void) strcat(string, history);
    (void) miattputstr(mincid, NC_GLOBAL, MIhistory, string);
    free(string);
@@ -1573,7 +1573,7 @@ static void create_dim_var(int outmincid, int outdimid,
    dim_start = 0.0;
    is_regular = TRUE;
    changed_spacing = ((input_start != 0) || (input_count <= 0));
-   ncopts = 0;
+   set_ncopts(0);
    invarid = ncvarid(inmincid, dimname);
    if (invarid != MI_ERROR) {
       step_found = (miattget1(inmincid, invarid, MIstep, NC_DOUBLE,
@@ -1588,7 +1588,7 @@ static void create_dim_var(int outmincid, int outdimid,
          is_regular = (strcmp(spacing, MI_REGULAR) == 0);
       }
    }
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
 
    /* Is the sampling changed because of the icv? */
    if ((cur_image_dim < num_image_dims) && (cur_image_dim >= 0)) {
@@ -1613,10 +1613,10 @@ static void create_dim_var(int outmincid, int outdimid,
 
    /* Create the variable */
    var_ndims = (is_regular ? 0 : 1);
-   ncopts = 0;
+   set_ncopts(0);
    outvarid = micreate_std_variable(outmincid, dimname, NC_DOUBLE,
                                         var_ndims, &outdimid);
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
    if (outvarid == MI_ERROR) {
       outvarid = ncvardef(outmincid, dimname, NC_DOUBLE, var_ndims, &outdimid);
    }
@@ -1628,7 +1628,7 @@ static void create_dim_var(int outmincid, int outdimid,
       (void) miattputdbl(outmincid, outvarid, MIstart, dim_start);
 
    /* Create width variable if needed */
-   ncopts = 0;
+   set_ncopts(0);
    (void) strncat(dimname, DIM_WIDTH_SUFFIX,
                   sizeof(dimname)-strlen(dimname)-1);
    invarid = ncvarid(inmincid, dimname);
@@ -1644,7 +1644,7 @@ static void create_dim_var(int outmincid, int outdimid,
       if (invarid != MI_ERROR)
          (void) micopy_all_atts(inmincid, invarid, outmincid, outvarid);
    }
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
 
 }
 
@@ -1715,9 +1715,9 @@ static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
    double value, dim_width, dim_step, dim_start;
 
    /* Do we need to copy data? */
-   ncopts = 0;
+   set_ncopts(0);
    outvarid = ncvarid(outmincid, varname);
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
    if (outvarid == MI_ERROR) return;
    (void) ncvarinq(outmincid, outvarid, NULL, NULL, &out_ndims, NULL, NULL);
    if (out_ndims != 1) return;
@@ -1730,9 +1730,9 @@ static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
       is_width = (strcmp(&varname[index], DIM_WIDTH_SUFFIX));
 
    /* Check if there is a valid dimension variable from which to copy */
-   ncopts = 0;
+   set_ncopts(0);
    invarid = ncvarid(inmincid, varname);
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
    good_data = (invarid != MI_ERROR);
    if (good_data) {
       (void) ncvarinq(inmincid, invarid, NULL, NULL, &in_ndims, in_dim, NULL);
@@ -1746,9 +1746,9 @@ static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
    /* Get data from input file for estimating unknown values */
    if (is_width) {       /* Get width for width variables */
       dim_width = 0.0;
-      ncopts = 0;
+      set_ncopts(0);
       (void) miattget1(inmincid, invarid, MIwidth, NC_DOUBLE, &dim_width);
-      ncopts = NCOPTS_DEFAULT;
+      set_ncopts(NCOPTS_DEFAULT);
    }
    else {                /* Get step and start for coordinate variables */
       dim_step = 1.0;
@@ -1759,9 +1759,9 @@ static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
                           &dim_start);
          input_index = input_length - 1;
          if (input_length <= 1) {
-            ncopts = 0;
+            set_ncopts(0);
             (void) miattget1(inmincid, invarid, MIstep, NC_DOUBLE, &dim_step);
-            ncopts = NCOPTS_DEFAULT;
+            set_ncopts(NCOPTS_DEFAULT);
          }
          else {
             (void) mivarget1(inmincid, invarid, &input_index, NC_DOUBLE, NULL,
@@ -1770,10 +1770,10 @@ static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
          }
       }
       else {
-         ncopts = 0;
+         set_ncopts(0);
          (void) miattget1(inmincid, invarid, MIstep, NC_DOUBLE, &dim_step);
          (void) miattget1(inmincid, invarid, MIstart, NC_DOUBLE, &dim_start);
-         ncopts = NCOPTS_DEFAULT;
+         set_ncopts(NCOPTS_DEFAULT);
       }
       if (dim_step == 0.0) dim_step = 1.0;
    }

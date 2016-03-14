@@ -152,7 +152,7 @@ public int create_minc_file(char *minc_file, int clobber,
       {"sl", "e", "d", "p", "cs"};
 
    /* Turn off fatal errors */
-   ncopts = NCOPTS_DEFAULT;
+   set_ncopts(NCOPTS_DEFAULT);
 
    /* Create the file name if needed */
    if (minc_file != NULL) {

@@ -1,0 +1,87 @@
+#! /usr/bin/env perl
+#
+# A simple DICOM dumper
+#
+# Copyright Andrew Janke - a.janke@gmail.com
+# Permission to use, copy, modify, and distribute this software and its
+# documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright notice appear in all copies.  The
+# author makes no representations about the suitability of this software
+# for any purpose.  It is provided "as is" without express or implied warranty.
+
+$| = 1;
+
+#use strict;
+use warnings "all";
+use Getopt::Long;
+use Pod::Usage;
+use File::Basename;
+use Cwd;
+
+use DICOM;
+
+# until I get organised and do this properly
+my $PACKAGE = &basename($0);
+my $VERSION = '1.0.0';
+my $PACKAGE_BUGREPORT = '"Andrew Janke" <a.janke@gmail.com>';
+
+my($me, %opt, @command, $script);
+
+$me = &basename($0);
+%opt = (
+   verbose => 0,
+   fake => 0,
+   man => 0,
+   help => 0,
+   );
+
+# Check arguments
+&GetOptions(
+   'help|?' => \$opt{'help'},
+   'man' => \$opt{'man'},
+   'v|verbose' => \$opt{'verbose'},
+   'version' => sub { &print_version_info },
+   'f|fake' => \$opt{'fake'},
+   'move' => \$opt{'move'},
+   ) or pod2usage(-verbose => 1) && exit;
+
+# handle -man, -help or missing args
+pod2usage(-verbose => 1) if $opt{help};
+pod2usage(-exitstatus => 0, -verbose => 2) if $opt{man};
+pod2usage(-verbose => 0) && exit if ($#ARGV < 0);
+
+# get the input file and fill er up.
+@infiles = ();
+foreach $f (@ARGV){
+   # if a file
+   if(-f $f){
+      push(@infiles, $f);
+      next;
+      }
+
+   # if a directory
+   if(-d $f){
+      @buf = split(/\n/, `find $f -type f`);
+      push(@infiles, @buf);
+      next;
+      }
+
+   die "This is bad - $f probably doesn't exist\n";
+   }
+
+# create the DICOM object
+my $d = DICOM->new();
+
+print "Reading $#infiles Images\n";
+foreach $infile (@infiles){
+   print "---- $infile ----\n";
+   $d->fill($infile);
+   $d->printContents();
+   }
+
+
+sub print_version_info {
+   print STDOUT "\n$PACKAGE version $VERSION\n".
+                "Comments to $PACKAGE_BUGREPORT\n\n";
+   exit;
+   }

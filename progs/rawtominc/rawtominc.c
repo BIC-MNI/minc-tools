@@ -788,7 +788,7 @@ int main(int argc, char *argv[])
    }
 
    /* Create any special attributes */
-   ncopts = 0;
+   set_ncopts(0);
    for (iatt=0; iatt < attribute_list_size; iatt++) {
       if (strlen(attribute_list[iatt].variable) == 0) {
          varid = NC_GLOBAL;
@@ -816,7 +816,7 @@ int main(int argc, char *argv[])
                             attribute_list[iatt].double_value);
       }
    }
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Create the image */
    if (do_minmax || do_real_range) {
@@ -1659,10 +1659,10 @@ static void get_file_info(char *filename, int initialized_volume_def,
 
    /* Get variable identifiers */
    file_info->imgid = ncvarid(file_info->mincid, MIimage);
-   ncopts = 0;
+   set_ncopts(0);
    file_info->maxid = ncvarid(file_info->mincid, MIimagemax);
    file_info->minid = ncvarid(file_info->mincid, MIimagemin);
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Get information about datatype dimensions of variable */
    (void) miget_datatype(file_info->mincid, file_info->imgid, 
@@ -1746,13 +1746,13 @@ static void get_file_info(char *filename, int initialized_volume_def,
       volume_def->nelements[cur_axis] = file_info->nelements[idim];
       
       /* Check for existence of variable */
-      ncopts = 0;
+      set_ncopts(0);
       dimid = ncvarid(file_info->mincid, dimname1);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
       if (dimid == MI_ERROR) continue;
              
       /* Get attributes from variable */
-      ncopts = 0;
+      set_ncopts(0);
       (void) miattget1(file_info->mincid, dimid, MIstep, 
                        NC_DOUBLE, &volume_def->step[cur_axis]);
      
@@ -1770,13 +1770,13 @@ static void get_file_info(char *filename, int initialized_volume_def,
                          MI_MAX_ATTSTR_LEN, volume_def->units[cur_axis]);
       (void) miattgetstr(file_info->mincid, dimid, MIspacetype, 
                          MI_MAX_ATTSTR_LEN, volume_def->spacetype[cur_axis]);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
 
       /* Normalize the direction cosine */
       // normalize_vector(volume_def->dircos[cur_axis]);
 
       /* Look for irregular coordinates for dimension variable */
-      ncopts = 0;
+      set_ncopts(0);
       coord_spacing = UNKNOWN;
       dimlength1 = volume_def->nelements[cur_axis];
       
@@ -1789,7 +1789,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
       }
       if (ncvarinq(file_info->mincid, dimid, NULL, NULL, 
                    &varndims, vardim, NULL) == MI_ERROR) {
-         ncopts = NC_VERBOSE | NC_FATAL;
+         set_ncopts(NC_VERBOSE | NC_FATAL);
          continue;
       }
       if ((coord_spacing != REGULAR) && 
@@ -1806,7 +1806,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
          if (mivarget(file_info->mincid, dimid, &varstart, &varcount,
                       NC_DOUBLE, MI_SIGNED, volume_def->coords[cur_axis])
                    == MI_ERROR) {
-            ncopts = NC_VERBOSE | NC_FATAL;
+            set_ncopts(NC_VERBOSE | NC_FATAL);
             free(volume_def->coords[cur_axis]);
             volume_def->coords[cur_axis] = NULL;
             continue;
@@ -1821,7 +1821,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
                volume_def->step[cur_axis] = 1.0;
          }
       }
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
      
 
    }   /* End of loop over dimensions */

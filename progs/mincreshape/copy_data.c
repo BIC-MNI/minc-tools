@@ -323,7 +323,7 @@ static void get_num_minmax_values(Reshape_info *reshape_info,
    for (iloop=0; iloop < 2; iloop++) {
 
       /* Get varid and pointer to return value */
-      ncopts = 0;
+      set_ncopts(0);
       switch (iloop) {
       case 0: 
          varid = ncvarid(reshape_info->inmincid, MIimagemin); 
@@ -334,7 +334,7 @@ static void get_num_minmax_values(Reshape_info *reshape_info,
          num_values = num_max_values;        /* Pointer to long */
          break;
       }
-      ncopts = NCOPTS_DEFAULT;
+      set_ncopts(NCOPTS_DEFAULT);
 
       /* Translate block count to min or max count and work out the
          total number of values. */
@@ -438,9 +438,9 @@ static void handle_normalization(Reshape_info *reshape_info,
       }
 
       /* Save the value */
-      ncopts = 0;
+      set_ncopts(0);
       varid = ncvarid(reshape_info->outmincid, varname);
-      ncopts = NCOPTS_DEFAULT;
+      set_ncopts(NCOPTS_DEFAULT);
       if (varid != MI_ERROR) {
          (void) mitranslate_coords(reshape_info->outmincid, 
                                    reshape_info->outimgid, block_start,

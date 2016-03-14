@@ -476,10 +476,10 @@ do_ncdump(char *path, struct fspec* specp)
 		var.has_fillval = 1; /* by default, but turn off for bytes */
 
 		/* get _FillValue attribute */
-                old_nc_opts = ncopts;
-                ncopts = 0;
+                old_nc_opts =get_ncopts();
+                set_ncopts(0);
                 nc_status = ncattinq(ncid,varid,_FillValue,&att.type,&att.len);
-                ncopts = old_nc_opts;
+                set_ncopts(old_nc_opts);
 		if(nc_status == NC_NOERR &&
 		   att.type == var.type && att.len == 1) {
 		    if(var.type == NC_CHAR) {

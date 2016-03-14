@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 
    /* Loop through attribute list, modifying values */
    done_redef = FALSE;
-   ncopts = NC_VERBOSE;
+   set_ncopts(NC_VERBOSE);
    zeros = NULL;
    alloc_length = 0;
    for (iatt=0; iatt < attribute_list_size; iatt++) {
@@ -255,19 +255,19 @@ int main(int argc, char *argv[])
          variable_exists = TRUE;
       }
       else {
-         old_ncopts = ncopts; ncopts = 0;
+         old_ncopts =get_ncopts(); set_ncopts(0);
          varid = ncvarid(mincid, variable_name);
-         ncopts = old_ncopts;
+         set_ncopts(old_ncopts);
          variable_exists = (varid != MI_ERROR);
       }
       attribute_type = NC_CHAR;
       attribute_length = 0;
       if (variable_exists) {
-         old_ncopts = ncopts; ncopts = 0;
+         old_ncopts =get_ncopts(); set_ncopts(0);
          attribute_exists = 
             (ncattinq(mincid, varid, attribute_name,
                       &attribute_type, &attribute_length) != MI_ERROR);
-         ncopts = old_ncopts;
+         set_ncopts(old_ncopts);
       }
       else
          attribute_exists = FALSE;
@@ -347,9 +347,9 @@ int main(int argc, char *argv[])
             
          }
          if (!variable_exists) {
-            old_ncopts = ncopts; ncopts = 0;
+            old_ncopts =get_ncopts(); set_ncopts(0);
             varid = micreate_group_variable(mincid, variable_name);
-            ncopts = old_ncopts;
+            set_ncopts(old_ncopts);
             if (varid == MI_ERROR) {
                varid = ncvardef(mincid, variable_name, NC_INT,
                                 0, NULL);
@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
       }
 
    }
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Close the file */
    (void) miclose(mincid);

@@ -8,7 +8,7 @@
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : January 31, 2005 (Anthonin Reilhac)
-@MODIFIED   : 
+@MODIFIED   : January 26, 2016 (Anthonin Reilhac) - correct for mid time frame offset
 @COPYRIGHT  :
               Copyright 2005 Anthonin Reilhac, McConnell Brain Imaging Centre, 
               Montreal Neurological Institute, McGill University.
@@ -95,6 +95,7 @@ int main ( int argc, char **argv) {
   static int include_ecat_subheader_info = TRUE;
   static int do_decay_corr_factor = TRUE;
   static int label_data = FALSE;
+  static int ignore_for_midframe_offset = FALSE;
   
   /* Argument option table */
   static ArgvInfo argTable[] = {
@@ -105,7 +106,8 @@ int main ( int argc, char **argv) {
     {"-ignore_ecat_main", ARGV_CONSTANT, (char *) FALSE, (char *) &include_ecat_main_info,"Ignore informations from the minc ecat-main variable."},
     {"-ignore_ecat_subheader_variable", ARGV_CONSTANT, (char *) FALSE, (char *) &include_ecat_subheader_info,"Ignore informations from the minc ecat-subhdr variable."},
     {"-no_decay_corr_fctr", ARGV_CONSTANT, (char *) FALSE, (char *) &do_decay_corr_factor,"Do not compute the decay correction factors"},
-    {"-label", ARGV_CONSTANT, (char *) TRUE, (char *) &label_data,"Voxel values are treated as integers, scale and calibration factors are set to unity"},
+    {"-label", ARGV_CONSTANT, (char *) TRUE, (char *) &label_data,"Voxel values are treated as integers, scale and calibration factors are set to unity."},
+    {"-ignore_mid_frame_offset", ARGV_CONSTANT, (char *) TRUE, (char *) &ignore_for_midframe_offset,"Time points as defined in the minc file are then assumed to correspond to the frame start time (by default they are assumed to be the mid frame time value)."},
     {NULL, ARGV_END, NULL, NULL, NULL} 
   };
 
@@ -260,7 +262,11 @@ int main ( int argc, char **argv) {
        
     /*filling image subheader*/
     if(mi->dim == 4) {
-      out_image_subheader->frame_start_time = (unsigned int)(mi->time_points[fr] * 1000);
+      if(!ignore_for_midframe_offset) {
+	out_image_subheader->frame_start_time = (unsigned int)((mi->time_points[fr]-mi->time_widths[fr]/2.0) * 1000);
+      } else {
+	out_image_subheader->frame_start_time = (unsigned int)(mi->time_points[fr] * 1000);
+      }
       out_image_subheader->frame_duration = (unsigned int)(mi->time_widths[fr] * 1000);
     }
     if((mi->dunit == NCIPERCC) && (do_decay_corr_factor))
@@ -394,8 +400,20 @@ minc_info *get_minc_info(char *file) {
     start_time_vector[0] = 0;
     count_time_vector[0] = mi->time_length;
 
-    mivarget(minc_fd, var_id, start_time_vector, count_time_vector, NC_DOUBLE, MI_SIGNED, mi->time_points);
-    mivarget(minc_fd, ncvarid(minc_fd, MItime_width), start_time_vector, count_time_vector, NC_DOUBLE, MI_SIGNED, mi->time_widths);
+    mivarget(minc_fd, ncvarid(minc_fd, MItime), start_time_vector, count_time_vector, NC_DOUBLE, MI_SIGNED, mi->time_points);
+    if (mivar_exists(minc_fd, MItime_width))
+      mivarget(minc_fd, ncvarid(minc_fd, MItime_width), start_time_vector, count_time_vector, NC_DOUBLE, MI_SIGNED, mi->time_widths);
+    else {
+      int t_index;
+      double t_step;
+
+      var_id = ncvarid(minc_fd, MItime);
+      miattget1(minc_fd, var_id, MIstep, NC_DOUBLE, &t_step);
+
+      for (t_index = 0; t_index < mi->time_length; t_index++) {
+        mi->time_widths[t_index] = t_step;
+      }
+    }
   }
 
   /*defining the modality*/
@@ -970,7 +988,7 @@ Image_subheader * init_image_subheader(char *file, minc_info *mi, Main_header *m
   return sh;
 }
 void write_ecat_frame(MatrixFile *mf, Image_subheader *sh, short *ptr,int fr, float min, float max) {
-  MatrixData md;
+  MatrixData md = {0};
 
   md.matnum = 0;
   md.matfile = mf;

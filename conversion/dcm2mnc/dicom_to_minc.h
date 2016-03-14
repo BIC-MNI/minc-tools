@@ -246,6 +246,23 @@ typedef struct {
         char *MrProt;           // Siemens Numaris 4 specific
         short dti;              /* TRUE if we think this is DTI */
     } acq;
+    struct Pet_info {
+        string_t radionuclide;
+        string_t tracer;
+        double radionuclide_halflife;
+        double positron_fraction;
+        string_t dose_units;
+        string_t injection_route;
+        double injection_dose;
+        double injection_volume;
+        string_t injection_time;
+        int injection_year;
+        int injection_month;
+        int injection_day;
+        int injection_hour;
+        int injection_minute;
+        double injection_seconds;
+    } pet;
     Acr_Group group_list;
 } General_Info;
 
