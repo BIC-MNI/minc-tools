@@ -408,3 +408,6 @@ void print_version_info(void)
    fprintf(stdout, "\n");
    exit(EXIT_SUCCESS);
    }
+
+   
+/* kate: indent-mode cstyle;tab-width 8; indent-width 2; replace-tabs on; */
