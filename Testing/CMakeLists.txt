@@ -40,7 +40,7 @@ ADD_TEST(mincaverage-test ${CMAKE_CURRENT_SOURCE_DIR}/mincaverage-test.sh)
 
 # Set its environment variables.
 SET_TESTS_PROPERTIES(mincaverage-test
-    PROPERTIES ENVIRONMENT "MINCAVERAGE_BIN=${mincaverage_bin};MINCSTATS_BIN=${mincstats_bin}")
+    PROPERTIES ENVIRONMENT "MINCAVERAGE_BIN=${mincaverage_bin};MINCSTATS_BIN=${mincstats_bin};MINCINFO_BIN=${mincinfo_bin}")
 
 # Get path to the binary.
 GET_PROPERTY(minccalc_bin TARGET minccalc PROPERTY LOCATION)
