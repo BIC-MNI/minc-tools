@@ -11,6 +11,21 @@ if [[ ! -x $MINCINFO_BIN ]]; then
     MINCINFO_BIN=`which mincinfo`;
 fi
 
+if [[ -z $MINCAVERAGE_BIN ]];then
+  echo MINCAVERAGE_BIN not set
+  exit 1
+fi
+
+if [[ -z $MINCSTATS_BIN ]];then
+  echo MINCSTATS_BIN not set
+  exit 1
+fi
+
+if [[ -z $MINCINFO_BIN ]];then
+  echo MINCINFO_BIN not set
+  exit 1
+fi
+
 # Test the standard (no-normalize) case. This has always worked.
 $MINCAVERAGE_BIN -clobber mincaverage-in0.mnc mincaverage-in1.mnc mincaverage-out.mnc
 r1=`$MINCSTATS_BIN -quiet -sum mincaverage-out.mnc`
@@ -28,7 +43,7 @@ fi;
 
 # Now test new avgdim case. This would fail until 3 March 2016.
 $MINCAVERAGE_BIN -avgdim time -clobber test-4d.mnc mincaverage-out.mnc
-if [$? -ne 0 ]; then
+if [ $? -ne 0 ]; then
   echo "Problem running mincaverage."
   exit 1;
 fi;
