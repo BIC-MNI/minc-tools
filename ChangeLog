@@ -1,3 +1,6 @@
+2016-04-07  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * conversion/nifti1/nii2mnc.c: Fix handling of Analyze files.
+
 2015-09-22  Robert D. Vincent <robert.d.vincent@mcgill.ca>
    * progs/mincreshape/{mincreshape.c, mincreshape.h, copy_data.c}: Fix
 	reading of image-min and image-max to avoid wildly incorrect
