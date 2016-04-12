@@ -75,6 +75,11 @@ GLOBAL_ELEMENT(PMS_Stack_Type                         , 0x2001, 0x1036, CS);
 GLOBAL_ELEMENT(PMS_Number_of_Stacks                   , 0x2001, 0x1060, SL);
 GLOBAL_ELEMENT(PMS_Examination_Source                 , 0x2001, 0x1063, CS);
 
+GLOBAL_ELEMENT(PMS_Private_group_creator_1            , 0x2005, 0x0010, LO);
+GLOBAL_ELEMENT(PMS_Private_group_creator_2            , 0x2005, 0x0011, LO);
+GLOBAL_ELEMENT(PMS_Private_group_creator_3            , 0x2005, 0x0012, LO);
+GLOBAL_ELEMENT(PMS_Private_group_creator_4            , 0x2005, 0x0013, LO);
+GLOBAL_ELEMENT(PMS_Private_group_creator_5            , 0x2005, 0x0014, LO);
 GLOBAL_ELEMENT(PMS_Acquisition_parameters_seq, 0x2005, 0x140f, SQ);
 
 /* These values indicate the index of the B-values and gradient

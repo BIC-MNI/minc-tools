@@ -657,6 +657,44 @@ minc_set_spacing(int mincid, int varid, Mri_Index imri, General_Info *gi_ptr)
     }
 }
 
+#include <stdarg.h>
+
+static char *_my_string = NULL;
+static int _my_cur_length = 0;
+static int _my_max_length = 0;
+
+static void
+init_my_sprintf(void)
+{
+  if (_my_string != NULL) {
+    free(_my_string);
+  }
+  _my_string = NULL;
+  _my_max_length = 0;
+  _my_cur_length = 0;
+}
+
+#define N_CHUNK 1024            /* bytes per allocated chunk */
+
+static void
+my_sprintf(const char *fmt_ptr, ...)
+{
+  char str_buf[1024];
+  va_list args;
+  int n_chars;
+
+  va_start(args, fmt_ptr);
+  n_chars = vsnprintf(str_buf, sizeof(str_buf), fmt_ptr, args);
+
+  if (_my_cur_length + n_chars >= _my_max_length) {
+    int increment = ((n_chars + N_CHUNK - 1) / N_CHUNK) * N_CHUNK;
+    _my_string = realloc(_my_string, _my_max_length + increment);
+    _my_max_length += increment;
+  }
+  strcpy(&_my_string[_my_cur_length], str_buf);
+  _my_cur_length += n_chars;
+}
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : setup_minc_variables
    @INPUT      : mincid
@@ -686,11 +724,9 @@ void setup_minc_variables(int mincid, General_Info *general_info,
     Acr_Group cur_group;
     Acr_Element cur_element;
     int length;
-    char *data;
+    void *data;
     nc_type datatype;
-    int is_char;
     int ich;
-    int is_flattened;
 
     /* Define the spatial dimension names */
     static char *spatial_dimnames[WORLD_NDIMS] = {MIxspace, MIyspace, MIzspace};
@@ -1192,68 +1228,82 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         while (cur_element != NULL) {
             sprintf(name, "el_0x%04x", 
                     acr_get_element_element(cur_element));
-            is_char = TRUE;
             length = acr_get_element_length(cur_element);
             data = acr_get_element_data(cur_element);
             if (data == NULL) {
                 length = 0;
             }
 
-            /* If the element is a sequence, we need to flatten out the
-             * data so that we store the actual DICOM data rather than
-             * our internal representation of it. We allocate a 
-             * data buffer to hold the output, because we can't safely 
-             * modify the memory returned by acr_get_element_data().
+            init_my_sprintf();
+            /* If the element is a sequence, we print the contents of
+             * the sequence as a string. This is because we have no
+             * other way to represent the substructure of the sequence
+             * in the attributes of a MINC file.
              */
-            if (acr_element_is_sequence(cur_element) &&
-                (data = malloc(length)) != NULL) {
-                /* Create a file to store the output. */
-                FILE *fp = tmpfile();
-                Acr_File *afp = acr_file_initialize(fp, 0, acr_stdio_write);
-                Acr_Element item;
-                for (item = (Acr_Element) acr_get_element_data(cur_element);
-                     item != NULL;
-                     item = acr_get_element_next(item)) {
-                    acr_output_element(afp, item);
-                }
-                acr_file_flush(afp);
-                /* Now seek back to the beginning of the temporary file,
-                 * and read in the data we wrote.
-                 */
-                fseek(fp, 0, SEEK_SET);
-                fread(data, 1, length, fp);
-                acr_file_free(afp);
-                fclose(fp);
-                /* Set flag so that we will free() the pointer later on. */
-                is_flattened = 1;
-            }
-            else {
-                is_flattened = 0;
+            if (acr_element_is_sequence(cur_element)) {
+                acr_dump_element_list(my_sprintf, (Acr_Element) data);
+                data = _my_string;
+                length = _my_cur_length;
             }
 
-            for (ich=0; ich < length; ich++) {
-                if (!isprint((int) data[ich])) {
-                    is_char = FALSE;
-                    break;
+            Acr_VR_Type vr_code = acr_get_element_vr(cur_element);
+            switch (vr_code) {
+            case ACR_VR_AE:
+            case ACR_VR_AS:
+            case ACR_VR_CS:
+            case ACR_VR_DA:
+            case ACR_VR_DS:
+            case ACR_VR_DT:
+            case ACR_VR_IS:
+            case ACR_VR_LO:
+            case ACR_VR_LT:
+            case ACR_VR_PN:
+            case ACR_VR_SH:
+            case ACR_VR_ST:
+            case ACR_VR_TM:
+            case ACR_VR_UI:
+            case ACR_VR_UT:
+            case ACR_VR_SQ:     /* sequences are strings now!! */
+              datatype = NC_CHAR;
+              break;
+            case ACR_VR_AT:
+            case ACR_VR_OW:
+            case ACR_VR_SS:
+            case ACR_VR_US:
+              datatype = NC_SHORT;
+              length /= 2;
+              break;
+            case ACR_VR_SL:
+            case ACR_VR_UL:
+              datatype = NC_INT;
+              length /= 4;
+              break;
+            case ACR_VR_FL:
+              datatype = NC_FLOAT;
+              length /= 4;
+              break;
+            case ACR_VR_FD:
+              datatype = NC_DOUBLE;
+              length /= 8;
+              break;
+            case ACR_VR_OB:
+            case ACR_VR_UN:
+            default:
+              datatype = NC_CHAR;
+              for (ich=0; ich < length; ich++) {
+                if (!isprint(((char *)data)[ich])) {
+                  datatype = NC_BYTE;
+                  break;
                 }
+              }
+              break;
             }
-            if (is_char)
-                datatype = NC_CHAR;
-            else
-                datatype = NC_BYTE;
 
             /* Do not insert 0-length elements as it makes HDF complain */
             if(length > 0)
                 ncattput(mincid, varid, name, datatype, length, data);
          
             cur_element = acr_get_element_next(cur_element);
-
-            /* If we had to "flatten" the element because it is a sequence,
-             * remove the resources used to accomplish this.
-             */
-            if (is_flattened) {
-              free(data);
-            }
         }
         cur_group = acr_get_group_next(cur_group);
     }
