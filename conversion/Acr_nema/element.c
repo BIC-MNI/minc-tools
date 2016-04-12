@@ -1,10 +1,10 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : element.c
 @DESCRIPTION: Routines for doing acr_nema element operations.
-@METHOD     : 
-@GLOBALS    : 
+@METHOD     :
+@GLOBALS    :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
  * $Log: element.c,v $
  * Revision 6.12  2008-08-12 05:00:22  rotor
  *  * large number of changes from Claude (64 bit and updates)
@@ -90,30 +90,30 @@
  *
  * Revision 1.8  94/09/28  10:35:44  neelin
  * Pre-release
- * 
+ *
  * Revision 1.7  93/11/30  12:19:15  neelin
  * Handle MALLOC returning NULL because of extremely large data element length.
- * 
+ *
  * Revision 1.6  93/11/30  08:57:28  neelin
  * Added element copy routine.
- * 
+ *
  * Revision 1.5  93/11/26  18:47:36  neelin
  * Added element copy routine.
- * 
+ *
  * Revision 1.4  93/11/25  10:35:34  neelin
  * Ensure that strings have an even length (pad with space).
- * 
+ *
  * Revision 1.3  93/11/24  11:25:14  neelin
  * Changed short to unsigned short.
- * 
+ *
  * Revision 1.2  93/11/22  13:11:34  neelin
  * Added Acr_Element_Id code.
- * 
+ *
  * Revision 1.1  93/11/19  12:48:12  neelin
  * Initial revision
- * 
+ *
 @COPYRIGHT  :
-              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre, 
+              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre,
               Montreal Neurological Institute, McGill University.
               Permission to use, copy, modify, and distribute this
               software and its documentation for any purpose and without
@@ -134,7 +134,7 @@
 /* Private functions */
 static void delete_element_data(Acr_Element element);
 static Acr_Element create_element_mem(Acr_Element_Id elid,
-                                      Acr_VR_Type vr_code, 
+                                      Acr_VR_Type vr_code,
                                       size_t value_size, void *value);
 
 /* Macros */
@@ -143,7 +143,7 @@ static Acr_Element create_element_mem(Acr_Element_Id elid,
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : acr_create_element
-@INPUT      : group_id 
+@INPUT      : group_id
               element_id
               vr_code - Internal VR code
               data_length - if < 0, then data is assumed to be a pointer to
@@ -151,25 +151,25 @@ static Acr_Element create_element_mem(Acr_Element_Id elid,
               data_pointer - pointer to actual data or to list of elements
 @OUTPUT     : (none)
 @RETURNS    : Pointer to element structure
-@DESCRIPTION: Creates an acr-nema element structure. If data_length is 
+@DESCRIPTION: Creates an acr-nema element structure. If data_length is
               negative, then the element is a sequence and the data_pointer
               must point to a list of elements. In this case, the element is
               assumed to have variable length. If the element is an
               ACR_VR_SQ, then it is possible to change it to have fixed length
               by calling acr_set_element_variable_length with FALSE.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
 @MODIFIED   : February 4, 1997 (P.N.)
 ---------------------------------------------------------------------------- */
-Acr_Element acr_create_element(int group_id, int element_id, 
-                               Acr_VR_Type vr_code, 
+Acr_Element acr_create_element(int group_id, int element_id,
+                               Acr_VR_Type vr_code,
                                long data_length, char *data_pointer)
 {
    Acr_Element element;
 
-   /* Allocate the element. We set the data pointer to NULL so that 
+   /* Allocate the element. We set the data pointer to NULL so that
       acr_set_element_data does not try to free an unitialized pointer */
    element = MALLOC(sizeof(*element));
    element->data_pointer = NULL;
@@ -193,11 +193,11 @@ Acr_Element acr_create_element(int group_id, int element_id,
 @RETURNS    : (nothing)
 @DESCRIPTION: Deletes element data, but leaves element in an intermediate
               state with dangling pointers and incorrect lengths.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static void delete_element_data(Acr_Element element)
 {
@@ -222,9 +222,9 @@ static void delete_element_data(Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Deletes an acr-nema element structure (freeing the data pointer)
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
 @MODIFIED   : February 4, 1997 (P.N.)
 ---------------------------------------------------------------------------- */
@@ -244,11 +244,11 @@ void acr_delete_element(Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Delete a list of acr-nema elements
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void acr_delete_element_list(Acr_Element element_list)
 {
@@ -275,13 +275,13 @@ void acr_delete_element_list(Acr_Element element_list)
 @RETURNS    : Pointer to new element list
 @DESCRIPTION: Adds an element to a list of elements. If element_list is NULL,
               then a new list is created.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 11, 1997 (P.N.)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-Acr_Element acr_element_list_add(Acr_Element element_list, 
+Acr_Element acr_element_list_add(Acr_Element element_list,
                                  Acr_Element element)
 {
    Acr_Element current;
@@ -310,11 +310,11 @@ Acr_Element acr_element_list_add(Acr_Element element_list,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Set group and element id of an acr-nema element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void acr_set_element_id(Acr_Element element,
                         int group_id, int element_id)
@@ -332,11 +332,11 @@ void acr_set_element_id(Acr_Element element,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Set VR code for an element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void acr_set_element_vr(Acr_Element element,
                         Acr_VR_Type vr_code)
@@ -353,11 +353,11 @@ void acr_set_element_vr(Acr_Element element,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Set encoding type for element VR
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void acr_set_element_vr_encoding(Acr_Element element,
                                  Acr_VR_encoding_type vr_encoding)
@@ -374,11 +374,11 @@ void acr_set_element_vr_encoding(Acr_Element element,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Set byte order for an element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 14, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void acr_set_element_byte_order(Acr_Element element,
                                 Acr_byte_order byte_order)
@@ -396,11 +396,11 @@ void acr_set_element_byte_order(Acr_Element element,
 @RETURNS    : (nothing)
 @DESCRIPTION: Set flag indicating whether element has variable length or not.
               This can only be set if the element contains sequence data.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void acr_set_element_variable_length(Acr_Element element,
                                      int has_variable_length)
@@ -423,11 +423,11 @@ void acr_set_element_variable_length(Acr_Element element,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Set data length and pointer of an acr-nema element. A negative
-              length means that this element is a sequence and the data 
+              length means that this element is a sequence and the data
               pointer points to a list of elements (items).
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
 @MODIFIED   : February 4, 1997 (P.N.)
 ---------------------------------------------------------------------------- */
@@ -451,8 +451,8 @@ void acr_set_element_data(Acr_Element element,
    if (element->is_sequence) {
       data_length = 0;
       last = last2 = NULL;
-      for (item = (Acr_Element) data_pointer; 
-           item != NULL; 
+      for (item = (Acr_Element) data_pointer;
+           item != NULL;
            item=acr_get_element_next(item)) {
          last_length = acr_get_element_total_length(item, acr_get_element_vr_encoding(item));
          data_length += last_length;
@@ -461,7 +461,7 @@ void acr_set_element_data(Acr_Element element,
       }
 
       /* Check for a last delimiting item - remove it so that we don't
-         have to worry about switching between defined and undefined 
+         have to worry about switching between defined and undefined
          lengths - it will always be added later */
       if ((last != NULL) &&
           (acr_get_element_group(last) == ACR_ITEM_GROUP) &&
@@ -493,11 +493,11 @@ void acr_set_element_data(Acr_Element element,
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Set pointer to next element for an acr-nema element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void acr_set_element_next(Acr_Element element, Acr_Element next)
 {
@@ -511,11 +511,11 @@ void acr_set_element_next(Acr_Element element, Acr_Element next)
 @OUTPUT     : (none)
 @RETURNS    : group id
 @DESCRIPTION: Get group id for element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 int acr_get_element_group(Acr_Element element)
 {
@@ -528,11 +528,11 @@ int acr_get_element_group(Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : element id
 @DESCRIPTION: Get element id for element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 int acr_get_element_element(Acr_Element element)
 {
@@ -545,11 +545,11 @@ int acr_get_element_element(Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : element VR code
 @DESCRIPTION: Get VR code for element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_VR_Type acr_get_element_vr(Acr_Element element)
 {
@@ -562,11 +562,11 @@ Acr_VR_Type acr_get_element_vr(Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : ACR_EXPLICIT_ENCODING or ACR_IMPLICIT_ENCODING
 @DESCRIPTION: Get VR encoding type for element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_VR_encoding_type acr_get_element_vr_encoding(Acr_Element element)
 {
@@ -578,12 +578,12 @@ Acr_VR_encoding_type acr_get_element_vr_encoding(Acr_Element element)
 @INPUT      : element
 @OUTPUT     : (none)
 @RETURNS    : TRUE if element stores a sequence of items
-@DESCRIPTION: 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@DESCRIPTION:
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 int acr_element_is_sequence(Acr_Element element)
 {
@@ -595,16 +595,16 @@ int acr_element_is_sequence(Acr_Element element)
 @INPUT      : element
 @OUTPUT     : (none)
 @RETURNS    : ACR_BIG_ENDIAN or ACR_LITTLE_ENDIAN
-@DESCRIPTION: 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@DESCRIPTION:
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 17, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_byte_order acr_get_element_byte_order(Acr_Element element)
 {
-   return (element->has_little_endian_order ? 
+   return (element->has_little_endian_order ?
            ACR_LITTLE_ENDIAN : ACR_BIG_ENDIAN);
 }
 
@@ -613,12 +613,12 @@ Acr_byte_order acr_get_element_byte_order(Acr_Element element)
 @INPUT      : element
 @OUTPUT     : (none)
 @RETURNS    : TRUE if element has variable length representation
-@DESCRIPTION: 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@DESCRIPTION:
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 4, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 int acr_element_has_variable_length(Acr_Element element)
 {
@@ -632,11 +632,11 @@ int acr_element_has_variable_length(Acr_Element element)
 @RETURNS    : data_length
 @DESCRIPTION: Get data length for element. If we have a variable length
               sequence, then we add in the length of the sequence delimiter.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 long acr_get_element_length(Acr_Element element)
 {
@@ -657,11 +657,11 @@ long acr_get_element_length(Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : data_pointer
 @DESCRIPTION: Get data pointer for element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 char *acr_get_element_data(Acr_Element element)
 {
@@ -676,11 +676,11 @@ char *acr_get_element_data(Acr_Element element)
 @RETURNS    : total length for element, or zero if error.
 @DESCRIPTION: Get total length for element in ACR-NEMA representation
               depending on VR
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 long acr_get_element_total_length(Acr_Element element,
                                   Acr_VR_encoding_type vr_encoding)
@@ -693,7 +693,7 @@ long acr_get_element_total_length(Acr_Element element,
       return (0);
    }
 
-   return acr_get_element_length(element) + 
+   return acr_get_element_length(element) +
       acr_get_element_header_size(vr_name, vr_encoding);
 }
 
@@ -703,11 +703,11 @@ long acr_get_element_total_length(Acr_Element element,
 @OUTPUT     : (none)
 @RETURNS    : next element
 @DESCRIPTION: Get next element for element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_get_element_next(Acr_Element element)
 {
@@ -720,9 +720,9 @@ Acr_Element acr_get_element_next(Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Copies an acr-nema element structure
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 26, 1993 (Peter Neelin)
 @MODIFIED   : February 4, 1997 (P.N.)
 ---------------------------------------------------------------------------- */
@@ -771,7 +771,7 @@ Acr_Element acr_copy_element(Acr_Element element)
    }
 
    /* Create the new element */
-   copy = acr_create_element(acr_get_element_group(element), 
+   copy = acr_create_element(acr_get_element_group(element),
                              acr_get_element_element(element),
                              acr_get_element_vr(element),
                              length, (void *) data);
@@ -790,11 +790,11 @@ Acr_Element acr_copy_element(Acr_Element element)
 @OUTPUT     : element
 @RETURNS    : status
 @DESCRIPTION: Read in an acr-nema element
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Status acr_input_element(Acr_File *afp, Acr_Element *element)
 {
@@ -832,7 +832,7 @@ Acr_Status acr_input_element(Acr_File *afp, Acr_Element *element)
 
    has_variable_length = (data_length < 0);
 
-   /* If we have a sequence, read in all the items and store them as a 
+   /* If we have a sequence, read in all the items and store them as a
       list of elements. */
    if (is_sequence) {
 
@@ -884,7 +884,7 @@ Acr_Status acr_input_element(Acr_File *afp, Acr_Element *element)
    }
 
    /* Create the element */
-   *element = acr_create_element(group_id, element_id, vr_code, 
+   *element = acr_create_element(group_id, element_id, vr_code,
                                  (is_sequence ? -1 : data_length),
                                  data_pointer);
    acr_set_element_vr_encoding(*element, acr_get_vr_encoding(afp));
@@ -904,11 +904,11 @@ Acr_Status acr_input_element(Acr_File *afp, Acr_Element *element)
 @RETURNS    : status
 @DESCRIPTION: Write out an acr-nema element. The byte ordering of the element
               data is changed to match that of the output stream
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Status acr_output_element(Acr_File *afp, Acr_Element element)
 {
@@ -946,7 +946,7 @@ Acr_Status acr_output_element(Acr_File *afp, Acr_Element element)
    acr_convert_element_byte_order(element, acr_get_byte_order(afp));
 
    /* Write out the element */
-   status = acr_write_one_element(afp, 
+   status = acr_write_one_element(afp,
                                   acr_get_element_group(element),
                                   acr_get_element_element(element),
                                   vr_name, data_length, data_pointer);
@@ -995,19 +995,19 @@ Acr_Status acr_output_element(Acr_File *afp, Acr_Element element)
 @OUTPUT     : (none)
 @RETURNS    : status
 @DESCRIPTION: Converts the data within an element to a specified byte_order.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 10, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-void acr_convert_element_byte_order(Acr_Element element, 
+void acr_convert_element_byte_order(Acr_Element element,
                                     Acr_byte_order byte_order)
 {
    Acr_byte_order element_byte_order;
    long nvalues;
    size_t value_size;
-   
+
    /* Get the element and stream byte orders and change the element
       byte order to match that of the stream */
    element_byte_order = acr_get_element_byte_order(element);
@@ -1037,7 +1037,7 @@ void acr_convert_element_byte_order(Acr_Element element,
       if (value_size > 1) {
          if (element_byte_order != byte_order) {
             nvalues = acr_get_element_length(element) / value_size;
-            acr_reverse_byte_order(nvalues, value_size, 
+            acr_reverse_byte_order(nvalues, value_size,
                                    acr_get_element_data(element), NULL);
          }
       }
@@ -1053,11 +1053,11 @@ void acr_convert_element_byte_order(Acr_Element element,
 @RETURNS    : TRUE if the ids match, FALSE otherwise
 @DESCRIPTION: Compares the group and element id of an element id structure to
               that of an element. Returns TRUE if they are the same.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 12, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 int acr_match_element_id(Acr_Element_Id elid,
                          Acr_Element element)
@@ -1075,11 +1075,11 @@ int acr_match_element_id(Acr_Element_Id elid,
 @DESCRIPTION: Searches an element list for an element id. As a side effect,
               the VR type of the element is set if it is previously unknown
               and it is defined in the element id structure.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 12, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_find_element_id(Acr_Element element_list,
                                 Acr_Element_Id elid)
@@ -1109,11 +1109,11 @@ Acr_Element acr_find_element_id(Acr_Element element_list,
 @OUTPUT     : (none)
 @RETURNS    : Pointer to copy of data
 @DESCRIPTION: Allocates memory and makes a copy of some memory
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 14, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 void *acr_memdup(size_t value_size, void *value)
 {
@@ -1138,14 +1138,14 @@ void *acr_memdup(size_t value_size, void *value)
 @RETURNS    : Pointer to element structure
 @DESCRIPTION: Creates an acr-nema element structure containing data of the
               specified size. The data is copied into a new memory location.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 14, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 static Acr_Element create_element_mem(Acr_Element_Id elid,
-                                      Acr_VR_Type vr_code, 
+                                      Acr_VR_Type vr_code,
                                       size_t value_size, void *value)
 {
    return acr_create_element(elid->group_id, elid->element_id, vr_code,
@@ -1159,11 +1159,11 @@ static Acr_Element create_element_mem(Acr_Element_Id elid,
 @OUTPUT     : (none)
 @RETURNS    : Pointer to element structure
 @DESCRIPTION: Creates an acr-nema element structure containing one short.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_create_element_short(Acr_Element_Id elid,
                                      Acr_Short value)
@@ -1178,11 +1178,11 @@ Acr_Element acr_create_element_short(Acr_Element_Id elid,
 @OUTPUT     : (none)
 @RETURNS    : Pointer to element structure
 @DESCRIPTION: Creates an acr-nema element structure containing one long.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_create_element_long(Acr_Element_Id elid,
                                     Acr_Long value)
@@ -1197,19 +1197,19 @@ Acr_Element acr_create_element_long(Acr_Element_Id elid,
               values
 @OUTPUT     : (none)
 @RETURNS    : Pointer to element structure
-@DESCRIPTION: Creates an acr-nema element structure containing an array of 
+@DESCRIPTION: Creates an acr-nema element structure containing an array of
               doubles.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : April 8, 2006 (Bert Vincent)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_create_element_double(Acr_Element_Id elid,
                                       int nvalues,
                                       Acr_Double *values)
 {
-   return create_element_mem(elid, ACR_VR_FD, (ACR_SIZEOF_DOUBLE * nvalues), 
+   return create_element_mem(elid, ACR_VR_FD, (ACR_SIZEOF_DOUBLE * nvalues),
                              values);
 }
 
@@ -1219,15 +1219,15 @@ Acr_Element acr_create_element_double(Acr_Element_Id elid,
               value
 @OUTPUT     : (none)
 @RETURNS    : Pointer to element structure
-@DESCRIPTION: Creates an acr-nema element structure containing one ascii 
+@DESCRIPTION: Creates an acr-nema element structure containing one ascii
               numeric.
               Note that the VR type is taken from the elid structure unless
               it is not specified there (ACR_VR_UNKNOWN).
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_create_element_numeric(Acr_Element_Id elid,
                                        double value)
@@ -1236,7 +1236,7 @@ Acr_Element acr_create_element_numeric(Acr_Element_Id elid,
    Acr_Element element;
 
    if (elid->vr_code == ACR_VR_FD) {
-       element = create_element_mem(elid, ACR_VR_FD, sizeof(value), 
+       element = create_element_mem(elid, ACR_VR_FD, sizeof(value),
                                     (void *) &value);
    }
    else {
@@ -1256,13 +1256,13 @@ Acr_Element acr_create_element_numeric(Acr_Element_Id elid,
 @RETURNS    : Pointer to element structure
 @DESCRIPTION: Creates an acr-nema element structure containing an ascii string.
               Note that the string is duplicated for the element structure.
-              Note also that the VR type is taken from the elid structure 
+              Note also that the VR type is taken from the elid structure
               unless it is not specified there (ACR_VR_UNKNOWN).
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_create_element_string(Acr_Element_Id elid,
                                       Acr_String value)
@@ -1297,7 +1297,7 @@ Acr_Element acr_create_element_string(Acr_Element_Id elid,
    }
 
    /* Create the element and return it */
-   return acr_create_element(elid->group_id, elid->element_id, 
+   return acr_create_element(elid->group_id, elid->element_id,
                              vr_code, data_length, data);
 }
 
@@ -1309,16 +1309,16 @@ Acr_Element acr_create_element_string(Acr_Element_Id elid,
 @RETURNS    : Pointer to element structure
 @DESCRIPTION: Creates an acr-nema element structure containing a sequence of
               items.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 12, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Element acr_create_element_sequence(Acr_Element_Id elid,
                                         Acr_Element itemlist)
 {
-   return acr_create_element(elid->group_id, elid->element_id, 
+   return acr_create_element(elid->group_id, elid->element_id,
                              ACR_VR_SQ, -1L, (char *) itemlist);
 }
 
@@ -1329,11 +1329,11 @@ Acr_Element acr_create_element_sequence(Acr_Element_Id elid,
 @RETURNS    : Value from element structure
 @DESCRIPTION: Gets a single short from an element structure. Returns zero
               if an error occurs.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Short acr_get_element_short(Acr_Element element)
 {
@@ -1354,11 +1354,11 @@ Acr_Short acr_get_element_short(Acr_Element element)
 @RETURNS    : Value from element structure
 @DESCRIPTION: Gets a single long from an element structure. Returns zero
               if an error occurs.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_Long acr_get_element_long(Acr_Element element)
 {
@@ -1378,13 +1378,13 @@ Acr_Long acr_get_element_long(Acr_Element element)
 @INPUT      : element
 @OUTPUT     : (none)
 @RETURNS    : Value from element structure
-@DESCRIPTION: Gets a single ascii numeric from an element structure. 
+@DESCRIPTION: Gets a single ascii numeric from an element structure.
               Returns zero if an error occurs.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 double acr_get_element_numeric(Acr_Element element)
 {
@@ -1403,12 +1403,12 @@ double acr_get_element_numeric(Acr_Element element)
 @INPUT      : element
 @OUTPUT     : (none)
 @RETURNS    : Value from element structure
-@DESCRIPTION: Gets an string from an element structure. 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@DESCRIPTION: Gets an string from an element structure.
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 Acr_String acr_get_element_string(Acr_Element element)
 {
@@ -1426,17 +1426,17 @@ Acr_String acr_get_element_string(Acr_Element element)
               max_values - maximum number of values to return
 @OUTPUT     : values - array of values found
 @RETURNS    : Number of values found
-@DESCRIPTION: Gets an array of shorts from an element structure. If the 
-              number of values in the element is greater than max_values, 
+@DESCRIPTION: Gets an array of shorts from an element structure. If the
+              number of values in the element is greater than max_values,
               then only max_values values are extracted, but the total
               number of values in the element is returned.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 17, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-long acr_get_element_short_array(Acr_Element element, long max_values, 
+long acr_get_element_short_array(Acr_Element element, long max_values,
                                  Acr_Short values[])
 {
    long nvalues;
@@ -1472,17 +1472,17 @@ long acr_get_element_short_array(Acr_Element element, long max_values,
               max_values - maximum number of values to return
 @OUTPUT     : values - array of values found
 @RETURNS    : Number of values found
-@DESCRIPTION: Gets an array of doubles from an element structure. If the 
-              number of values in the element is greater than max_values, 
+@DESCRIPTION: Gets an array of doubles from an element structure. If the
+              number of values in the element is greater than max_values,
               then only max_values values are extracted, but the total
               number of values in the element is returned.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : April 8, 2006 (Bert Vincent)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-long acr_get_element_double_array(Acr_Element element, long max_values, 
+long acr_get_element_double_array(Acr_Element element, long max_values,
                                   Acr_Double values[])
 {
    long nvalues;
@@ -1513,17 +1513,17 @@ long acr_get_element_double_array(Acr_Element element, long max_values,
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : acr_element_numeric_array_separator
-@INPUT      : character - character to add to list or EOF if not adding 
+@INPUT      : character - character to add to list or EOF if not adding
                  anything
 @OUTPUT     : (none)
 @RETURNS    : Pointer to array of separators, ending with an EOF
 @DESCRIPTION: Adds to the list of separators for a numeric array, or
               returns a pointer to the array which is terminated with an EOF.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 27, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 int *acr_element_numeric_array_separator(int character)
 {
@@ -1535,7 +1535,7 @@ int *acr_element_numeric_array_separator(int character)
    /* Create the default list */
    if (separator_list == NULL) {
       nseparators = SIZEOF_ARRAY(default_list);
-      separator_list = 
+      separator_list =
          MALLOC((size_t) (nseparators + 1) * sizeof(*separator_list));
       for (isep = 0; isep < nseparators; isep++) {
          separator_list[isep] = default_list[isep];
@@ -1550,8 +1550,8 @@ int *acr_element_numeric_array_separator(int character)
       }
       if (character != separator_list[isep]) {
          nseparators++;
-         separator_list = 
-            REALLOC(separator_list, 
+         separator_list =
+            REALLOC(separator_list,
                     (size_t) (nseparators + 1) * sizeof(*separator_list));
          separator_list[nseparators - 1] = character;
          separator_list[nseparators] = EOF;
@@ -1568,12 +1568,12 @@ int *acr_element_numeric_array_separator(int character)
               max_values - maximum number of values to return
 @OUTPUT     : values - array of values found
 @RETURNS    : Number of values found
-@DESCRIPTION: Gets an array of ascii numbers from an element structure. 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@DESCRIPTION: Gets an array of ascii numbers from an element structure.
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : November 17, 1993 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 int acr_get_element_numeric_array(Acr_Element element,
                                   int max_values, double values[])
@@ -1624,8 +1624,9 @@ int acr_get_element_numeric_array(Acr_Element element,
    return nvalues;
 }
 
-static void 
-maybe_print_as_string(FILE *file_pointer, Acr_Element cur_element,
+static void
+maybe_print_as_string(void (*func)(const char *, ...),
+                      Acr_Element cur_element,
                       int element_length, int done_already)
 {
     char *string;
@@ -1662,43 +1663,40 @@ maybe_print_as_string(FILE *file_pointer, Acr_Element cur_element,
         copy[i] = '\0';
 
         if (printable) {
-            (void) fprintf(file_pointer, " string = \"%s\"", copy);
+            func(" string = \"%s\"", copy);
         }
         else if (!done_already) {
             /* If unknown length print as a series of bytes.
              */
             string = acr_get_element_data(cur_element);
-            fprintf(file_pointer, " byte = ");
+            func(" byte = ");
             if (element_length < 16) {
                 for (i = 0; i < element_length; i++) {
-                    fprintf(file_pointer, "%#x", 
-                            (unsigned char)string[i]);
+                    func("%#x", (unsigned char)string[i]);
                     if (i != element_length - 1) {
-                        fprintf(file_pointer, ", ");
+                        func(", ");
                     }
                 }
             }
             else {
-                fprintf(file_pointer, "\n");
+                func("\n");
                 for (i = 0; i < element_length; i += 16) {
                     for (j = 0; j < 16; j++) {
                             if (i + j < element_length) {
-                                fprintf(file_pointer, "%02x ", 
-                                        (unsigned char)string[i+j]);
+                                func("%02x ", (unsigned char)string[i+j]);
                             }
                             else {
-                                fprintf(file_pointer, "   ");
+                                func("   ");
                             }
                         }
-                        fprintf(file_pointer, "| ");
+                        func("| ");
                         for (j = 0; j < 16; j++) {
                             if (i + j < element_length) {
                                 int c = (unsigned char)string[i+j];
-                                fprintf(file_pointer, "%c", 
-                                        isprint(c) ? c : '.');
+                                func("%c", isprint(c) ? c : '.');
                             }
                         }
-                        fprintf(file_pointer, "\n");
+                        func("\n");
                     }
             }
         }
@@ -1706,20 +1704,21 @@ maybe_print_as_string(FILE *file_pointer, Acr_Element cur_element,
     }
 }
 
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : acr_dump_element_list
-@INPUT      : file_pointer - where output should go
+@INPUT      : func - where output should go
               element_list
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
 @DESCRIPTION: Dump information from an acr-nema element list
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
 @CREATED    : February 12, 1997 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-void acr_dump_element_list(FILE *file_pointer, 
+void acr_dump_element_list(void (*func)(const char *, ...),
                            Acr_Element element_list)
 {
 #define INDENT_AMOUNT 3
@@ -1741,17 +1740,16 @@ void acr_dump_element_list(FILE *file_pointer,
 
       /* Indent the line */
       for (i=0; i < current_indent_level; i++) {
-         (void) putc((int) ' ', file_pointer);
+          func(" ");
       }
 
       element_length = acr_get_element_length(cur_element);
 
       /* Print the element id */
-      (void) fprintf(file_pointer, 
-                     "0x%04x  0x%04x  length = %d ",
-                     acr_get_element_group(cur_element),
-                     acr_get_element_element(cur_element),
-                     (int) element_length);
+      func("0x%04x  0x%04x  length = %d ",
+           acr_get_element_group(cur_element),
+           acr_get_element_element(cur_element),
+           (int) element_length);
 
       if (_acr_name_proc != NULL) {
           char *name_ptr;
@@ -1760,95 +1758,91 @@ void acr_dump_element_list(FILE *file_pointer,
                                        acr_get_element_element(cur_element));
 
           if (name_ptr != NULL) {
-              fprintf(file_pointer, "(%s)", name_ptr);
+              func("(%s)", name_ptr);
           }
       }
-      fprintf(file_pointer, ":");
+      func(":");
 
       /* Print value if needed */
       vr_code = acr_get_element_vr(cur_element);
       if (acr_element_is_sequence(cur_element)) {
-         (void) fprintf(file_pointer, " VR=%s", 
-                        acr_get_vr_name(vr_code));
+         func(" VR=%s", acr_get_vr_name(vr_code));
          if (acr_get_element_data(cur_element) == NULL) {
-            (void) fprintf(file_pointer, " (empty sequence)");
+            func(" (empty sequence)");
          }
          else {
-            (void) fprintf(file_pointer, " (sequence)");
+            func(" (sequence)");
          }
-         (void) putc((int) '\n', file_pointer);
-         acr_dump_element_list(file_pointer, 
+         func("\n");
+         acr_dump_element_list(func,
             (Acr_Element) acr_get_element_data(cur_element));
       }
       else if (vr_code != ACR_VR_UNKNOWN) {
-         (void) fprintf(file_pointer, " VR=%s, ",
-                        acr_get_vr_name(vr_code));
+         func(" VR=%s, ", acr_get_vr_name(vr_code));
          switch (vr_code) {
          case ACR_VR_SS:
          case ACR_VR_US:
-            (void) fprintf(file_pointer, "short = %d (0x%04x)",
-                           (int) acr_get_element_short(cur_element),
-                           (int) acr_get_element_short(cur_element));
+            func("short = %d (0x%04x)",
+                 (int) acr_get_element_short(cur_element),
+                 (int) acr_get_element_short(cur_element));
             break;
          case ACR_VR_AT:
          case ACR_VR_SL:
          case ACR_VR_UL:
-            (void) fprintf(file_pointer, "long = %d (0x%08x)",
-                           (int) acr_get_element_long(cur_element),
-                           (int) acr_get_element_long(cur_element));
+            func("long = %d (0x%08x)",
+                 (int) acr_get_element_long(cur_element),
+                 (int) acr_get_element_long(cur_element));
             break;
          case ACR_VR_OB:
          case ACR_VR_OW:
-            maybe_print_as_string(file_pointer, cur_element,
-                                  element_length, 0);
+            maybe_print_as_string(func, cur_element, element_length, 0);
             break;
          case ACR_VR_FD:
-            fprintf(file_pointer, "double = ");
+            func("double = ");
             {
               double array[1000];
               long n = acr_get_element_double_array(cur_element, 1000, array);
               long i;
               for (i = 0; i < n; i++) {
-                fprintf(file_pointer, "%f", array[i]);
+                func("%g", array[i]);
                 if (i != n - 1) {
-                  fprintf(file_pointer, ", ");
+                  func(", ");
                 }
               }
             }
             break;
          default:
-            (void) fprintf(file_pointer, "value = \"%s\"",
-                           acr_get_element_string(cur_element));
+            func("value = \"%s\"", acr_get_element_string(cur_element));
             break;
          }
-         (void) putc((int) '\n', file_pointer);
+         func("\n");
       }
       else {
          int done_already = 0;
 
          switch (element_length) {
          case ACR_SIZEOF_SHORT:
-            (void) fprintf(file_pointer, " short = %d (0x%04x)",
-                           (int) acr_get_element_short(cur_element),
-                           (int) acr_get_element_short(cur_element));
+            func(" short = %d (0x%04x)",
+                 (int) acr_get_element_short(cur_element),
+                 (int) acr_get_element_short(cur_element));
             done_already = 1;
             break;
          case ACR_SIZEOF_LONG:
-            (void) fprintf(file_pointer, " long = %d (0x%08x)",
-                           (int) acr_get_element_long(cur_element),
-                           (int) acr_get_element_long(cur_element));
+            func(" long = %d (0x%08x)",
+                 (int) acr_get_element_long(cur_element),
+                 (int) acr_get_element_long(cur_element));
             done_already = 1;
             break;
          }
 
-         maybe_print_as_string(file_pointer, cur_element, element_length, 
+         maybe_print_as_string(func, cur_element, element_length,
                                done_already);
 
          /* End line */
-         (void) fprintf(file_pointer, "\n");
+         func("\n");
 
       }         /* if is_sequence ... else  */
-                                                     
+
       cur_element = acr_get_element_next(cur_element);
    }
 
@@ -1856,3 +1850,4 @@ void acr_dump_element_list(FILE *file_pointer,
    current_indent_level -= INDENT_AMOUNT;
 
 }
+

@@ -213,7 +213,7 @@ extern long acr_get_element_double_array(Acr_Element element, long max_values,
 extern int *acr_element_numeric_array_separator(int character);
 extern int acr_get_element_numeric_array(Acr_Element element,
                                          int max_values, double values[]);
-extern void acr_dump_element_list(FILE *file_pointer, 
+extern void acr_dump_element_list(void (*func)(const char *, ...),
                                   Acr_Element element_list);
 
 #endif /* _ACR_ELEMENT_H_ */

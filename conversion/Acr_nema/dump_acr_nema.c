@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
    acr_file_free(afp);
 
    /* Dump the values */
-   acr_dump_group_list(stdout, group_list);
+   acr_dump_group_list(printf, group_list);
 
    /* Print status information */
    if ((status != ACR_END_OF_INPUT) && (status != ACR_OK)) {
