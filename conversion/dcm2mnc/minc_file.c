@@ -896,23 +896,24 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         while (temp[i] != 0 && !isdigit(temp[i]))
           i++;
         if (temp[i] == 0) {
-          fprintf(stderr, "ERROR: Age was not numeric!!\n");
-          exit(-1);
+          fprintf(stderr, "WARNING: Age was not numeric!!\n");
         }
-        age = atof(&temp[i]);
-        while (temp[i] != 0 && isdigit(temp[i]))
-          i++;
-        if (temp[i] == 'M')     /* age is in months */
-          age /= 12.0;
-        else if (temp[i] == 'W')   /* age is in weeks */
-          age /= 52.0;
-        else if (temp[i] == 'D')   /* age is in days */
-          age /= 365.0;
-        else if (temp[i] != 'Y') { /* age is in years */
-          fprintf(stderr, "ERROR: Age units (%s) unknown.\n", temp);
-          exit(-1);
+        else {
+          age = atof(&temp[i]);
+          while (temp[i] != 0 && isdigit(temp[i]))
+            i++;
+          if (temp[i] == 'M')   /* age is in months */
+            age /= 12.0;
+          else if (temp[i] == 'W') /* age is in weeks */
+            age /= 52.0;
+          else if (temp[i] == 'D') /* age is in days */
+            age /= 365.0;
+          else if (temp[i] != 'Y') { /* age is in years */
+            fprintf(stderr, "ERROR: Age units (%s) unknown.\n", temp);
+            exit(-1);
+          }
+          miattputdbl(mincid, varid, MIage, age);
         }
-        miattputdbl(mincid, varid, MIage, age);
     }
     if (strlen(general_info->patient.sex) > 0)
         miattputstr(mincid, varid, MIsex, 
