@@ -1626,6 +1626,38 @@ add_siemens_info(Acr_Group group_list)
     return (group_list);
 }
 
+
+Acr_Group
+flatten_sequences(Acr_Element element, Acr_Group group_list)
+{
+  for (element = (Acr_Element) acr_get_element_data(element);
+       element != NULL;
+       element = acr_get_element_next(element)) {
+    if (acr_element_is_sequence(element)) {
+      Acr_Element sequence = (Acr_Element) acr_get_element_data(element);
+      group_list = flatten_sequences(sequence, group_list);
+    }
+    else if ((acr_get_element_group(element) & 1) == 0 &&
+             acr_get_element_length(element) > 0) {
+      struct Acr_Element_Id elid;
+
+      elid.group_id = acr_get_element_group(element);
+      elid.element_id = acr_get_element_element(element);
+      elid.vr_code = acr_get_element_vr(element);
+
+      /* This is an even-numbered group item. See if it needs to be
+       * flattened, that is, raised into the top level of the group
+       * list.
+       */
+      if (acr_find_group_element(group_list, &elid) == NULL) {
+        acr_insert_element_into_group_list(&group_list,
+                                           acr_copy_element(element));
+      }
+    }
+  }
+  return group_list;
+}
+
 #define PMS_SET_CREATOR(el, cr) \
      (el)->element_id = ((el)->element_id & 0xff) + ((cr)->element_id << 8)
 
@@ -1805,6 +1837,24 @@ add_philips_info(Acr_Group group_list)
       acr_insert_numeric(&group_list, ACR_Trigger_time, id * 1000.0);
     }
 
+    /* Now we do some very aggressive "flattening" of parameters that should
+       be in the main DICOM, taking them from the proprietary sequence.
+    */
+    pms_element = acr_find_group_element(group_list,
+                                         PMS_Private_group_creator_5);
+    if (pms_element != NULL) {
+      str_ptr = (char *)acr_get_element_string(pms_element);
+      if (str_ptr != NULL && 
+          !strncmp(str_ptr, "Philips MR Imaging DD 005", 25)) {
+        pms_element = acr_find_group_element(group_list,
+                                             PMS_Acquisition_parameters_seq);
+
+        if (pms_element != NULL && acr_element_is_sequence(pms_element)) {
+          pms_element = (Acr_Element) acr_get_element_data(pms_element);
+          group_list = flatten_sequences(pms_element, group_list);
+        }
+      }
+    }
     return (group_list);
 }
 

@@ -1101,7 +1101,7 @@ Acr_Element acr_find_group_element(Acr_Group group_list,
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : acr_dump_group_list
-@INPUT      : file_pointer - where output should go
+@INPUT      : func - where output should go
               group_list
 @OUTPUT     : (none)
 @RETURNS    : (nothing)
@@ -1112,14 +1112,14 @@ Acr_Element acr_find_group_element(Acr_Group group_list,
 @CREATED    : November 24, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void acr_dump_group_list(FILE *file_pointer, Acr_Group group_list)
+void acr_dump_group_list(void (*func)(const char *, ...), Acr_Group group_list)
 {
    Acr_Group cur_group;
 
    /* Check for empty list */
    cur_group = group_list;
    if (cur_group == NULL) {
-      (void) fprintf(file_pointer,"\nEmpty group list\n\n");
+      func("\nEmpty group list\n\n");
       return;
    }
 
@@ -1127,25 +1127,17 @@ void acr_dump_group_list(FILE *file_pointer, Acr_Group group_list)
    while (cur_group != NULL) {
 
       /* Print the group id */
-      (void) fprintf(file_pointer, "\nGroup 0x%04x :\n\n", 
-                     acr_get_group_group(cur_group));
+      func("\nGroup 0x%04x :\n\n", acr_get_group_group(cur_group));
 
       /* Print the elements */
-      acr_dump_element_list(file_pointer,
-                            acr_get_group_element_list(cur_group));
+      acr_dump_element_list(func, acr_get_group_element_list(cur_group));
 
       /* Go to the next group */
       cur_group = acr_get_group_next(cur_group);
    }
 
    /* Print a blank line after dump */
-   (void) fprintf(file_pointer, "\n");
-
-   /* Flush the buffer */
-   (void) fflush(file_pointer);
-
-   return;
-
+   func("\n");
 }
 
 /* ----------------------------- MNI Header -----------------------------------

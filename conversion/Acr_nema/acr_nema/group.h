@@ -126,7 +126,8 @@ extern Acr_Status acr_input_group_list(Acr_File *afp, Acr_Group *group_list,
 extern Acr_Group acr_find_group(Acr_Group group_list, int group_id);
 extern Acr_Element acr_find_group_element(Acr_Group group_list,
                                           Acr_Element_Id elid);
-extern void acr_dump_group_list(FILE *file_pointer, Acr_Group group_list);
+extern void acr_dump_group_list(void (*func)(const char *, ...),
+                                Acr_Group group_list);
 extern Acr_Short acr_find_short(Acr_Group group_list, Acr_Element_Id elid, 
                                 Acr_Short default_value);
 extern Acr_Long acr_find_long(Acr_Group group_list, Acr_Element_Id elid, 

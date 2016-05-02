@@ -194,71 +194,6 @@ main(int argc, char **argv)
     /* Read in the entire NIfTI file. */
     nii_ptr = nifti_image_read(argv[1], 1);
 
-    if (nii_ptr->nifti_type == 0) { /* Analyze file!!! */
-        FILE *fp;
-        int ss;
-        int must_swap;
-
-        fp = fopen(argv[1], "rb");
-        if (fp != NULL) {
-            if (fread(&ana_hdr, sizeof (ana_hdr), 1, fp) != 1) {
-                fprintf(stderr, "Unable to read file header.\n");
-                return (-1);
-            }
-            fclose(fp);
-
-            must_swap = 0;
-            ss = ana_hdr.dime.dim[0];
-            if (ss != 0) {
-                if (ss < 0 || ss > 7) {
-                    nifti_swap_2bytes(1, &(ss));
-                    if (ss < 0 || ss > 7) {
-                        /* We should never get here!! */
-                        fprintf(stderr, "Bad dimension count!!\n");
-                    }
-                    else {
-                        must_swap = 1;
-                    }
-                }
-            }
-            else {
-                ss = ana_hdr.hk.sizeof_hdr;
-                if (ss != sizeof(ana_hdr)) {
-                    nifti_swap_4bytes(1, &(ss));
-                    if (ss != sizeof(ana_hdr)) {
-                        /* We should never get here!! */
-                        fprintf(stderr, "Bad header size!!\n");
-                    }
-                    else {
-                        must_swap = 1;
-                    }
-                }
-            }
-
-            if (must_swap) {
-                nifti_swap_4bytes(1, &(ana_hdr.hk.sizeof_hdr));
-                nifti_swap_4bytes(1, &(ana_hdr.hk.extents));
-                nifti_swap_2bytes(1, &(ana_hdr.hk.session_error));
-
-                nifti_swap_4bytes(1, &(ana_hdr.dime.compressed));
-                nifti_swap_4bytes(1, &(ana_hdr.dime.verified));
-                nifti_swap_4bytes(1, &(ana_hdr.dime.glmax)); 
-                nifti_swap_4bytes(1, &(ana_hdr.dime.glmin));
-                nifti_swap_2bytes(8, ana_hdr.dime.dim);
-                nifti_swap_4bytes(8, ana_hdr.dime.pixdim);
-                nifti_swap_2bytes(1, &(ana_hdr.dime.datatype));
-                nifti_swap_2bytes(1, &(ana_hdr.dime.bitpix));
-                nifti_swap_4bytes(1, &(ana_hdr.dime.vox_offset));
-                nifti_swap_4bytes(1, &(ana_hdr.dime.cal_max)); 
-                nifti_swap_4bytes(1, &(ana_hdr.dime.cal_min));
-            }
-
-            if (!qflag) {
-                printf("orient = %d\n", ana_hdr.hist.orient);
-            }
-        }
-    }
-                
     if (!qflag) {
         nifti_image_infodump(nii_ptr);
     }
@@ -451,12 +386,15 @@ main(int argc, char **argv)
       /* No official transform was found (possibly this is an Analyze 
        * file).  Just use some reasonable defaults.
        */
-      mnc_steps[mnc_spatial_axes[DIM_X]] = nii_ptr->dx;
-      mnc_steps[mnc_spatial_axes[DIM_Y]] = nii_ptr->dy;
-      mnc_steps[mnc_spatial_axes[DIM_Z]] = nii_ptr->dz;
-      mnc_starts[mnc_spatial_axes[DIM_X]] = -(nii_ptr->dx * nii_ptr->nx) / 2;
-      mnc_starts[mnc_spatial_axes[DIM_Y]] = -(nii_ptr->dy * nii_ptr->ny) / 2;
-      mnc_starts[mnc_spatial_axes[DIM_Z]] = -(nii_ptr->dz * nii_ptr->nz) / 2;
+      mnc_ordered_dim_names[DIM_X] = MIxspace;
+      mnc_ordered_dim_names[DIM_Y] = MIyspace;
+      mnc_ordered_dim_names[DIM_Z] = MIzspace;
+      mnc_steps[DIM_X] = nii_ptr->dx;
+      mnc_steps[DIM_Y] = nii_ptr->dy;
+      mnc_steps[DIM_Z] = nii_ptr->dz;
+      mnc_starts[DIM_X] = -(nii_ptr->dx * nii_ptr->nx) / 2;
+      mnc_starts[DIM_Y] = -(nii_ptr->dy * nii_ptr->ny) / 2;
+      mnc_starts[DIM_Z] = -(nii_ptr->dz * nii_ptr->nz) / 2;
 
       /* Unlike the starts and steps, the direction cosines do NOT change
        * based upon the data orientation.
@@ -597,6 +535,7 @@ main(int argc, char **argv)
         }
         break;
     case NIFTI_UNITS_MM:
+    case NIFTI_UNITS_UNKNOWN:   /* Assume millimeters!! */
         break;
     case NIFTI_UNITS_MICRON:
         for (i = 0; i < MAX_SPACE_DIMS; i++) {
