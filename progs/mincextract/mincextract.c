@@ -115,6 +115,7 @@
 #include <ctype.h>
 #include <ParseArgv.h>
 #include <minc_endian.h>
+#include <minc_simple.h>
 
 /* Constants */
 #ifndef TRUE
@@ -138,6 +139,8 @@ static nc_type nc_type_list[8] = {
 static int get_arg_vector(char *dst, char *key, char *nextArg);
 
 /* Variables used for argument parsing */
+static int arg_print_coords = 0;
+static double arg_print_range[2] = {-DBL_MAX, DBL_MAX };
 static int arg_odatatype = TYPE_ASCII;
 static nc_type output_datatype = NC_DOUBLE;
 static int output_signed = INT_MAX;
@@ -230,8 +233,15 @@ ArgvInfo argTable[] = {
    {"-zanydirection", ARGV_CONSTANT, (char *) MI_ICV_ANYDIR, 
        (char *) &zdirection,
        "Don't flip images along z-axis (default)."},
+   {"-voxel", ARGV_CONSTANT, (char *) 1, (char *)&arg_print_coords,
+    "Print voxel coordinates along with values."},
+   {"-world", ARGV_CONSTANT, (char *) 2, (char *)&arg_print_coords,
+    "Print world coordinates along with values."},
+   {"-filter", ARGV_FLOAT, (char *) 2, (char *) arg_print_range,
+    "Specify minimum and maximum interval of data to include."},
    {NULL, ARGV_END, NULL, NULL, NULL}
 };
+
 
 /* Main program */
 
@@ -252,6 +262,8 @@ int main(int argc, char *argv[])
    double *dbl_data;
    int user_normalization;
    minc_swap_fn_t swap_fn = NULL;
+   double transform[4][4];
+   int spatial_axes[3];
 
    /* Check arguments */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc != 2)) {
@@ -280,6 +292,8 @@ int main(int argc, char *argv[])
 
    /* Open the file */
    mincid = miopen(filename, NC_NOWRITE);
+
+   minc_get_world_transform(mincid, transform, spatial_axes);
 
    /* Inquire about the image variable */
    imgid = ncvarid(mincid, MIimage);
@@ -360,6 +374,8 @@ int main(int argc, char *argv[])
          (void) miicv_setdbl(icvid, MI_ICV_IMAGE_MAX, image_range[1]);
       }
    }
+
+   
    (void) miicv_attach(icvid, mincid, imgid);
 
    /* Set input file start, count and end vectors for reading a slice
@@ -409,8 +425,42 @@ int main(int argc, char *argv[])
       /* Write out the slice */
       if (arg_odatatype == TYPE_ASCII) {
          dbl_data = data;
-         for (ielement=0; ielement<nelements; ielement++) {
-            (void) fprintf(stdout, "%.20g\n", dbl_data[ielement]);
+         if (arg_print_coords) {
+           int i;
+           long pos[MAX_VAR_DIMS];
+           for (i = 0; i < ndims; i++) {
+             pos[i] = cur[i];
+           }
+           for (ielement=0; ielement<nelements; ielement++) {
+             if (arg_print_range[0] <= dbl_data[ielement] &&
+                 arg_print_range[1] >= dbl_data[ielement]) {
+               if (arg_print_coords == 1) {
+                 for (i = 0; i < ndims; i++) {
+                   printf("%ld ", pos[i]);
+                 }
+               }
+               else {
+                 double world[3];
+
+                 minc_transform_to_world(pos, spatial_axes, transform, world);
+
+                 printf("%.4f %.4f %.4f ", world[0], world[1], world[2]);
+               }
+               printf("%.20g\n", dbl_data[ielement]);
+             }
+             pos[ndims-1]++;
+             i = ndims - 1;
+             while (i > 0 && pos[i] >= end[i]) {
+               pos[i] = start[i];
+               i -= 1;
+               pos[i]++;
+             }
+           }
+         }
+         else {
+           for (ielement=0; ielement<nelements; ielement++) {
+             (void) fprintf(stdout, "%.20g\n", dbl_data[ielement]);
+           }
          }
       }
       else {

@@ -1,3 +1,8 @@
+2016-05-05  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * progs/mincextract/mincextract.c: Add options to print coordinates
+	(world or voxel) along with voxel values. Can also filter by
+	voxel value.
+
 2016-04-07  Robert D. Vincent <robert.d.vincent@mcgill.ca>
    * conversion/nifti1/nii2mnc.c: Fix handling of Analyze files.
 
