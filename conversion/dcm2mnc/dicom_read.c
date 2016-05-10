@@ -242,6 +242,22 @@ static int irnd(double x)
     return (int) floor(x);
 }
 
+/* The patient name field often contains '^' as an official separator
+   character. Sometimes these are present in unusual places, or the
+   placement of the characters may change within a sequence. 
+
+   We handle this by removing any trailing space or '^' characters here.
+*/
+static void fix_patient_name(char *patient_name)
+{
+  int n = strlen(patient_name) - 1;
+  int c;
+  while (n >= 0 && ((c = patient_name[n]) == '^' || c == ' ')) {
+    patient_name[n--] = 0;
+  }
+}
+
+
 int
 is_numaris3(Acr_Group group_list)
 {
@@ -1982,6 +1998,7 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
 
     /* Get patient info */
     get_string_field(gi_ptr->patient.name, group_list, ACR_Patient_name);
+    fix_patient_name(gi_ptr->patient.name);
 
     get_string_field(gi_ptr->patient.identification,
                      group_list, ACR_Patient_identification);
@@ -2622,6 +2639,7 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     get_string_field(di_ptr->sequence_name, group_list, ACR_Sequence_name);
     get_string_field(di_ptr->protocol_name, group_list, ACR_Protocol_name);
     get_string_field(di_ptr->patient_name, group_list, ACR_Patient_name);
+    fix_patient_name(di_ptr->patient_name);
     get_string_field(di_ptr->patient_id, group_list, ACR_Patient_identification);
 }
 
