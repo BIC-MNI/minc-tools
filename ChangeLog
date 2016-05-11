@@ -1,3 +1,7 @@
+2016-05-11  Robert D. Vincent <robert.d.vincent@mcgill.ca>
+   * conversion/ecattominc/ecat_file.c: Fix potential seg fault when
+	sizeof(int32_t) is less than sizeof(long)
+
 2016-05-05  Robert D. Vincent <robert.d.vincent@mcgill.ca>
    * progs/mincextract/mincextract.c: Add options to print coordinates
 	(world or voxel) along with voxel values. Can also filter by

@@ -1015,7 +1015,8 @@ static int ecat_read_directory(Ecat_file *file)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 static long get_dirblock(Ecat_file *file, int32_t *dirblock, int offset){
-   long value;
+   long value = 0; /* must initialize this to avoid garbage in upper bytes
+                      when sizeof(long) > sizeof(int32_t) */
 
    if (file->header_description == ECAT_VER_PRE7) {
      /*get_vax_long(1, &dirblock[offset], &value);*/
