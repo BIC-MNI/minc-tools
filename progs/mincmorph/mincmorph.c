@@ -589,6 +589,7 @@ int main(int argc, char *argv[])
                max = 255;
                }
             }
+         
          set_volume_real_range(volume, min, max);
 
          output_modified_volume(op->outfile,
@@ -743,3 +744,5 @@ void calc_volume_range(VIO_Volume vol, double *min, double *max)
       fprintf(stdout, "Found range of [%g:%g]\n", *min, *max);
       }
    }
+   
+/* kate: indent-mode cstyle;tab-width 8; indent-width 2; replace-tabs on; */

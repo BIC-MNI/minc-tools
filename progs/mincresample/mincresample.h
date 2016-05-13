@@ -187,6 +187,7 @@ typedef struct {
                                     images properly */
    int keep_real_range;      /* Flag indicating whether we should keep
                                 the real range of the input data or not */
+   int  labels;             /* is contents supposed to be labels*/
 } File_Info;
 
 typedef struct {
@@ -257,6 +258,7 @@ typedef struct {
    Transform_Info transform_info;
    Volume_Definition volume_def;
    int v2format;                /* If non-zero, create a MINC 2.0 output */
+   int is_labels;
 } Arg_Data;
 
 typedef struct {

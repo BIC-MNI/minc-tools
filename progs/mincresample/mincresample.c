@@ -348,7 +348,8 @@ static void get_arginfo(int argc, char *argv[],
           {"", "", ""},       /* units */
           {"", "", ""}        /* spacetype */
       },
-      FALSE			/* MINC 2.0 format? */
+      FALSE,			/* MINC 2.0 format? */
+      FALSE       /* is output labels */
    };
 
    static ArgvInfo argTable[] = {
@@ -486,6 +487,8 @@ static void get_arginfo(int argc, char *argv[],
           "Write signed integer data"},
       {"-unsigned", ARGV_CONSTANT, (char *) FALSE, (char *) &args.is_signed,
           "Write unsigned integer data"},
+      {"-labels", ARGV_CONSTANT, (char *) TRUE, (char *) &args.is_labels,
+          "integer operation on labels"},
       {"-range", ARGV_FLOAT, (char *) 2, (char *) args.vrange,
           "Valid range for output data"},
       {"-keep_real_range", ARGV_CONSTANT, (char *) TRUE,
@@ -651,6 +654,8 @@ static void get_arginfo(int argc, char *argv[],
    in_vol->volume->is_signed = in_vol->file->is_signed;
    in_vol->volume->vrange[0] = in_vol->file->vrange[0];
    in_vol->volume->vrange[1] = in_vol->file->vrange[1];
+   in_vol->file->labels = FALSE; /*TODO: figure out how to automatically distinguish label files*/
+   
    if (args.fillvalue == FILL_DEFAULT) {
       in_vol->volume->fillvalue = 0.0;
       in_vol->volume->use_fill = TRUE;
@@ -754,6 +759,8 @@ static void get_arginfo(int argc, char *argv[],
    out_vol->file->is_signed = args.is_signed;
    out_vol->file->vrange[0] = args.vrange[0];
    out_vol->file->vrange[1] = args.vrange[1];
+   out_vol->file->labels  = args.is_labels; /*TODO: ideally duplicate info from the input file*/
+   
    for (idim=0; idim < out_vol->file->ndims; idim++) {
       out_vol->file->nelements[idim] = in_vol->file->nelements[idim];
       out_vol->file->world_axes[idim] = in_vol->file->world_axes[idim];
@@ -1126,7 +1133,7 @@ static void get_file_info(char *filename, int initialized_volume_def,
                      filename);
          exit(EXIT_FAILURE);
    }
-
+   /*TODO: query the file if it contains integer labels*/ 
    return;
 }
 
@@ -1528,15 +1535,31 @@ static void create_output_file(char *filename, int cflags,
        (out_file->slices_per_image > 1));
 
    /* Create the variables */
-   out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
-                                           NC_DOUBLE, nmaxmin_dims,
-                                           out_maxmin_dims);
+   if(out_file->labels)
+   {
+      out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
+                                            NC_DOUBLE, 0,
+                                            NULL);
+   } else {
+     
+      out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
+                                            NC_DOUBLE, nmaxmin_dims,
+                                            out_maxmin_dims);
+   }
    if (in_file->maxid != MI_ERROR)
       (void) micopy_all_atts(in_file->mincid, in_file->maxid,
                              out_file->mincid, out_file->maxid);
-   out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
+      
+   if(out_file->labels)
+   {
+      out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
+                                           NC_DOUBLE, 0,
+                                           NULL);
+   } else {
+      out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
                                            NC_DOUBLE, nmaxmin_dims,
                                            out_maxmin_dims);
+   }
    if (in_file->minid != MI_ERROR)
       (void) micopy_all_atts(in_file->mincid, in_file->minid,
                              out_file->mincid, out_file->minid);
@@ -1613,8 +1636,17 @@ static void create_output_file(char *filename, int cflags,
    out_file->using_icv = TRUE;
    out_file->icvid = miicv_create();
    (void) miicv_setint(out_file->icvid, MI_ICV_TYPE, NC_DOUBLE);
-   (void) miicv_setint(out_file->icvid, MI_ICV_DO_NORM, TRUE);
-   (void) miicv_setint(out_file->icvid, MI_ICV_USER_NORM, TRUE);
+   
+   if(out_file->labels)
+   {
+      (void) miicv_setint(out_file->icvid, MI_ICV_DO_NORM, FALSE);
+      (void) miicv_setint(out_file->icvid, MI_ICV_USER_NORM, FALSE);
+      (void) miicv_setint(out_file->icvid, MI_ICV_DO_RANGE, FALSE);
+      
+   } else {
+      (void) miicv_setint(out_file->icvid, MI_ICV_DO_NORM, TRUE);
+      (void) miicv_setint(out_file->icvid, MI_ICV_USER_NORM, TRUE);
+   }
    (void) miicv_attach(out_file->icvid, out_file->mincid, out_file->imgid);
 
    return;

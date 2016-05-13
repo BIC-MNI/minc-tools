@@ -173,6 +173,7 @@ static int eval_width = 200;
 #if MINC2
 static int minc2_format = FALSE;
 #endif /* MINC2 */
+static int is_labels = FALSE;
 
 /* Argument table */
 ArgvInfo argTable[] = {
@@ -220,6 +221,12 @@ ArgvInfo argTable[] = {
        "Write unsigned integer data (default if type specified)."},
    {"-range", ARGV_FLOAT, (char *) 2, (char *) valid_range,
        "Valid range for output data."},
+   {"-labels", ARGV_CONSTANT, (char *) TRUE, (char *) &is_labels,
+       "integer operation on labels"},
+   {"-discrete", ARGV_CONSTANT, (char *) TRUE, (char *) &is_labels,
+       "integer operation on labels, synonym to -labels"},
+   {"-continuous", ARGV_CONSTANT, (char *) FALSE, (char *) &is_labels,
+       "continuous operation on labels, opposite to -labels"},
    {"-max_buffer_size_in_kb", ARGV_INT, (char *) 1, 
        (char *) &max_buffer_size_in_kb,
        "Specify the maximum size of the internal buffers (in kbytes)."},
@@ -412,7 +419,7 @@ int main(int argc, char *argv[]){
    set_loop_datatype(loop_options, datatype, is_signed, 
                      valid_range[0], valid_range[1]);
    set_loop_copy_all_header(loop_options, copy_all_header);
-   
+   set_loop_labels(loop_options,is_labels);
    /* only set buffer size if specified */
    if(max_buffer_size_in_kb != 0){
       set_loop_buffer_size(loop_options, (long) 1024 * max_buffer_size_in_kb);
