@@ -128,8 +128,8 @@
 #include <volume_io.h>
 #include "mincresample.h"
 
-static void load_volume(File_Info *file, long start[], long count[],
-                        Volume_Data *volume);
+static int load_volume(File_Info *file, long start[], long count[],
+                       Volume_Data *volume);
 static void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
                       VIO_General_transform *transformation,
                       double *minimum, double *maximum);
@@ -148,7 +148,7 @@ static int do_Ncubic_interpolation(Volume_Data *volume,
               out_vol - description of output volume
               transformation - description of world transformation
 @OUTPUT     : (none)
-@RETURNS    : (none)
+@RETURNS    : non-zero if an error occurs.
 @DESCRIPTION: Resamples in_vol into file specified by out_vol using given 
               world transformation.
 @METHOD     : 
@@ -157,9 +157,9 @@ static int do_Ncubic_interpolation(Volume_Data *volume,
 @CREATED    : February 8, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void resample_volumes(Program_Flags *program_flags,
-                      VVolume *in_vol, VVolume *out_vol, 
-                      VIO_General_transform *transformation)
+int resample_volumes(Program_Flags *program_flags,
+                     VVolume *in_vol, VVolume *out_vol, 
+                     VIO_General_transform *transformation)
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
@@ -169,6 +169,7 @@ void resample_volumes(Program_Flags *program_flags,
    double maximum, minimum, valid_range[2];
    double *slice_max, *slice_min;
    File_Info *ifp,*ofp;
+   int status_code, result_code = EXIT_SUCCESS;
 
    /* Set pointers to file information */
    ifp = in_vol->file;
@@ -230,7 +231,10 @@ void resample_volumes(Program_Flags *program_flags,
          out_start[idim] = in_start[idim];
 
       /* Read in the volume */
-      load_volume(ifp, in_start, in_count, in_vol->volume);
+      status_code = load_volume(ifp, in_start, in_count, in_vol->volume);
+      if (status_code != MI_NOERROR) {
+          result_code = EXIT_FAILURE;
+      }
 
       /* Loop over slices */
       for (islice=0; islice < nslice; islice++) {
@@ -323,7 +327,7 @@ void resample_volumes(Program_Flags *program_flags,
       free(slice_min);
       free(slice_max);
    }
-
+   return result_code;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -333,7 +337,7 @@ void resample_volumes(Program_Flags *program_flags,
               count - vector size of volume in minc file
               volume - description of volume data
 @OUTPUT     : volume - contains new volume data and scales and offsets
-@RETURNS    : (none)
+@RETURNS    : non-zero if an error occurs.
 @DESCRIPTION: Loads a volume from a minc file.
 @METHOD     : 
 @GLOBALS    : 
@@ -341,20 +345,21 @@ void resample_volumes(Program_Flags *program_flags,
 @CREATED    : February 10, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void load_volume(File_Info *file, long start[], long count[], 
-                 Volume_Data *volume)
+int load_volume(File_Info *file, long start[], long count[], 
+                Volume_Data *volume)
 {
    long nread, islice, mm_start[MAX_VAR_DIMS], mm_count[MAX_VAR_DIMS];
    int varid, ivar, idim, ndims;
    double *values, maximum, minimum, denom;
+   int status_code;
 
    /* Load the file */
    if (file->using_icv) {
-      (void) miicv_get(file->icvid, start, count, volume->data);
+       status_code = miicv_get(file->icvid, start, count, volume->data);
    }
    else {
-      (void) ncvarget(file->mincid, file->imgid, 
-                      start, count, volume->data);
+       status_code = ncvarget(file->mincid, file->imgid, 
+                              start, count, volume->data);
    }
 
    /* Read the max and min from the file into the scale and offset variables 
@@ -463,6 +468,7 @@ void load_volume(File_Info *file, long start[], long count[],
       }
 
    }        /* End of loop through slices */
+   return status_code;
 }
 
 /* ----------------------------- MNI Header -----------------------------------

@@ -410,6 +410,7 @@ int main(int argc, char *argv[])
    int num_constants;
    Num_Operands num_operands;
    VoxelFunction math_function;
+   int result_code;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -573,11 +574,11 @@ int main(int argc, char *argv[])
    set_loop_dimension(loop_options, loop_dimension);
    set_loop_buffer_size(loop_options, (long) 1024 * max_buffer_size_in_kb);
    set_loop_check_dim_info(loop_options, check_dim_info);
-   voxel_loop(nfiles, infiles, nout, outfiles, arg_string, loop_options,
-              math_function, (void *) &math_data);
+   result_code = voxel_loop(nfiles, infiles, nout, outfiles, arg_string, 
+                            loop_options, math_function, (void *) &math_data);
    free_loop_options(loop_options);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

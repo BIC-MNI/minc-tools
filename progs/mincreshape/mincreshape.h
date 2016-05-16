@@ -122,4 +122,4 @@ typedef struct {
 #define  MIN( x, y )  ( ((x) <= (y)) ? (x) : (y) )
 
 /* Function prototypes */
-extern void copy_data(Reshape_info *reshape_info);
+extern int copy_data(Reshape_info *reshape_info);

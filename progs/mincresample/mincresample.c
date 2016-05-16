@@ -281,17 +281,19 @@ int main(int argc, char *argv[])
    VVolume *in_vol = &in_vol_struct, *out_vol = &out_vol_struct;
    VIO_General_transform transformation;
    Program_Flags program_flags;
+   int result_code;
 
    /* Get argument information */
    get_arginfo(argc, argv, &program_flags, in_vol, out_vol, &transformation);
 
    /* Do the resampling */
-   resample_volumes(&program_flags, in_vol, out_vol, &transformation);
+   result_code = resample_volumes(&program_flags, in_vol, out_vol,
+                                  &transformation);
 
    /* Finish up */
    finish_up(in_vol, out_vol);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

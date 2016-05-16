@@ -162,19 +162,20 @@ static void copy_dim_var_values(int outmincid, char *dimname, char *varname,
 int main(int argc, char *argv[])
 {
    Reshape_info reshape_info;
+   int result_code;
 
    /* Get argument information and create the output file */
    get_arginfo(argc, argv, &reshape_info);
 
    /* Copy the data */
-   copy_data(&reshape_info);
+   result_code = copy_data(&reshape_info);
 
    /* Close the output file */
    (void) miattputstr(reshape_info.outmincid, reshape_info.outimgid,
                       MIcomplete, MI_TRUE);
    (void) miclose(reshape_info.outmincid);
    (void) miclose(reshape_info.inmincid);
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

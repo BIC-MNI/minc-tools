@@ -745,6 +745,7 @@ int main(int argc, char *argv[])
    Stats_Info *stats;
    FILE    *FP;
    double   scale, voxmin, voxmax;
+   int      result_code;
 
    milog_init(argv[0]);
 
@@ -946,7 +947,8 @@ int main(int argc, char *argv[])
    set_loop_first_input_mincid(loop_options, mincid);
    set_loop_verbose(loop_options, verbose);
    set_loop_buffer_size(loop_options, (long)1024 * max_buffer_size_in_kb);
-   voxel_loop(nfiles, infiles, 0, NULL, NULL, loop_options, do_math, NULL);
+   result_code = voxel_loop(nfiles, infiles, 0, NULL, NULL, loop_options,
+                            do_math, NULL);
    free_loop_options(loop_options);
 
    /* Open the histogram file if it will be needed */
@@ -1280,7 +1282,7 @@ int main(int argc, char *argv[])
    }
    free(stats_info);
 
-   return EXIT_SUCCESS;
+   return result_code;
 }
 
 void do_math(void *caller_data, long num_voxels,

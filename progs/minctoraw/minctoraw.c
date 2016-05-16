@@ -169,6 +169,7 @@ int main(int argc, char *argv[])
    void *data;
    double temp;
    minc_swap_fn_t swap_fn = NULL;
+   int result_code = EXIT_SUCCESS;
 
    /* Check arguments */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc != 2)) {
@@ -264,7 +265,8 @@ int main(int argc, char *argv[])
    while (start[0] < end[0]) {
 
       /* Read in the slice */
-      (void) miicv_get(icvid, start, count, data);
+      if (miicv_get(icvid, start, count, data) != MI_NOERROR)
+         result_code = EXIT_FAILURE;
 
       if (swap_fn != NULL) {
         (*swap_fn)(data, size);
@@ -291,6 +293,6 @@ int main(int argc, char *argv[])
    (void) miicv_free(icvid);
    free(data);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 

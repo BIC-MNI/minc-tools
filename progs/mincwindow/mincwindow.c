@@ -147,6 +147,7 @@ int main(int argc, char *argv[])
    Window_Data window_data;
    char *endptr;
    Loop_Options *loop_options;
+   int result_code;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -193,10 +194,10 @@ int main(int argc, char *argv[])
 #if MINC2
    set_loop_v2format(loop_options, v2format);
 #endif /* MINC2 */
-   voxel_loop(1, &infile, 1, &outfile, arg_string, loop_options,
-              do_window, (void *) &window_data);
+   result_code = voxel_loop(1, &infile, 1, &outfile, arg_string, loop_options,
+                            do_window, (void *) &window_data);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

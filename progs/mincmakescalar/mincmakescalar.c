@@ -194,6 +194,7 @@ int main(int argc, char *argv[])
    int ivalue;
    Loop_Options *loop_options;
    Program_Data program_data;
+   int result_code;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -274,8 +275,8 @@ int main(int argc, char *argv[])
    set_loop_first_input_mincid(loop_options, inmincid);
 
    /* Do loop */
-   voxel_loop(1, &infile, 1, &outfile, arg_string, loop_options,
-              do_makescalar, (void *) &program_data);
+   result_code = voxel_loop(1, &infile, 1, &outfile, arg_string, loop_options,
+                            do_makescalar, (void *) &program_data);
 
    /* Free stuff */
    if (program_data.linear_coefficients != NULL) {
@@ -285,7 +286,7 @@ int main(int argc, char *argv[])
       free(linear_coefficients.values);
    }
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

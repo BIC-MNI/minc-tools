@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
    minc_swap_fn_t swap_fn = NULL;
    double transform[4][4];
    int spatial_axes[3];
+   int status_code, result_code = EXIT_SUCCESS;
 
    /* Check arguments */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc != 2)) {
@@ -420,7 +421,10 @@ int main(int argc, char *argv[])
    while (cur[0] < end[0]) {
 
       /* Read in the slice */
-      (void) miicv_get(icvid, cur, count, data);
+      status_code = miicv_get(icvid, cur, count, data);
+      if (status_code != MI_NOERROR) {
+          result_code = EXIT_FAILURE;
+      }
 
       /* Write out the slice */
       if (arg_odatatype == TYPE_ASCII) {
@@ -490,7 +494,7 @@ int main(int argc, char *argv[])
    (void) miicv_free(icvid);
    free(data);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

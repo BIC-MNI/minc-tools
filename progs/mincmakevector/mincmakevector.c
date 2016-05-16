@@ -156,6 +156,7 @@ int main(int argc, char *argv[])
    int inmincid;
    Loop_Options *loop_options;
    Program_Data program_data;
+   int result_code;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -197,11 +198,11 @@ int main(int argc, char *argv[])
    set_loop_accumulate(loop_options, TRUE, 0, NULL, NULL);
 
    /* Do loop */
-   voxel_loop(num_input_files, input_files, 1, &output_file, 
-              arg_string, loop_options,
-              do_makevector, (void *) &program_data);
+   result_code = voxel_loop(num_input_files, input_files, 1, &output_file,
+                            arg_string, loop_options,
+                            do_makevector, (void *) &program_data);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

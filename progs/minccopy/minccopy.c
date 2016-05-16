@@ -108,6 +108,7 @@ int main(int argc, char *argv[])
    long length, size;
    int idim;
    void *data;
+   int result_code = EXIT_SUCCESS;
 
    /* Check arguments */
    if (ParseArgv(&argc, argv, argTable, 0) || (argc != 3)) {
@@ -194,11 +195,13 @@ int main(int argc, char *argv[])
 
       /* Read and write slice */
       if (copy_pixel_values) {
-         (void) ncvarget(inminc, inimg, start, count, data);
+         if (ncvarget(inminc, inimg, start, count, data) != 0)
+            result_code = EXIT_FAILURE;
          (void) ncvarput(outminc, outimg, start, count, data);
       }
       else {
-         (void) miicv_get(inicv, start, count, data);
+         if (miicv_get(inicv, start, count, data) != 0)
+            result_code = EXIT_FAILURE;
          (void) miicv_put(outicv, start, count, data);
       }
 
@@ -222,6 +225,6 @@ int main(int argc, char *argv[])
    }
    free(data);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 

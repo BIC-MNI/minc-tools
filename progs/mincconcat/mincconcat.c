@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
    char **input_files;
    int first_mincid, imgid;
    double valid_range[2];
+   int result_code;
 
    /* Allocate the concat_info structure */
    concat_info = malloc(sizeof(*concat_info));
@@ -258,8 +259,8 @@ int main(int argc, char *argv[])
    concat_info->global_maximum = -DBL_MAX;
 
    /* Loop over files */
-   voxel_loop(num_input_files, input_files, 0, NULL, NULL,
-              loop_options, do_concat, concat_info);
+   result_code = voxel_loop(num_input_files, input_files, 0, NULL, NULL,
+                            loop_options, do_concat, concat_info);
 
    /* Close the output file */
    imgid = ncvarid(concat_info->output_mincid, MIimage);
@@ -285,7 +286,7 @@ int main(int argc, char *argv[])
    free_loop_options(loop_options);
    free(concat_info);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

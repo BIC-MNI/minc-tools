@@ -275,6 +275,7 @@ int main(int argc, char *argv[]){
    int i;
    ident_t ident;
    scalar_t scalar;
+   int result_code;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -426,8 +427,8 @@ int main(int argc, char *argv[]){
       }
    
    set_loop_check_dim_info(loop_options, check_dim_info);
-   voxel_loop(nfiles, infiles, nout, outfiles, arg_string, loop_options,
-              do_math, NULL);
+   result_code = voxel_loop(nfiles, infiles, nout, outfiles, arg_string,
+                            loop_options, do_math, NULL);
    free_loop_options(loop_options);
 
    
@@ -438,7 +439,7 @@ int main(int argc, char *argv[]){
    free(outfiles);
    if (Output_list != NULL) free(Output_list);
    if (Output_values != NULL) free(Output_values);
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

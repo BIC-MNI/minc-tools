@@ -302,6 +302,7 @@ int main(int argc, char *argv[])
    Loop_Options *loop_options;
    int inmincid;
    Lookup_Data lookup_data;
+   int result_code;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -377,8 +378,8 @@ int main(int argc, char *argv[])
    set_loop_first_input_mincid(loop_options, inmincid);
 
    /* Do loop */
-   voxel_loop(1, &infile, 1, &outfile, arg_string, loop_options,
-              do_lookup, (void *) &lookup_data);
+   result_code = voxel_loop(1, &infile, 1, &outfile, arg_string, loop_options,
+                            do_lookup, (void *) &lookup_data);
 
    /* Free stuff */
    if (lookup_data.null_value != NULL) free(lookup_data.null_value);
@@ -387,7 +388,7 @@ int main(int argc, char *argv[])
       free(lookup_data.lookup_table);
    }
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

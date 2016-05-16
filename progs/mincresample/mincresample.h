@@ -359,9 +359,9 @@ typedef struct {
 
 /* Function prototypes */
 
-extern void resample_volumes(Program_Flags *program_flags,
-                             VVolume *in_vol, VVolume *out_vol, 
-                             VIO_General_transform *transformation);
+extern int resample_volumes(Program_Flags *program_flags,
+                            VVolume *in_vol, VVolume *out_vol, 
+                            VIO_General_transform *transformation);
 extern int trilinear_interpolant(Volume_Data *volume, 
                                  Coord_Vector coord, double *result);
 extern int tricubic_interpolant(Volume_Data *volume, 

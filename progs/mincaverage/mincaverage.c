@@ -309,6 +309,7 @@ int main(int argc, char *argv[])
    int old_ncopts;
    int strlength;
    char dimname[MAX_NC_NAME];
+   int result_code = EXIT_SUCCESS;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -637,15 +638,15 @@ int main(int argc, char *argv[])
    set_loop_dimension(loop_options, averaging_dimension);
    set_loop_buffer_size(loop_options, (long) 1024 * max_buffer_size_in_kb);
    set_loop_check_dim_info(loop_options, check_dimensions);
-   voxel_loop(nfiles, infiles, nout, outfiles, arg_string, loop_options,
-              do_average, (void *) &average_data);
+   result_code = voxel_loop(nfiles, infiles, nout, outfiles, arg_string,
+                            loop_options, do_average, (void *) &average_data);
    free_loop_options(loop_options);
 
    /* Free stuff */
    free(average_data.weights);
    free(average_data.norm_factor);
 
-   exit(EXIT_SUCCESS);
+   exit(result_code);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

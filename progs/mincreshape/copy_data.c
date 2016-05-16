@@ -125,11 +125,11 @@ static void translate_input_to_output(Reshape_info *reshape_info,
                                       long *input_count,
                                       long *output_start,
                                       long *output_count);
-static void copy_the_chunk(Reshape_info *reshape_info,
-                           long chunk_start[],
-                           long chunk_count[],
-                           void *chunk_data,
-                           double fillvalue);
+static int copy_the_chunk(Reshape_info *reshape_info,
+                          long chunk_start[],
+                          long chunk_count[],
+                          void *chunk_data,
+                          double fillvalue);
 static void convert_value_from_double(double dvalue,
                                       nc_type datatype, int is_signed,
                                       void *ptr);
@@ -140,7 +140,7 @@ static void convert_value_from_double(double dvalue,
 @NAME       : copy_data
 @INPUT      : reshape_info - information for reshaping volume
 @OUTPUT     : (none)
-@RETURNS    : (none)
+@RETURNS    : non-zero if an error is detected.
 @DESCRIPTION: Copies data from one input volume to another, reorganizing
               it according to the reshaping info.
 @METHOD     :
@@ -149,7 +149,7 @@ static void convert_value_from_double(double dvalue,
 @CREATED    : October 25, 1994 (Peter Neelin)
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
-void copy_data(Reshape_info *reshape_info)
+int copy_data(Reshape_info *reshape_info)
 {
    int idim, odim, out_ndims;
    long block_begin[MAX_VAR_DIMS], block_end[MAX_VAR_DIMS];
@@ -162,6 +162,7 @@ void copy_data(Reshape_info *reshape_info)
    long num_min_values, num_max_values, num_values;
    double fillvalue, *minmax_buffer;
    void *chunk_data;
+   int status_code, result_code = EXIT_SUCCESS;
 
    /* Get number of dimensions */
    out_ndims = reshape_info->output_ndims;
@@ -237,9 +238,12 @@ void copy_data(Reshape_info *reshape_info)
          }
 
          /* Copy the chunk */
-         copy_the_chunk(reshape_info, 
-                        chunk_cur_start, chunk_cur_count, chunk_data,
-                        fillvalue);
+         status_code = copy_the_chunk(reshape_info, chunk_cur_start, 
+                                      chunk_cur_count, chunk_data,
+                                      fillvalue);
+         if (status_code != MI_NOERROR) {
+             result_code = EXIT_FAILURE;
+         }
 
          /* Increment chunk loop count */
          nd_increment_loop(chunk_cur_start, chunk_begin, chunk_count,
@@ -267,7 +271,7 @@ void copy_data(Reshape_info *reshape_info)
       (void) fflush(stderr);
    }
 
-
+   return result_code;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -735,7 +739,7 @@ static void translate_input_to_output(Reshape_info *reshape_info,
               chunk_data - pointer to enough space for chunk
               fillvalue - pixel value to zero volume, if necessary.
 @OUTPUT     : (none)
-@RETURNS    : (nothing)
+@RETURNS    : non-zero if an error occurs.
 @DESCRIPTION: Copies the chunk from the input file to the output file.
 @METHOD     :
 @GLOBALS    :
@@ -743,11 +747,11 @@ static void translate_input_to_output(Reshape_info *reshape_info,
 @CREATED    : October 25, 1994 (Peter Neelin)
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
-static void copy_the_chunk(Reshape_info *reshape_info,
-                           long chunk_start[],
-                           long chunk_count[],
-                           void *chunk_data,
-                           double fillvalue)
+static int copy_the_chunk(Reshape_info *reshape_info,
+                          long chunk_start[],
+                          long chunk_count[],
+                          void *chunk_data,
+                          double fillvalue)
 {
    int idim, odim, in_ndims, out_ndims;
    long input_start[MAX_VAR_DIMS], input_count[MAX_VAR_DIMS];
@@ -757,6 +761,7 @@ static void copy_the_chunk(Reshape_info *reshape_info,
    int datatype_size;
    long total_size, ipix, first, last;
    int zero_data, really_copy_the_data;
+   int status_code, result_code = EXIT_SUCCESS;
    union {
       char c; short s; long l; float f; double d;
    } value_buffer;
@@ -835,8 +840,11 @@ static void copy_the_chunk(Reshape_info *reshape_info,
    if (really_copy_the_data) {
 
       /* Read in the data */
-      (void) miicv_get(reshape_info->icvid, input_start, input_count, 
-                       chunk_data);
+      status_code = miicv_get(reshape_info->icvid, input_start, input_count, 
+                              chunk_data);
+      if (status_code != MI_NOERROR) {
+        result_code = EXIT_FAILURE;
+      }
    
       /* Write it out */
       (void) ncvarputg(reshape_info->outmincid, reshape_info->outimgid,
@@ -844,7 +852,7 @@ static void copy_the_chunk(Reshape_info *reshape_info,
                        output_origin);
 
    }
-
+   return result_code;
 }
 
 /* ----------------------------- MNI Header -----------------------------------

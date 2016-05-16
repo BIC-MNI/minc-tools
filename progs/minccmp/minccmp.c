@@ -187,7 +187,7 @@ ArgvInfo argTable[] = {
 int main(int argc, char *argv[]){
    char **infiles;
    int n_infiles;
-
+   int result_code = EXIT_SUCCESS;
    Loop_Options *loop_opt;
    Loop_Data ld;
 
@@ -279,15 +279,18 @@ int main(int argc, char *argv[]){
    set_loop_check_dim_info(loop_opt, check_dim_info);
 
    /* first pass */
-   voxel_loop(n_infiles, infiles, 0, NULL, NULL, loop_opt, pass_0, (void *)&ld);
+   result_code = voxel_loop(n_infiles, infiles, 0, NULL, NULL, loop_opt,
+                            pass_0, (void *)&ld);
 
    /* intermediate calculations */
    do_int_calcs(&ld);
 
    /* run the second pass if we have to */
    if(do_zscore){
-      voxel_loop(n_infiles, infiles, 0, NULL, NULL, loop_opt, pass_1, (void *)&ld);
-      }
+     if (voxel_loop(n_infiles, infiles, 0, NULL, NULL, loop_opt,
+                    pass_1, (void *)&ld))
+       result_code = EXIT_FAILURE;
+   }
 
    /* final calculations */
    do_final_calcs(&ld);
@@ -409,7 +412,7 @@ int main(int argc, char *argv[]){
      }
    }
 
-   return EXIT_SUCCESS;
+   return result_code;
    }
 
 /* voxel loop function for first pass through data */

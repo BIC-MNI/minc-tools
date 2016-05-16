@@ -91,6 +91,7 @@ ArgvInfo argTable[] = {
 int
 micopy(int old_fd, int new_fd, char *new_history, int is_template)
 {
+    int result_code = EXIT_SUCCESS;
     if (is_template) {
         /* Tell NetCDF that we don't want to allocate the data until written.
          */
@@ -99,7 +100,8 @@ micopy(int old_fd, int new_fd, char *new_history, int is_template)
 
     /* Copy all variable definitions (and global attributes).
      */
-    micopy_all_var_defs(old_fd, new_fd, 0, NULL);
+    if (micopy_all_var_defs(old_fd, new_fd, 0, NULL) != MI_NOERROR)
+       result_code = EXIT_FAILURE;
 
     /* Append the updated history.
      */
@@ -107,14 +109,15 @@ micopy(int old_fd, int new_fd, char *new_history, int is_template)
 
     if (!is_template) {
         ncendef(new_fd);
-        micopy_all_var_values(old_fd, new_fd, 0, NULL);
+        if (micopy_all_var_values(old_fd, new_fd, 0, NULL) != MI_NOERROR)
+           result_code = EXIT_FAILURE;
     }
     else {
         /* This isn't really standard, but flag this as a template file. 
          */
         miattputstr(new_fd, NC_GLOBAL, "class", "template");
     }
-    return (MI_NOERROR);
+    return (result_code);
 }
 
 /* Main program */
@@ -127,6 +130,7 @@ main(int argc, char **argv)
     int old_fd;
     int new_fd;
     int flags;
+    int result_code;
 #if MINC2
     struct mi2opts opts;
 #endif /* MINC2 */
@@ -219,11 +223,11 @@ main(int argc, char **argv)
     new_fd = micreate(new_fname, flags);
 #endif /* not MINC2 */
 
-    micopy(old_fd, new_fd, new_history, do_template);
+    result_code = micopy(old_fd, new_fd, new_history, do_template);
 
     miclose(old_fd);
     miclose(new_fd);
     free(new_history);
 
-    exit(EXIT_SUCCESS);
+    exit(result_code);
 }

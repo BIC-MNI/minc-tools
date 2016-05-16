@@ -162,6 +162,7 @@ int main(int argc, char *argv[])
    int      mincid;
    struct timeval timer;
    int      i;
+   int      result_code;
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
@@ -286,14 +287,14 @@ int main(int argc, char *argv[])
       }
 
    /* do the sampling */
-   voxel_loop(n_infiles, infiles, n_outfiles, outfiles, arg_string,
-              loop_opts, get_points, (void *)&md);
+   result_code = voxel_loop(n_infiles, infiles, n_outfiles, outfiles, 
+                            arg_string, loop_opts, get_points, (void *)&md);
 
    /* tidy up */
    fclose(md.outFP);
    free_loop_options(loop_opts);
 
-   return (EXIT_SUCCESS);
+   return (result_code);
    }
 
 /* get points from file(s), write out to an input FP */
