@@ -237,7 +237,7 @@ static int Median = FALSE;
 static int Majority = FALSE;
 static int BiModalT = FALSE;
 static int PctT = FALSE;
-static double pctT = 0.0;
+static double pctT = -1.0;
 static int Entropy = FALSE;
 
 /* Alternative methods of calculating the bimodal threshold */
@@ -797,9 +797,12 @@ int main(int argc, char *argv[])
    }
 
    /* init PctT boolean before checking */
-   if(pctT > 0.0) {
+   if(pctT >= 0.0) {
       PctT = TRUE;
       pctT /= 100;
+   }
+   else {
+      pctT = 0.0;
    }
 
    /* if nothing selected, do everything */
