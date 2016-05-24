@@ -190,6 +190,8 @@ typedef enum { NONE = 0 , ACQ , MEAS } Loop_Type;
 /* supported file types */
 typedef enum { UNDEF, IMA, N3DCM, N4DCM } File_Type;
 
+#include "dicom_to_minc.h"
+
 /* Type for carrying around object information 
  */
 typedef struct {
@@ -222,10 +224,10 @@ typedef struct {
     string_t patient_id;
     double slice_location;
     int coord_found;
+    double coord[WORLD_NDIMS];
     int tpos_id;
 } Data_Object_Info;
 
-#include "dicom_to_minc.h"
 #include "dicom_read.h"
 #include "minc_file.h"
 #include "progress.h"
@@ -271,6 +273,7 @@ struct globals {
     int adjust_frame_time;      /* Adjust frame times to beginning of frame. */
     int ignore_leading_dot;     /* If TRUE, ignore files with leading '.' */
     int file_format;            /* Preferred MINC file format (1 or 2). */
+    int n_distinct_coordinates; /* Total number of distinct coordinates. */
 };
 
 /* Values for options flags */

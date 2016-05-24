@@ -2060,6 +2060,19 @@ read_numa4_dicom(const char *filename, int max_group)
         return NULL;
     }
 
+    if (G.n_distinct_coordinates != 0) {
+      int ns = acr_find_int(group_list, ACR_Number_of_slices, -1);
+      int nt = acr_find_int(group_list, ACR_Number_of_temporal_positions, -1);
+      int ni = acr_find_int(group_list, ACR_Images_in_acquisition, -1);
+
+      if (ns < 0 && nt < 0 && ni > G.n_distinct_coordinates) {
+        acr_insert_short(&group_list, ACR_Number_of_slices,
+                         G.n_distinct_coordinates);
+        acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
+                         ni / G.n_distinct_coordinates);
+      }
+    }
+
     /* Check the manufacturer.  If it is one we know, try to interpret
      * the static/proprietary data if present.  This is converted to
      * standard DICOM fields whereever it makes sense to do so.

@@ -2519,7 +2519,6 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     Acr_Short AcqMat[4];
     Acr_Short freq_rows;
     Acr_Short freq_cols;
-    double slice_coord[WORLD_NDIMS];
 
     /* Get info to construct unique identifiers for study, series/acq
      * for file processing
@@ -2575,7 +2574,7 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
                                                      ACR_Slice_location,
                                                      0.0);
 
-    di_ptr->coord_found = dicom_read_position(group_list, 0, slice_coord);
+    di_ptr->coord_found = dicom_read_position(group_list, 0, di_ptr->coord);
 
     /* identification info needed to generate unique session id
      * for file names

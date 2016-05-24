@@ -888,6 +888,63 @@ use_the_files(int num_files,
             }
         }
 
+        /* See how many coordinate points there are. */
+        G.n_distinct_coordinates = 0;
+        if (trust_coord) {
+#define N_HASH 1013
+          struct coord_set {
+            struct coord_set *link;
+            double coord[WORLD_NDIMS];
+          } *coord_set[N_HASH];
+          int n_elements = 0;
+          struct coord_set *cs_ptr;
+
+          for (ifile = 0; ifile < N_HASH; ifile++) {
+            coord_set[ifile] = NULL;
+          }
+
+          for (ifile = 0; ifile < acq_num_files; ifile++) {
+            int ix = acq_file_index[ifile];
+            int hash = ((unsigned) floor(di_ptr[ix]->coord[XCOORD] * 100) +
+                        (unsigned) floor(di_ptr[ix]->coord[YCOORD] * 100) +
+                        (unsigned) floor(di_ptr[ix]->coord[ZCOORD] * 100)) % N_HASH;
+            int found = 0;
+
+            if (coord_set[hash] != NULL) {
+              for (cs_ptr = coord_set[hash]; cs_ptr != NULL; cs_ptr = cs_ptr->link) {
+                if (cs_ptr->coord[XCOORD] == di_ptr[ix]->coord[XCOORD] &&
+                    cs_ptr->coord[YCOORD] == di_ptr[ix]->coord[YCOORD] &&
+                    cs_ptr->coord[ZCOORD] == di_ptr[ix]->coord[ZCOORD]) {
+                  found = 1;
+                  break;
+                }
+              }
+            }
+            if (!found) {
+              cs_ptr = malloc(sizeof(struct coord_set));
+              cs_ptr->coord[XCOORD] = di_ptr[ix]->coord[XCOORD];
+              cs_ptr->coord[YCOORD] = di_ptr[ix]->coord[YCOORD];
+              cs_ptr->coord[ZCOORD] = di_ptr[ix]->coord[ZCOORD];
+              cs_ptr->link = coord_set[hash];
+              coord_set[hash] = cs_ptr;
+              n_elements++;
+            }
+          }
+
+          for (ifile = 0; ifile < N_HASH; ifile++) {
+            while ( (cs_ptr = coord_set[ifile]) != NULL ) {
+              coord_set[ifile] = cs_ptr->link;
+              free(cs_ptr);
+            }
+          }
+
+          printf("INFO: Number of distinct coordinates: %d\n", n_elements );
+          if ( di_ptr[0]->num_slices_nominal % n_elements == 0 &&
+               di_ptr[0]->num_slices_nominal > n_elements ) {
+            G.n_distinct_coordinates = n_elements;
+          }
+        }
+
         /* We also check whether the acquisition number (0x0020, 0x0012) 
          * and image number (0x0020, 0x0013) are informative or not. 
          * They are sometimes absent, constant, or otherwise strange.
