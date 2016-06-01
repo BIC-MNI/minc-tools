@@ -606,6 +606,7 @@ main(int argc, char **argv)
 
     ncattput(mnc_fd, mnc_iid, MIvalid_range, NC_DOUBLE, 2, mnc_vrange);
     miattputstr(mnc_fd, NC_GLOBAL, MIhistory, mnc_hist);
+    miattputstr(mnc_fd, mnc_iid, MIcomplete, MI_FALSE);
 
     /* Switch out of definition mode.
      */
@@ -620,9 +621,10 @@ main(int argc, char **argv)
     mivarput1(mnc_fd, ncvarid(mnc_fd, MIimagemax), mnc_start, NC_DOUBLE,
               MI_SIGNED, &mnc_srange[1]);
 
-    mivarput(mnc_fd, mnc_iid, mnc_start, mnc_count, mnc_mtype, 
+    mivarput(mnc_fd, mnc_iid, mnc_start, mnc_count, mnc_mtype,
              (mnc_msign) ? MI_SIGNED : MI_UNSIGNED, nii_ptr->data);
 
+    miattputstr(mnc_fd, mnc_iid, MIcomplete, MI_TRUE);
     miclose(mnc_fd);
 
     return (0);
