@@ -714,18 +714,25 @@ int main(int argc, char *argv[])
                                        NC_INT, 0, NULL);
 
          /* Write out step and start and direction cosine */
-         if (STR_EQ(dimname[i], MIxspace)) index = X;
-         if (STR_EQ(dimname[i], MIyspace)) index = Y;
-         if (STR_EQ(dimname[i], MIzspace)) index = Z;
-         if (dimstep[index] != DEF_STEP) {
-            (void) miattputdbl(cdfid, varid, MIstep, dimstep[index]);
-         }
-         if (dimstart[index] != DEF_START) {
-            (void) miattputdbl(cdfid, varid, MIstart, dimstart[index]);
-         }
-         if (dimdircos[index][0] != DEF_DIRCOS) {
-            (void) ncattput(cdfid, varid, MIdirection_cosines, NC_DOUBLE,
-                            3, dimdircos[index]);
+         if (STR_EQ(dimname[i], MIxspace))
+           index = X;
+         else if (STR_EQ(dimname[i], MIyspace))
+           index = Y;
+         else if (STR_EQ(dimname[i], MIzspace))
+           index = Z;
+         else
+           index = -1;
+         if (index >= 0) {
+           if (dimstep[index] != DEF_STEP) {
+             (void) miattputdbl(cdfid, varid, MIstep, dimstep[index]);
+           }
+           if (dimstart[index] != DEF_START) {
+             (void) miattputdbl(cdfid, varid, MIstart, dimstart[index]);
+           }
+           if (dimdircos[index][0] != DEF_DIRCOS) {
+             (void) ncattput(cdfid, varid, MIdirection_cosines, NC_DOUBLE,
+                             3, dimdircos[index]);
+           }
          }
       }
       
