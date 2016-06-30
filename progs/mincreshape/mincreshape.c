@@ -1613,7 +1613,6 @@ static void create_dim_var(int outmincid, int outdimid,
    if (input_count < 0) dim_step = -dim_step;
 
    /* Create the variable */
-   var_ndims = (is_regular ? 0 : 1);
    set_ncopts(0);
    outvarid = micreate_std_variable(outmincid, dimname, NC_DOUBLE,
                                         var_ndims, &outdimid);
