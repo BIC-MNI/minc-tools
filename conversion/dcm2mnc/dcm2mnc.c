@@ -898,6 +898,7 @@ use_the_files(int num_files,
           } *coord_set[N_HASH];
           int n_elements = 0;
           struct coord_set *cs_ptr;
+          int n_slices_nominal = di_ptr[acq_file_index[0]]->num_slices_nominal;
 
           for (ifile = 0; ifile < N_HASH; ifile++) {
             coord_set[ifile] = NULL;
@@ -939,8 +940,8 @@ use_the_files(int num_files,
           }
 
           printf("INFO: Number of distinct coordinates: %d\n", n_elements );
-          if ( di_ptr[0]->num_slices_nominal % n_elements == 0 &&
-               di_ptr[0]->num_slices_nominal > n_elements ) {
+          if ( n_slices_nominal % n_elements == 0 &&
+               n_slices_nominal > n_elements ) {
             G.n_distinct_coordinates = n_elements;
           }
         }
