@@ -86,6 +86,8 @@
 #  define FALSE 0
 #endif
 
+typedef int (*acr_formatter_t)(void *, const char *, ...);
+
 /* Include files */
 #include <acr_nema/file_io.h>
 #include <acr_nema/acr_io.h>

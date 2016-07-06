@@ -208,12 +208,15 @@ extern double acr_get_element_numeric(Acr_Element element);
 extern Acr_String acr_get_element_string(Acr_Element element);
 extern long acr_get_element_short_array(Acr_Element element, long max_values, 
                                         Acr_Short values[]);
+extern long acr_get_element_long_array(Acr_Element element, long max_values, 
+                                       Acr_Long values[]);
 extern long acr_get_element_double_array(Acr_Element element, long max_values, 
                                          Acr_Double values[]);
 extern int *acr_element_numeric_array_separator(int character);
 extern int acr_get_element_numeric_array(Acr_Element element,
                                          int max_values, double values[]);
-extern void acr_dump_element_list(void (*func)(const char *, ...),
+extern void acr_dump_element_list(acr_formatter_t func,
+                                  void *stream,
                                   Acr_Element element_list);
 
 #endif /* _ACR_ELEMENT_H_ */

@@ -676,8 +676,8 @@ init_my_sprintf(void)
 
 #define N_CHUNK 1024            /* bytes per allocated chunk */
 
-static void
-my_sprintf(const char *fmt_ptr, ...)
+static int
+my_sprintf(void *stream, const char *fmt_ptr, ...)
 {
   char str_buf[1024];
   va_list args;
@@ -693,6 +693,7 @@ my_sprintf(const char *fmt_ptr, ...)
   }
   strcpy(&_my_string[_my_cur_length], str_buf);
   _my_cur_length += n_chars;
+  return n_chars;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -1242,7 +1243,7 @@ void setup_minc_variables(int mincid, General_Info *general_info,
              * in the attributes of a MINC file.
              */
             if (acr_element_is_sequence(cur_element)) {
-                acr_dump_element_list(my_sprintf, (Acr_Element) data);
+                acr_dump_element_list(my_sprintf, NULL, (Acr_Element) data);
                 data = _my_string;
                 length = _my_cur_length;
             }

@@ -26,7 +26,8 @@ int main(int argc, char *argv[])
    while ((status=acr_input_dicom_message(afpin, &message)) == ACR_OK) {
 
       /* Dump the values */
-      acr_dump_group_list(stderr, acr_get_message_group_list(message));
+      acr_dump_group_list((acr_formatter_t)fprintf, stderr, 
+                          acr_get_message_group_list(message));
 
 #ifdef WRITING
       /* Write out message */

@@ -1467,6 +1467,51 @@ long acr_get_element_short_array(Acr_Element element, long max_values,
 }
 
 /* ----------------------------- MNI Header -----------------------------------
+@NAME       : acr_get_element_long_array
+@INPUT      : element
+              max_values - maximum number of values to return
+@OUTPUT     : values - array of values found
+@RETURNS    : Number of values found
+@DESCRIPTION: Gets an array of longs from an element structure. If the
+              number of values in the element is greater than max_values,
+              then only max_values values are extracted, but the total
+              number of values in the element is returned.
+@METHOD     :
+@GLOBALS    :
+@CALLS      :
+@CREATED    : February 17, 1997 (Peter Neelin)
+@MODIFIED   :
+---------------------------------------------------------------------------- */
+long acr_get_element_long_array(Acr_Element element, long max_values,
+                                Acr_Long values[])
+{
+   long nvalues;
+
+   /* Check VR of element */
+   switch (acr_get_element_vr(element)) {
+   case ACR_VR_SL:
+   case ACR_VR_UL:
+   case ACR_VR_UNKNOWN:
+      break;
+   default:
+      return (long) 0;
+   }
+
+   /* Get number of values in element */
+   nvalues = acr_get_element_length(element) / ACR_SIZEOF_LONG;
+
+   /* Check the maximum number of values */
+   if (max_values > nvalues) max_values = nvalues;
+
+   /* Get the data */
+   acr_get_long(acr_get_element_byte_order(element),
+                max_values, acr_get_element_data(element), values);
+
+   /* Return the number of values in the structure */
+   return nvalues;
+}
+
+/* ----------------------------- MNI Header -----------------------------------
 @NAME       : acr_get_element_double_array
 @INPUT      : element
               max_values - maximum number of values to return
@@ -1625,7 +1670,8 @@ int acr_get_element_numeric_array(Acr_Element element,
 }
 
 static void
-maybe_print_as_string(void (*func)(const char *, ...),
+maybe_print_as_string(acr_formatter_t func,
+                      void *stream,
                       Acr_Element cur_element,
                       int element_length, int done_already)
 {
@@ -1663,40 +1709,40 @@ maybe_print_as_string(void (*func)(const char *, ...),
         copy[i] = '\0';
 
         if (printable) {
-            func(" string = \"%s\"", copy);
+            func(stream, " string = \"%s\"", copy);
         }
         else if (!done_already) {
             /* If unknown length print as a series of bytes.
              */
             string = acr_get_element_data(cur_element);
-            func(" byte = ");
+            func(stream, " byte = ");
             if (element_length < 16) {
                 for (i = 0; i < element_length; i++) {
-                    func("%#x", (unsigned char)string[i]);
+                    func(stream, "%#x", (unsigned char)string[i]);
                     if (i != element_length - 1) {
-                        func(", ");
+                        func(stream, ", ");
                     }
                 }
             }
             else {
-                func("\n");
+                func(stream, "\n");
                 for (i = 0; i < element_length; i += 16) {
                     for (j = 0; j < 16; j++) {
                             if (i + j < element_length) {
-                                func("%02x ", (unsigned char)string[i+j]);
+                                func(stream, "%02x ", (unsigned char)string[i+j]);
                             }
                             else {
-                                func("   ");
+                                func(stream, "   ");
                             }
                         }
-                        func("| ");
+                        func(stream, "| ");
                         for (j = 0; j < 16; j++) {
                             if (i + j < element_length) {
                                 int c = (unsigned char)string[i+j];
-                                func("%c", isprint(c) ? c : '.');
+                                func(stream, "%c", isprint(c) ? c : '.');
                             }
                         }
-                        func("\n");
+                        func(stream, "\n");
                     }
             }
         }
@@ -1718,7 +1764,8 @@ maybe_print_as_string(void (*func)(const char *, ...),
 @CREATED    : February 12, 1997 (Peter Neelin)
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
-void acr_dump_element_list(void (*func)(const char *, ...),
+void acr_dump_element_list(acr_formatter_t func,
+                           void *stream,
                            Acr_Element element_list)
 {
 #define INDENT_AMOUNT 3
@@ -1740,13 +1787,13 @@ void acr_dump_element_list(void (*func)(const char *, ...),
 
       /* Indent the line */
       for (i=0; i < current_indent_level; i++) {
-          func(" ");
+          func(stream, " ");
       }
 
       element_length = acr_get_element_length(cur_element);
 
       /* Print the element id */
-      func("0x%04x  0x%04x  length = %d ",
+      func(stream, "0x%04x  0x%04x  length = %d ",
            acr_get_element_group(cur_element),
            acr_get_element_element(cur_element),
            (int) element_length);
@@ -1758,88 +1805,88 @@ void acr_dump_element_list(void (*func)(const char *, ...),
                                        acr_get_element_element(cur_element));
 
           if (name_ptr != NULL) {
-              func("(%s)", name_ptr);
+              func(stream, "(%s)", name_ptr);
           }
       }
-      func(":");
+      func(stream, ":");
 
       /* Print value if needed */
       vr_code = acr_get_element_vr(cur_element);
       if (acr_element_is_sequence(cur_element)) {
-         func(" VR=%s", acr_get_vr_name(vr_code));
+         func(stream, " VR=%s", acr_get_vr_name(vr_code));
          if (acr_get_element_data(cur_element) == NULL) {
-            func(" (empty sequence)");
+            func(stream, " (empty sequence)");
          }
          else {
-            func(" (sequence)");
+            func(stream, " (sequence)");
          }
-         func("\n");
-         acr_dump_element_list(func,
+         func(stream, "\n");
+         acr_dump_element_list(func, stream,
             (Acr_Element) acr_get_element_data(cur_element));
       }
       else if (vr_code != ACR_VR_UNKNOWN) {
-         func(" VR=%s, ", acr_get_vr_name(vr_code));
+         func(stream, " VR=%s, ", acr_get_vr_name(vr_code));
          switch (vr_code) {
          case ACR_VR_SS:
          case ACR_VR_US:
-            func("short = %d (0x%04x)",
+            func(stream, "short = %d (0x%04x)",
                  (int) acr_get_element_short(cur_element),
                  (int) acr_get_element_short(cur_element));
             break;
          case ACR_VR_AT:
          case ACR_VR_SL:
          case ACR_VR_UL:
-            func("long = %d (0x%08x)",
+            func(stream, "long = %d (0x%08x)",
                  (int) acr_get_element_long(cur_element),
                  (int) acr_get_element_long(cur_element));
             break;
          case ACR_VR_OB:
          case ACR_VR_OW:
-            maybe_print_as_string(func, cur_element, element_length, 0);
+            maybe_print_as_string(func, stream, cur_element, element_length, 0);
             break;
          case ACR_VR_FD:
-            func("double = ");
+            func(stream, "double = ");
             {
               double array[1000];
               long n = acr_get_element_double_array(cur_element, 1000, array);
               long i;
               for (i = 0; i < n; i++) {
-                func("%g", array[i]);
+                func(stream, "%g", array[i]);
                 if (i != n - 1) {
-                  func(", ");
+                  func(stream, ", ");
                 }
               }
             }
             break;
          default:
-            func("value = \"%s\"", acr_get_element_string(cur_element));
+            func(stream, "value = \"%s\"", acr_get_element_string(cur_element));
             break;
          }
-         func("\n");
+         func(stream, "\n");
       }
       else {
          int done_already = 0;
 
          switch (element_length) {
          case ACR_SIZEOF_SHORT:
-            func(" short = %d (0x%04x)",
+            func(stream, " short = %d (0x%04x)",
                  (int) acr_get_element_short(cur_element),
                  (int) acr_get_element_short(cur_element));
             done_already = 1;
             break;
          case ACR_SIZEOF_LONG:
-            func(" long = %d (0x%08x)",
+            func(stream, " long = %d (0x%08x)",
                  (int) acr_get_element_long(cur_element),
                  (int) acr_get_element_long(cur_element));
             done_already = 1;
             break;
          }
 
-         maybe_print_as_string(func, cur_element, element_length,
+         maybe_print_as_string(func, stream, cur_element, element_length,
                                done_already);
 
          /* End line */
-         func("\n");
+         func(stream, "\n");
 
       }         /* if is_sequence ... else  */
 

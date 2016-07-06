@@ -1112,14 +1112,16 @@ Acr_Element acr_find_group_element(Acr_Group group_list,
 @CREATED    : November 24, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void acr_dump_group_list(void (*func)(const char *, ...), Acr_Group group_list)
+void acr_dump_group_list(acr_formatter_t func,
+                         void *stream,
+                         Acr_Group group_list)
 {
    Acr_Group cur_group;
 
    /* Check for empty list */
    cur_group = group_list;
    if (cur_group == NULL) {
-      func("\nEmpty group list\n\n");
+      func(stream, "\nEmpty group list\n\n");
       return;
    }
 
@@ -1127,17 +1129,17 @@ void acr_dump_group_list(void (*func)(const char *, ...), Acr_Group group_list)
    while (cur_group != NULL) {
 
       /* Print the group id */
-      func("\nGroup 0x%04x :\n\n", acr_get_group_group(cur_group));
+      func(stream, "\nGroup 0x%04x :\n\n", acr_get_group_group(cur_group));
 
       /* Print the elements */
-      acr_dump_element_list(func, acr_get_group_element_list(cur_group));
+      acr_dump_element_list(func, stream, acr_get_group_element_list(cur_group));
 
       /* Go to the next group */
       cur_group = acr_get_group_next(cur_group);
    }
 
    /* Print a blank line after dump */
-   func("\n");
+   func(stream, "\n");
 }
 
 /* ----------------------------- MNI Header -----------------------------------

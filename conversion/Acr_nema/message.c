@@ -592,10 +592,12 @@ static void update_message_length_element(Acr_Message message,
 @CREATED    : November 24, 1993 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
+
  void acr_dump_message(FILE *file_pointer, Acr_Message message)
 {
 
-   acr_dump_group_list(file_pointer, acr_get_message_group_list(message));
+   acr_dump_group_list((acr_formatter_t)fprintf, file_pointer, 
+                       acr_get_message_group_list(message));
 
    return;
 }
