@@ -910,8 +910,8 @@ void setup_minc_variables(int mincid, General_Info *general_info,
           else if (temp[i] == 'D') /* age is in days */
             age /= 365.0;
           else if (temp[i] != 'Y') { /* age is in years */
-            fprintf(stderr, "ERROR: Age units (%s) unknown.\n", temp);
-            exit(-1);
+            fprintf(stderr, "WARNING: Age units (%s) unknown.\n", temp);
+            age = 0.0;
           }
           miattputdbl(mincid, varid, MIage, age);
         }
