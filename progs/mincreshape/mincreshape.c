@@ -513,6 +513,7 @@ static void get_arginfo(int argc, char *argv[],
 #endif /* MINC2 */
    reshape_info->outmincid = micreate(outfile, cflags);
    setup_output_file(reshape_info->outmincid, history, reshape_info);
+   free(history);
 
    return;
 }

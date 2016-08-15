@@ -525,6 +525,8 @@ static Lookup_Table *read_lookup_table(char *lookup_filename,
    lookup_table->vector_length = table_nvalues - 1;
    lookup_table->table = table;
 
+   free(row);
+
    /* Return the lookup table */
    return lookup_table;
 }

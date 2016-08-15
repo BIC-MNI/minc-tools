@@ -220,6 +220,9 @@ int main(int argc, char *argv[])
                         filename);
          exit(EXIT_FAILURE);
       }
+      if (newfile != NULL) {
+         free(newfile);
+      }
    }
 
    /* Expand the file. */

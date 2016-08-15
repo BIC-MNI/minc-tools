@@ -314,6 +314,8 @@ static int process_file( char* filename, int header_only )
       return EXIT_FAILURE;
    }
 
+   free(tempfile);
+
    /* check whether the file is Version 2 */
 #ifdef MINC2
    if (MI2_ISH5OBJ(mincid)) {
