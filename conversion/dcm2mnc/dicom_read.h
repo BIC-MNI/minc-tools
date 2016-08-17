@@ -14,3 +14,9 @@ extern int dicom_read_pixel_size(Acr_Group group_list, double pixel_size[2]);
 extern void convert_dicom_coordinate(double coord[]);
 extern int is_numaris3(Acr_Group group_list);
 
+Acr_Element acr_recursive_search(Acr_Element element, int *nskip,
+                                 Acr_Element_Id search_id);
+Acr_Element acr_recurse_for_element(Acr_Group group_list,
+                                    int nskip,
+                                    Acr_Element_Id seq_id,
+                                    Acr_Element_Id srch_id);

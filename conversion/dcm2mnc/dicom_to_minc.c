@@ -256,6 +256,9 @@ typedef struct {
     double normal[WORLD_NDIMS];
     double step[WORLD_NDIMS];
     double position[WORLD_NDIMS];
+    int n_dims;
+    Acr_Element_Id dim_seq[100];
+    Acr_Element_Id dim_ind[100];
 } Multiframe_Info;    
 
 /* Structure for sorting dimensions */
@@ -1072,7 +1075,7 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
   prot_find_string(protocol, "sDiffusion.ulMode", str_buf);
   if (str_buf[0] != '\0') {
     unsigned long mode = strtol(str_buf, NULL, 0);
-    sprintf(str_buf, "0x%lx", mode);
+    snprintf(str_buf, sizeof(str_buf), "0x%lx", mode);
   }
   if (!strcmp(str_buf, "0x100") || !strcmp(str_buf, "0x80")) { 
     /*we have a diffusion scan; flag it*/
@@ -1095,7 +1098,7 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
         prot_find_string(protocol, "sDiffusion.ulMode", str_buf);
         if (str_buf[0] != '\0') {
           unsigned long mode = strtol(str_buf, NULL, 0);
-          sprintf(str_buf, "0x%lx", mode);
+          snprintf(str_buf, sizeof(str_buf), "0x%lx", mode);
         }
         /*-----ep2d_diff-----OR-----
           ep2d_diff_WIP_ICBM with "Diffusion mode"=MDDW & DiffusionWeightings=2-----------*/
@@ -1335,7 +1338,7 @@ add_siemens_info(Acr_Group group_list)
             if (str_buf[0] != '\0') {
                 int fov = strtol(str_buf, NULL, 0);
 
-                sprintf(str_buf, "%d\\%d", fov, fov);
+                snprintf(str_buf, sizeof(str_buf), "%d\\%d", fov, fov);
                 acr_insert_string(&group_list, SPI_Field_of_view, str_buf);
             }
             else {
@@ -1343,7 +1346,7 @@ add_siemens_info(Acr_Group group_list)
                                  str_buf);
                 if (str_buf[0] != '\0') {
                     double fov = atof(str_buf);
-                    sprintf(str_buf, "%f\\%f", fov, fov);
+                    snprintf(str_buf, sizeof(str_buf), "%f\\%f", fov, fov);
                    acr_insert_string(&group_list, SPI_Field_of_view, str_buf);
                 }
             }
@@ -1366,7 +1369,7 @@ add_siemens_info(Acr_Group group_list)
         prot_find_string(protocol, "sSliceArray.ucMode", str_buf);
         if (str_buf[0] != '\0') {
           int mode = strtol(str_buf, NULL, 0);
-          sprintf(str_buf, "0x%x", mode);
+          snprintf(str_buf, sizeof(str_buf), "0x%x", mode);
           acr_insert_string(&group_list,EXT_Slice_order,str_buf);
         }
 
@@ -1723,7 +1726,8 @@ add_philips_info(Acr_Group group_list)
                 x = (double)acr_find_double(group_list, SPI_PMS_lr_position2, 0);
                 y = (double)acr_find_double(group_list, SPI_PMS_ap_position2, 0);
                 z = (double)acr_find_double(group_list, SPI_PMS_cc_position2, 0);
-                sprintf(str_buf, "%.15g\\%.15g\\%.15g", x, y, z);
+                snprintf(str_buf, sizeof(str_buf), "%.15g\\%.15g\\%.15g",
+                         x, y, z);
                 acr_insert_string(&group_list, ACR_Image_position_patient, 
                                   (Acr_String)str_buf);
 
@@ -1771,7 +1775,7 @@ add_philips_info(Acr_Group group_list)
                         derived_spacing[0] = fov[0] / cols;
                         derived_spacing[1] = fov[1] / rows;
 
-                        sprintf(str_buf, "%.15g\\%.15g", 
+                        snprintf(str_buf, sizeof(str_buf), "%.15g\\%.15g",
                                 derived_spacing[0], derived_spacing[1]);
 
                         printf("PHILIPS: New pixel size %s\n", str_buf);
@@ -1792,13 +1796,26 @@ add_philips_info(Acr_Group group_list)
 
         PMS_SET_CREATOR(PMS_Number_of_Slices_MR, &creator_id);
         slice_count = acr_find_int(group_list, PMS_Number_of_Slices_MR, -1);
-        if (slice_count < 0) {
+        if (slice_count <= 0) {
             if (G.Debug)
                 printf("WARNING: Can't find Philips slice count\n");
         }
         else {
-            acr_insert_short(&group_list, ACR_Images_in_acquisition, 
+            int frame_count = acr_find_int(group_list, ACR_Number_of_frames,
+                                           -1);
+            int time_slices = acr_find_int(group_list,
+                                           ACR_Number_of_temporal_positions,
+                                           -1);
+
+            acr_insert_short(&group_list, ACR_Images_in_acquisition,
                              slice_count);
+            acr_insert_short(&group_list, ACR_Number_of_slices,
+                             slice_count);
+
+            if (frame_count > slice_count && time_slices < 0) {
+              acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
+                               frame_count / slice_count);
+            }
         }
         PMS_SET_CREATOR(PMS_Slice_Number_MR, &creator_id);
         slice_index = acr_find_int(group_list, PMS_Slice_Number_MR, -1);
@@ -1820,7 +1837,7 @@ add_philips_info(Acr_Group group_list)
     int i2 = acr_find_int(group_list, PMS_Gradient_orientation_index, -1);
     int c1 = acr_find_int(group_list, PMS_B_value_count, -1);
     int c2 = acr_find_int(group_list, PMS_Gradient_orientation_count, -1);
-    if (i1 > 0 && i2 > 0 && c1 > 0 && c2 > 0) {
+    if (i1 > 0 && i2 > 0 && c1 > 1 && c2 > 1) {
       int id = (i1 < c1) ? i1 : (c1 + i2);
       /* Replace broken acquisition number (0020,0012).
        */
@@ -2325,12 +2342,13 @@ sort_dimensions(General_Info *gi_ptr)
                            gi_ptr->coordinates[imri][i - 1]),
                           fabs(2.0 * (delta / 100.0)))) {
                     /* TODO: Perhaps this message could be improved?? */
-                    printf("WARNING: Missing %s data at index %d, %g %g\n",
+                    printf("WARNING: Missing %s data at index %d, d0 %g di %g %g\n",
                            Mri_Names[imri],
-                           i, 
+                           i,
                            delta,
                            (gi_ptr->coordinates[imri][i] -
-                            gi_ptr->coordinates[imri][i - 1]));
+                            gi_ptr->coordinates[imri][i - 1]),
+                           gi_ptr->coordinates[imri][i]);
                 }
             }
         }
@@ -2884,7 +2902,7 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
 
                 /* Store the updated pixel spacing in the group list.
                  */
-                sprintf(str_buf, "%.15g\\%.15g", 
+                snprintf(str_buf, sizeof(str_buf), "%.15g\\%.15g", 
                         derived_spacing[0], derived_spacing[1]);
                 acr_insert_string(&group_list, ACR_Pixel_size, str_buf);
             }
@@ -3017,7 +3035,7 @@ mosaic_insert_subframe(Acr_Group group_list, Mosaic_Info *mi_ptr,
             (double) islice * mi_ptr->step[ZCOORD];
     }*/
 
-    sprintf(string, "%.15g\\%.15g\\%.15g", 
+    snprintf(string, sizeof(string), "%.15g\\%.15g\\%.15g", 
             position[XCOORD], position[YCOORD], position[ZCOORD]);
 
     acr_insert_string(&group_list, ACR_Image_position_patient, string);
@@ -3200,6 +3218,18 @@ multiframe_init(Acr_Group group_list, Multiframe_Info *mfi_ptr, int load_image)
                mfi_ptr->position[2]);
     }
 
+    /* Find elements in the dimension index sequence. */
+    mfi_ptr->n_dims = 0;
+    for (i = 0; i < 100; i++) {
+      element = acr_recurse_for_element(group_list, i,
+                                        ACR_Dimension_index_seq,
+                                        ACR_Dimension_index_ptr);
+      if (element == NULL) {
+        mfi_ptr->n_dims = i;
+        break;
+      }
+    }
+
     if (!load_image) {
         mfi_ptr->big_image = NULL;
         mfi_ptr->sub_image = NULL;
@@ -3273,6 +3303,10 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
     double position[WORLD_NDIMS];
     string_t string;
     int result;
+    Acr_Element element;
+    Acr_Long indices[100];
+    int slice_index = -1;
+    int time_index = -1;
 
     if (G.Debug >= HI_LOGGING) {
         printf("multiframe_insert_subframe(%lx, %lx, %d, %d)\n",
@@ -3288,11 +3322,37 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
         exit(EXIT_FAILURE);
     }
 
-    /* Update the index in the file's group list.
-     */
-    acr_insert_numeric(&group_list, SPI_Current_slice_number, (double) iframe + 1);
+    element = acr_recurse_for_element(group_list, iframe,
+                                      ACR_Perframe_func_groups_seq,
+                                      ACR_Dimension_index_values);
+    if (element != NULL &&
+        acr_get_element_long_array(element, mfi_ptr->n_dims, indices) ==
+        mfi_ptr->n_dims) {
+
+        if (mfi_ptr->n_dims >= 2) {
+            slice_index = indices[1];
+            acr_insert_numeric(&group_list, SPI_Current_slice_number,
+                               (double) slice_index);
+        }
+        if (mfi_ptr->n_dims >= 3) {
+            time_index = indices[2];
+            acr_insert_numeric(&group_list, ACR_Temporal_position_identifier,
+                               (double) time_index);
+        }
+    }
+    else {
+      /* Update the index in the file's group list.
+       */
+      acr_insert_numeric(&group_list, SPI_Current_slice_number,
+                         (double) iframe + 1);
+    }
 
     result = dicom_read_position(group_list, iframe, position);
+#if 0
+    printf("%d %d %d %d %f %f %f\n",
+           iframe, slice_index, time_index, result,
+           position[0], position[1], position[2]);
+#endif
     convert_dicom_coordinate(position);
 
     if (result != DICOM_POSITION_LOCAL) {
@@ -3309,14 +3369,18 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
         }
     }
 
-    sprintf(string, "%.15g\\%.15g\\%.15g", 
+    snprintf(string, sizeof(string), "%.15g\\%.15g\\%.15g", 
             position[XCOORD], position[YCOORD], position[ZCOORD]);
 
     acr_insert_string(&group_list, ACR_Image_position_patient, string);
 
+
     if (G.Debug >= HI_LOGGING) {
         printf(" position %s\n", string);
     }
+#if 0
+    printf(" position %d %s\n", result, string);
+#endif
 
     if (load_image) {
         /* Get pointers

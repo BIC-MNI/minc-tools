@@ -49,7 +49,7 @@ GLOBAL_ELEMENT(ACR_Affected_SOP_instance_UID , 0x0000, 0x1000, UI);
 GLOBAL_ELEMENT(ACR_Move_originator_AE_title  , 0x0000, 0x1031, AE);
 
 GLOBAL_ELEMENT(ACR_Image_type            , 0x0008, 0x0008, CS);
-GLOBAL_ELEMENT(ACR_Instance_creation_date, 0x0008, 0x0013, DA);
+GLOBAL_ELEMENT(ACR_Instance_creation_date, 0x0008, 0x0012, DA);
 GLOBAL_ELEMENT(ACR_Instance_creation_time, 0x0008, 0x0013, TM);
 GLOBAL_ELEMENT(ACR_SOP_Class_UID         , 0x0008, 0x0016, UI);
 GLOBAL_ELEMENT(ACR_Study_date            , 0x0008, 0x0020, DA);
@@ -175,6 +175,11 @@ GLOBAL_ELEMENT(ACR_Pixel_measurement_seq , 0x0020, 0x9118, SQ);
 
 GLOBAL_ELEMENT(ACR_Perframe_func_groups_seq, 0x5200, 0x9230, SQ);
 GLOBAL_ELEMENT(ACR_Plane_position_seq    , 0x0020, 0x9113, SQ);
+
+GLOBAL_ELEMENT(ACR_Dimension_index_values, 0x0020, 0x9157, UL);
+GLOBAL_ELEMENT(ACR_Dimension_index_seq,    0x0020, 0x9222, SQ);
+GLOBAL_ELEMENT(ACR_Dimension_index_ptr,    0x0020, 0x9165, AT);
+GLOBAL_ELEMENT(ACR_Functional_group_ptr,   0x0020, 0x9167, AT);
 
 /* PET-specific details. */
 GLOBAL_ELEMENT(ACR_Radiopharmaceutical_information_sequence, 0x0054, 0x0016, SQ);

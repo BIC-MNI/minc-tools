@@ -530,8 +530,6 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
           if (gi_ptr->max_size[SLICE] > 1) {
             int num_per_file = get_subimage_count(group_list);
             int num_images = gi_ptr->num_files * num_per_file;
-            printf("%d images (%d, %d)\n", num_images, gi_ptr->num_files,
-                   num_per_file);
             if ((num_images % gi_ptr->max_size[SLICE]) == 0) {
               def_val = num_images / gi_ptr->max_size[SLICE];
             }
@@ -1218,7 +1216,7 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
  * element, skipping a specified number of occurrences before
  * returning.  This is only called by acr_recurse_for_element().
  */
-static Acr_Element
+Acr_Element
 acr_recursive_search(Acr_Element el_lst, int *nskip, Acr_Element_Id srch_id)
 {
     Acr_Element el_ret = NULL;
@@ -1290,43 +1288,55 @@ acr_recurse_for_element(Acr_Group group_list,
 }
 
 int
-dicom_read_position(Acr_Group group_list, int n, double coordinate[3])
+dicom_read_position(Acr_Group group_list, int index, double coordinate[3])
 {
-    Acr_Element element;
+    Acr_Element element = NULL;
     int result;
+    int nskip = 0;
 
-    /* Try to read a unique element from the sequences.  If this
-     * succeeds, we need to flag this fact so that the higher-level
-     * processing can adapt accordingly.
-     */
-    element = acr_recurse_for_element(group_list, n,
-                                      ACR_Perframe_func_groups_seq,
-                                      ACR_Image_position_patient);
+    if (index >= 0) {
+      element = acr_recurse_for_element(group_list, index,
+                                        ACR_Perframe_func_groups_seq,
+                                        ACR_Plane_position_seq);
+      if (element != NULL &&
+          (element = acr_recursive_search( element, &nskip, ACR_Image_position_patient)) != NULL) {
+        result = DICOM_POSITION_LOCAL;
+      }
+      else {
+        /* Try to read a unique element from the sequences.  If this
+         * succeeds, we need to flag this fact so that the higher-level
+         * processing can adapt accordingly.
+         */
+        element = acr_recurse_for_element(group_list, index,
+                                          ACR_Perframe_func_groups_seq,
+                                          ACR_Image_position_patient);
+      }
+    }
     if (element != NULL) {
-        result = DICOM_POSITION_LOCAL; /* Found a slice-specific position */
+      result = DICOM_POSITION_LOCAL; /* Found a slice-specific position */
     }
     else {
-        result = DICOM_POSITION_GLOBAL; /* Found a global position */
+      result = DICOM_POSITION_GLOBAL; /* Found a global position */
 
+      element = acr_find_group_element(group_list,
+                                       ACR_Image_position_patient);
+
+      if (element == NULL) {
+        /* bert-look for field in weird XMedCon location
+         */
+        element = acr_recurse_for_element(group_list, 0,
+                                          ACR_Detector_information_seq,
+                                          ACR_Image_position_patient);
+      }
+      
+      if (element == NULL) {
         element = acr_find_group_element(group_list,
-                                         ACR_Image_position_patient);
-
-        if (element == NULL) {
-            /* bert-look for field in weird XMedCon location
-             */
-            element = acr_recurse_for_element(group_list, 0,
-                                              ACR_Detector_information_seq,
-                                              ACR_Image_position_patient);
-        }
-
-        if (element == NULL) {
-            element = acr_find_group_element(group_list,
-                                             ACR_Image_position_patient_old);
-        }
+                                         ACR_Image_position_patient_old);
+      }
     }
 
     if (element == NULL) {
-        printf("WARNING: Failed to find image position\n");
+        printf("WARNING: Failed to find image position (%d)\n", index);
     }
     else {
         if (acr_get_element_numeric_array(element,
@@ -1697,7 +1707,8 @@ get_coordinate_info(Acr_Group group_list,
      * This code has changed several times, and there may be no single
      * correct way of deriving the true slice spacing from the official
      * DICOM slice thickness and slice spacing fields.  My best guess is
-     * to look for both fields, and to adopt the
+     * to look for both fields, and to adopt the slice spacing when both
+     * fields are set.
      */
     slice_thickness = (double)acr_find_double(group_list, ACR_Slice_thickness, 0);
     slice_spacing = (double)acr_find_double(group_list, ACR_Spacing_between_slices, 0);
@@ -1776,8 +1787,8 @@ get_coordinate_info(Acr_Group group_list,
         found_coordinate = TRUE;
     }
     else {
-        found_coordinate = dicom_read_position(group_list,
-                                               fi_ptr->index[SLICE] - 1,
+        found_coordinate = dicom_read_position(group_list, 
+                                               -1, /* ?? */
                                                coordinate);
         if (!found_coordinate) {
             /* Last gasp - try to interpret the slice location as our slice
