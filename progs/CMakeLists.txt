@@ -208,7 +208,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mincpik/mincpik.in ${CMAKE_CURRENT_BI
 add_custom_target(mincpik chmod +x ${CMAKE_CURRENT_BINARY_DIR}/mincpik.out 
  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mincpik/mincpik.in)
 
-
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/minccomplete/minccomplete.in ${CMAKE_CURRENT_BINARY_DIR}/minccomplete.out @ONLY)
+add_custom_target(mincpik chmod +x ${CMAKE_CURRENT_BINARY_DIR}/minccomplete.out 
+ DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/minccomplete/minccomplete.in)
+ 
+ 
 INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/minchistory.out
   PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ  WORLD_EXECUTE WORLD_READ
@@ -221,7 +225,13 @@ INSTALL(PROGRAMS
   RENAME mincpik
   DESTINATION bin )
 
+INSTALL(PROGRAMS
+  ${CMAKE_CURRENT_BINARY_DIR}/minccomplete.out
+  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ  WORLD_EXECUTE WORLD_READ
+  RENAME minccomplete
+  DESTINATION bin )
 
+  
 INSTALL_MAN_PAGES( ${CMAKE_INSTALL_PREFIX}/man
   coordinates/voxeltoworld.man1
   mincaverage/mincaverage.man1
