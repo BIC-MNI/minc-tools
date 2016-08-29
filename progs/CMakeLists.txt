@@ -209,7 +209,7 @@ add_custom_target(mincpik chmod +x ${CMAKE_CURRENT_BINARY_DIR}/mincpik.out
  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mincpik/mincpik.in)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/minccomplete/minccomplete.in ${CMAKE_CURRENT_BINARY_DIR}/minccomplete.out @ONLY)
-add_custom_target(mincpik chmod +x ${CMAKE_CURRENT_BINARY_DIR}/minccomplete.out 
+add_custom_target(minccomplete chmod +x ${CMAKE_CURRENT_BINARY_DIR}/minccomplete.out 
  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/minccomplete/minccomplete.in)
  
  
