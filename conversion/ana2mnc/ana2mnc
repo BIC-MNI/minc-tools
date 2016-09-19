@@ -223,7 +223,7 @@ elsif($me eq "spm2xfm"){
       }
       
    # read in .mat file, convert to sensical format, remove first and last line
-   @dump = `octave -q --eval "arg_list = argv (); filename = arg_list{4}; load(filename); disp(M)" $matfile`;
+   @dump = `octave -q --eval "load $matfile; disp(M)"`;
    for($c=1; $c<4; $c++){
       $dump[$c] =~ s/\t/\ /g;
       if($c == 3){ 
@@ -255,7 +255,7 @@ elsif($me eq "spm_show"){
    if(!-e $matfile){ 
       die "$me: Couldn't find $matfile\n\n"; 
       }
-   print STDOUT `octave -q --eval "arg_list = argv (); filename = arg_list{4}; load(filename); disp(M)" $matfile`;
+   print STDOUT `octave -q --eval "load $matfile ; disp(M)"`;
    }
 
 
