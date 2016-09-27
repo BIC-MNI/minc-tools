@@ -238,14 +238,17 @@ main(int argc, char **argv)
     }
 
     if (argc == 2) {
-        strcpy(out_str, argv[1]);
+        strncpy(out_str, argv[1], sizeof(out_str) - 1);
         str_ptr = strrchr(out_str, '.');
         if (str_ptr != NULL && !strcmp(str_ptr, ".mnc")) {
             *str_ptr = '\0';
         }
+        if (nifti_filetype < 0) {
+            nifti_filetype = NIFTI_FTYPE_NIFTI1_1;
+        }
     }
     else if (argc == 3) {
-        strcpy(out_str, argv[2]);
+        strncpy(out_str, argv[2], sizeof(out_str) - 1);
         str_ptr = strrchr(out_str, '.');
         if (str_ptr != NULL) {
             /* See if a recognized file extension was specified.  If so,
