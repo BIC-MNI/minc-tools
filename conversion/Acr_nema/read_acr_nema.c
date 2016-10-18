@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 
    /* Connect to input stream */
    afp=acr_file_initialize(fp, 0, acr_stdio_read);
-   (void) acr_test_dicom_file(afp);
+   (void) acr_test_dicom_file(afp, NULL);
 
    /* Read in group list up to group */
    (void) acr_input_group_list(afp, &group_list, 0);

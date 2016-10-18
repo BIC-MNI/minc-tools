@@ -1504,7 +1504,7 @@ Acr_Status acr_insert_sequence(Acr_Group *group_list,
 @CREATED    : November 8, 2001 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-Acr_Status acr_test_dicom_file(Acr_File *afp)
+Acr_Status acr_test_dicom_file(Acr_File *afp, Acr_Group *group_list_ptr)
 {
 #define DICOM_FILE_MAGIC_OFFSET 128
 #define DICOM_MAGIC_STRING "DICM"
@@ -1537,7 +1537,12 @@ Acr_Status acr_test_dicom_file(Acr_File *afp)
    status = acr_test_byte_order(afp);
    if (status != ACR_OK) return status;
    status = acr_input_group_list(afp, &group_list, DICOM_FILE_GROUP);
-   acr_delete_group_list(group_list);
+   if (group_list_ptr == NULL) {
+     acr_delete_group_list(group_list);
+   }
+   else {
+     *group_list_ptr = group_list;
+   }
    if (status != ACR_OK) return status;
 
    /* Test the byte order for the remainder of the file */

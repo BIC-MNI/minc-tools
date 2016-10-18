@@ -165,7 +165,7 @@ public int send_file(Acr_File *afpin, Acr_File *afpout, char *filename)
 
    /* Connect to input stream */
    file_afp = acr_file_initialize(fp, 0, acr_stdio_read);
-   (void) acr_test_dicom_file(file_afp);
+   (void) acr_test_dicom_file(file_afp, NULL);
 
    /* Read in group list up to group */
    status =  acr_input_group_list(file_afp, &group, 0);

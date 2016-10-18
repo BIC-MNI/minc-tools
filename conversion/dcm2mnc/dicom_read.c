@@ -2429,6 +2429,120 @@ convert_time_to_seconds(double dicom_time)
     return (hh * 3600.0) + (mm * 60.0) + ss;
 }
 
+#if JPEG_FOUND
+#include <jpeglib.h>
+unsigned char *
+dicom_jpeg_decompress(unsigned char *jpg_buffer, int jpg_size)
+{
+  struct jpeg_decompress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  unsigned char *dicom_ptr;
+  int dicom_len;
+  int width, height, pixel_size;
+  int row_stride;
+  int rc;
+
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_decompress(&cinfo);
+  
+  jpeg_mem_src(&cinfo, jpg_buffer, jpg_size);
+
+  rc = jpeg_read_header(&cinfo, TRUE);
+  if (rc != 1) {
+    printf("ERROR reading JPEG header.");
+    return NULL;
+  }
+
+  if (!jpeg_start_decompress(&cinfo)) {
+    printf("ERROR starting JPEG decompression.\n");
+    return NULL;
+  }
+	
+  width = cinfo.output_width;
+  height = cinfo.output_height;
+  pixel_size = cinfo.output_components;
+  row_stride = width * pixel_size;
+  dicom_len = width * height;
+  dicom_ptr = malloc(dicom_len*pixel_size);
+  if (dicom_ptr == NULL) {
+    printf("ERROR allocating memory\n");
+    return NULL;
+  }
+
+  while (cinfo.output_scanline < cinfo.output_height) {
+    unsigned char *buffer_array[1];
+    buffer_array[0] = dicom_ptr + cinfo.output_scanline * row_stride;
+
+    rc = jpeg_read_scanlines(&cinfo, buffer_array, 1);
+    printf("jpeg_read_scanlines: %d\n", rc);
+  }
+  jpeg_finish_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+  return dicom_ptr;
+}
+#endif
+
+#if OPENJPEG_FOUND
+#include <openjpeg.h>
+
+unsigned char *
+dicom_opj_decompress(unsigned char *jpg_buffer, int jpg_size)
+{
+  opj_dparameters_t dparameters;
+  opj_dinfo_t *dinfo;
+  opj_cio_t *cio;
+  opj_image_t *image;
+  unsigned char *dicom_ptr;
+  int dicom_len;
+  int width, height, pixel_size;
+  int i;
+
+  opj_set_default_decoder_parameters(&dparameters);
+  if ((dinfo = opj_create_decompress(CODEC_J2K)) == NULL) {
+    printf("ERROR: OpenJPEG initialization failed.\n");
+    return NULL;
+  }
+  opj_setup_decoder(dinfo, &dparameters);
+  cio = opj_cio_open((opj_common_ptr) dinfo, jpg_buffer, jpg_size);
+  if (cio == NULL) {
+    printf("ERROR: OpenJPEG initialization failed.\n");
+    return NULL;
+  }
+  if ((image = opj_decode(dinfo, cio)) == NULL) {
+    printf("ERROR: OpenJPEG decoder failed.\n");
+    return NULL;
+  }
+  width = image->x1 - image->x0;
+  height = image->y1 - image->y0;
+  pixel_size = (image->comps[0].prec + (8-1)) / 8;
+  dicom_len = width * height;
+  /* Make a one-row-high sample array that will go away when done with image */
+  dicom_ptr = malloc(dicom_len*pixel_size);
+  switch (pixel_size) {
+  case 1:
+    for (i = 0; i < dicom_len; i++) {
+      dicom_ptr[i] = image->comps[0].data[i];
+    }
+    break;
+  case 2:
+    for (i = 0; i < dicom_len; i++) {
+      ((short *)dicom_ptr)[i] = image->comps[0].data[i];
+    }
+    break;
+  case 4:
+    for (i = 0; i < dicom_len; i++) {
+      ((int *)dicom_ptr)[i] = image->comps[0].data[i];
+    }
+    break;
+  default:
+    break;
+  }
+  opj_cio_close(cio);
+  opj_destroy_decompress(dinfo);
+  return dicom_ptr;
+}
+#endif
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : get_dicom_image_data
    @INPUT      : group_list - input data
@@ -2454,6 +2568,8 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
     long imagepix, ipix;
     struct Acr_Element_Id elid;
     nc_type datatype;
+    void *decoded_data = NULL;
+    int encoded_length;
 
     /* Get the image information */
     bits_alloc = (int)acr_find_short(group_list, ACR_Bits_allocated, 0);
@@ -2480,7 +2596,35 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
         memset(image->data, 0, imagepix * sizeof(short));
         return;
     }
-    data = acr_get_element_data(element);
+    if (acr_element_is_sequence(element)) {
+      /* Assume the compressed data is in the second element of the sequence. */
+      element = (Acr_Element) acr_get_element_data(element);
+      element = acr_get_element_next(element);
+      data = acr_get_element_data(element);
+      encoded_length = acr_get_element_length(element);
+      
+#if OPENJPEG_FOUND
+      decoded_data = dicom_opj_decompress(data, encoded_length);
+#if JPEG_FOUND
+      if (decoded_data == NULL) {
+        decoded_data = dicom_jpeg_decompress(data, encoded_length);
+      }
+#endif
+      if (decoded_data == NULL) {
+        printf("ERROR: JPEG decoding failed.\n");
+        exit(-1);
+      }
+      else {
+        data = decoded_data;
+      }
+#else
+      printf("ERROR: JPEG functionality is missing.\n");
+      exit(-1);
+#endif
+    }
+    else {
+      data = acr_get_element_data(element);
+    }
 
     /* Convert the data according to type */
 
@@ -2504,6 +2648,9 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
         }
     }
 
+    if (decoded_data != NULL) {
+      free(decoded_data);
+    }
     return;
 }
 

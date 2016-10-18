@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
    /* Connect to input stream */
    afp=acr_file_initialize(fp, 0, acr_stdio_read);
    acr_set_ignore_errors(afp, ignore_errors);
-   (void) acr_test_dicom_file(afp);
+   (void) acr_test_dicom_file(afp, NULL);
    if (byte_order != ACR_UNKNOWN_ENDIAN) {
       acr_set_byte_order(afp, byte_order);
    }

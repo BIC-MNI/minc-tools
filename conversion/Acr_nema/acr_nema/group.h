@@ -156,7 +156,7 @@ extern Acr_Status acr_insert_string(Acr_Group *group_list,
 extern Acr_Status acr_insert_sequence(Acr_Group *group_list,
                                       Acr_Element_Id elid, 
                                       Acr_Element itemlist);
-extern Acr_Status acr_test_dicom_file(Acr_File *afp);
+extern Acr_Status acr_test_dicom_file(Acr_File *afp, Acr_Group *group_list);
 
 typedef char *(*acr_name_proc_t)(unsigned int grp_id, unsigned int el_id);
 

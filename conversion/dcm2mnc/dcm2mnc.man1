@@ -211,6 +211,7 @@ single alphabetic character, as follows:
     %D - Date of scan
     %T - Time of scan
     %S - Study ID (typically 'yyyymmdd.hhmmss')
+    %P - Protocol name
     %A - Acquisition or series ID
     %s - Optional slice label
     %e - Optional echo number

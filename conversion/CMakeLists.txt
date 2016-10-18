@@ -3,8 +3,8 @@
 # Andrew Janke - a.janke@gmail.com
 
 #LINK_DIRECTORIES()
-LINK_LIBRARIES( ${LIBMINC_LIBRARIES})
 
+LINK_LIBRARIES( ${LIBMINC_LIBRARIES})
 
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
 
@@ -30,7 +30,8 @@ ADD_EXECUTABLE(dcm2mnc
    dcm2mnc/minc_file.c
    dcm2mnc/progress.c
    dcm2mnc/string_to_filename.c)
-TARGET_LINK_LIBRARIES(dcm2mnc acr_nema )
+
+TARGET_LINK_LIBRARIES(dcm2mnc acr_nema ${OPENJPEG_LIBRARIES} ${JPEG_LIBRARIES})
 
 ADD_EXECUTABLE(ecattominc
    ecattominc/ecattominc.c

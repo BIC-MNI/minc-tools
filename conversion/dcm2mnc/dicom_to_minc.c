@@ -681,6 +681,7 @@ read_std_dicom(const char *filename, int max_group)
     Acr_File *afp;
     Acr_Group group_list;
     int status;
+    Acr_String str_ptr;
 
     /* Open the file
      */
@@ -698,8 +699,31 @@ read_std_dicom(const char *filename, int max_group)
 
     acr_set_ignore_errors(afp, 1); /* ignore protocol errors */
 
-    if (acr_test_dicom_file(afp) != ACR_OK) {
+    /* Read in the initial group 2 header.
+     */
+    group_list = NULL;
+    if (acr_test_dicom_file(afp, &group_list) != ACR_OK) {
         return NULL;
+    }
+
+    str_ptr = acr_find_string(group_list, ACR_Transfer_Syntax_UID,
+                              ACR_IMPLICIT_VR_LITTLE_END_UID);
+
+    if (!strcmp(str_ptr, ACR_IMPLICIT_VR_LITTLE_END_UID) ||
+        !strcmp(str_ptr, ACR_EXPLICIT_VR_LITTLE_END_UID) ||
+        !strcmp(str_ptr, ACR_EXPLICIT_VR_BIG_END_UID)) {
+      /* known transfer syntax */
+    }
+#if OPENJPEG_FOUND || JPEG_FOUND
+    else if (!strcmp(str_ptr, "1.2.840.10008.1.2.4.90") ||
+             !strcmp(str_ptr, "1.2.840.10008.1.2.4.91") ||
+             !strcmp(str_ptr, "1.2.840.10008.1.2.4.70")) {
+      /* jpeg */
+    }
+#endif
+    else {
+      printf("UNKNOWN DICOM TRANSFER SYNTAX: %s\n", str_ptr);
+      exit(-1);
     }
 
     // Read in group list

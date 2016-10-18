@@ -805,7 +805,7 @@ Acr_Status acr_input_element(Acr_File *afp, Acr_Element *element)
    Acr_Status status;
    int is_sequence, more_to_read, found_delimiter, has_variable_length;
    Acr_Element item, itemlist, previtem;
-   Acr_VR_Type vr_code;
+   Acr_VR_Type vr_code, item_vr_code;
    Acr_VR_encoding_type vr_encoding;
 
    /* Set element in case of error */
@@ -835,11 +835,11 @@ Acr_Status acr_input_element(Acr_File *afp, Acr_Element *element)
    /* If we have a sequence, read in all the items and store them as a
       list of elements. */
    if (is_sequence) {
+     if (group_id != 0x7fe0) {
+       more_to_read = TRUE;
+       itemlist = NULL;
 
-      more_to_read = TRUE;
-      itemlist = NULL;
-
-      while (more_to_read) {
+       while (more_to_read) {
 
          /* Read in an item */
          status = acr_input_element(afp, &item);
@@ -847,40 +847,94 @@ Acr_Status acr_input_element(Acr_File *afp, Acr_Element *element)
 
          /* If we know the length of the whole sequence, check it */
          if ((status == ACR_OK) && (data_length > 0)) {
-            data_length -= acr_get_element_total_length(item, vr_encoding);
-            if (data_length < 0) status = ACR_PROTOCOL_ERROR;
+           data_length -= acr_get_element_total_length(item, vr_encoding);
+           if (data_length < 0) status = ACR_PROTOCOL_ERROR;
          }
 
          /* Look for delimiter */
          item_gid = acr_get_element_group(item);
          item_elid = acr_get_element_element(item);
          found_delimiter =
-            ((item_gid == ACR_ITEM_GROUP) &&
-             ((item_elid == ACR_ITEM_DELIMITER) ||
-              (item_elid == ACR_SEQ_DELIMITER)));
+           ((item_gid == ACR_ITEM_GROUP) &&
+            ((item_elid == ACR_ITEM_DELIMITER) ||
+             (item_elid == ACR_SEQ_DELIMITER)));
 
          /* Add the item to the list if it is not a delimiter */
          if (!found_delimiter) {
-            if (itemlist == NULL) {
-               itemlist = item;
-            }
-            else {
-               acr_set_element_next(previtem, item);
-            }
-            previtem = item;
+           if (itemlist == NULL) {
+             itemlist = item;
+           }
+           else {
+             acr_set_element_next(previtem, item);
+           }
+           previtem = item;
          }
          else {
-             free(item);        /* Avoid leaking memory */
+           free(item);        /* Avoid leaking memory */
          }
 
          /* Check for end of items */
          if ((data_length == 0) || found_delimiter || (status != ACR_OK)) {
-            more_to_read = FALSE;
+           more_to_read = FALSE;
          }
-      }        /* End of loop over items */
+       }        /* End of loop over items */
 
-      /* Save the item list as the data */
-      data_pointer = (char *) itemlist;
+       /* Save the item list as the data */
+       data_pointer = (char *) itemlist;
+     }
+     else {
+       more_to_read = TRUE;
+       itemlist = NULL;
+       char *item_ptr;
+       long item_len;
+
+       while (more_to_read) {
+
+         /* Read in an item */
+         status = acr_read_one_element(afp, &item_gid, &item_elid, vr_name,
+                                       &item_len, &item_ptr);
+         if (item_gid == ACR_ITEM_GROUP) {
+           item_ptr = MALLOC(item_len);
+           /* Read in the data */
+           status = acr_read_buffer(afp, (unsigned char *)item_ptr, item_len,
+                                    NULL);
+         }
+
+         /* If we know the length of the whole sequence, check it */
+         if ((status == ACR_OK) && (data_length > 0)) {
+           data_length -= item_len;
+           if (data_length < 0) status = ACR_PROTOCOL_ERROR;
+         }
+
+         item_vr_code = ACR_VR_OB;
+
+         found_delimiter =
+           ((item_gid == ACR_ITEM_GROUP) &&
+            ((item_elid == ACR_ITEM_DELIMITER) ||
+             (item_elid == ACR_SEQ_DELIMITER)));
+
+         /* Add the item to the list if it is not a delimiter */
+         if (!found_delimiter) {
+           item = acr_create_element(0x7fe0, item_elid, item_vr_code, 
+                                     item_len, item_ptr);
+           if (itemlist == NULL) {
+             itemlist = item;
+           }
+           else {
+             acr_set_element_next(previtem, item);
+           }
+           previtem = item;
+         }
+
+         /* Check for end of items */
+         if ((data_length == 0) || found_delimiter || (status != ACR_OK)) {
+           more_to_read = FALSE;
+         }
+       }        /* End of loop over items */
+
+       /* Save the item list as the data */
+       data_pointer = (char *) itemlist;
+     }
    }
 
    /* Create the element */

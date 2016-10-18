@@ -290,13 +290,16 @@ int main(int argc, char *argv[])
    /* Connect to input stream */
    afp=acr_file_initialize(fp, 0, acr_stdio_read);
    acr_set_ignore_errors(afp, ignore_errors);
-   (void) acr_test_dicom_file(afp);
+   (void) acr_test_dicom_file(afp, &group_list);
    if (byte_order != ACR_UNKNOWN_ENDIAN) {
       acr_set_byte_order(afp, byte_order);
    }
    if (vr_encoding != UNKNOWN_VR_ENCODING) {
       acr_set_vr_encoding(afp, vr_encoding);
    }
+   /* Dump the values */
+   acr_dump_group_list((acr_formatter_t) fprintf, stdout, group_list);
+   acr_delete_group_list(group_list);
 
    /* Read in group list */
    status = acr_input_group_list(afp, &group_list, maxid);
@@ -306,6 +309,7 @@ int main(int argc, char *argv[])
 
    /* Dump the values */
    acr_dump_group_list((acr_formatter_t) fprintf, stdout, group_list);
+   acr_delete_group_list(group_list);
 
    /* Print status information */
    if ((status != ACR_END_OF_INPUT) && (status != ACR_OK)) {

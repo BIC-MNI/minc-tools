@@ -48,6 +48,8 @@ GLOBAL_ELEMENT(ACR_Status                    , 0x0000, 0x0900, US);
 GLOBAL_ELEMENT(ACR_Affected_SOP_instance_UID , 0x0000, 0x1000, UI);
 GLOBAL_ELEMENT(ACR_Move_originator_AE_title  , 0x0000, 0x1031, AE);
 
+GLOBAL_ELEMENT(ACR_Transfer_Syntax_UID       , 0x0002, 0x0010, UI);
+
 GLOBAL_ELEMENT(ACR_Image_type            , 0x0008, 0x0008, CS);
 GLOBAL_ELEMENT(ACR_Instance_creation_date, 0x0008, 0x0012, DA);
 GLOBAL_ELEMENT(ACR_Instance_creation_time, 0x0008, 0x0013, TM);
@@ -197,8 +199,3 @@ GLOBAL_ELEMENT(ACR_Radionuclide_code_sequence, 0x0054, 0x0300, SQ);
 GLOBAL_ELEMENT(ACR_Code_meaning, 0x0008, 0x0104, LO);
 
 GLOBAL_ELEMENT(ACR_Pixel_data            , ACR_IMAGE_GID, ACR_IMAGE_EID, OW);
-
-
-
-
-
