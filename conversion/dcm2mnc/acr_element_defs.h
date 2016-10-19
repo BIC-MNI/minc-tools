@@ -133,17 +133,17 @@ GLOBAL_ELEMENT(ACR_Study                 , 0x0020, 0x0010, SH);
 GLOBAL_ELEMENT(ACR_Series                , 0x0020, 0x0011, IS);
 GLOBAL_ELEMENT(ACR_Acquisition           , 0x0020, 0x0012, IS);
 GLOBAL_ELEMENT(ACR_Image                 , 0x0020, 0x0013, IS);
-GLOBAL_ELEMENT(ACR_Image_position_patient_old, 0x0020, 0x0030, DS);
+GLOBAL_ELEMENT(ACR_Image_position_patient_old, 0x0020, 0x0030, DS); /* RET */
 GLOBAL_ELEMENT(ACR_Image_position_patient, 0x0020, 0x0032, DS);
 GLOBAL_ELEMENT(ACR_Image_orientation_patient_old,
-	                                   0x0020, 0x0035, DS);
+                                           0x0020, 0x0035, DS); /* RET */
 GLOBAL_ELEMENT(ACR_Image_orientation_patient,
 	                                   0x0020, 0x0037, DS);
 GLOBAL_ELEMENT(ACR_Temporal_position_identifier,
                                            0x0020, 0x0100, IS);
 GLOBAL_ELEMENT(ACR_Number_of_temporal_positions,
                                            0x0020, 0x0105, IS);
-GLOBAL_ELEMENT(ACR_Acquisitions_in_series, 0x0020, 0x1001, IS);
+GLOBAL_ELEMENT(ACR_Acquisitions_in_series, 0x0020, 0x1001, IS); /* RET? */
 GLOBAL_ELEMENT(ACR_Images_in_acquisition,  0x0020, 0x1002, IS);
 GLOBAL_ELEMENT(ACR_Slice_location,         0x0020, 0x1041, DS);
 GLOBAL_ELEMENT(ACR_Image_comments,         0x0020, 0x4000, DS);
@@ -159,7 +159,7 @@ GLOBAL_ELEMENT(ACR_High_bit              , 0x0028, 0x0102, US);
 GLOBAL_ELEMENT(ACR_Pixel_representation  , 0x0028, 0x0103, US);
 GLOBAL_ELEMENT(ACR_Smallest_pixel_value  , 0x0028, 0x0106, US);
 GLOBAL_ELEMENT(ACR_Largest_pixel_value   , 0x0028, 0x0107, US);
-GLOBAL_ELEMENT(ACR_Image_location        , 0x0028, 0x0200, US);
+GLOBAL_ELEMENT(ACR_Image_location        , 0x0028, 0x0200, US); /* RET */
 GLOBAL_ELEMENT(ACR_Window_centre         , 0x0028, 0x1050, DS);
 GLOBAL_ELEMENT(ACR_Window_width          , 0x0028, 0x1051, DS);
 GLOBAL_ELEMENT(ACR_Rescale_intercept     , 0x0028, 0x1052, DS);
