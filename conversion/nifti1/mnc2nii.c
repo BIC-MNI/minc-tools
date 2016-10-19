@@ -280,6 +280,13 @@ main(int argc, char **argv)
         return usage();
     }
 
+    /* If the file type is still not set at this point, select the default,
+     * which is single-file NIfTI-1 (.nii)
+     */
+    if (nifti_filetype < 0) {
+        nifti_filetype = NIFTI_FTYPE_NIFTI1_1;
+    }
+
     /* Open the MINC file.  It needs to exist.
      */
     mnc_fd = miopen(argv[1], NC_NOWRITE);
@@ -601,6 +608,8 @@ main(int argc, char **argv)
         nii_ptr->sto_xyz.m[i][j] = Transform_elem(*linear_transform, i, j);
       }
     }
+
+    delete_general_transform(&transform);
 
     nii_ptr->sto_ijk = nifti_mat44_inverse(nii_ptr->sto_xyz);
 
