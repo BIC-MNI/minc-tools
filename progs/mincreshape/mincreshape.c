@@ -1627,6 +1627,7 @@ static void create_dim_var(int outmincid, int outdimid,
       (void) miattputdbl(outmincid, outvarid, MIstep, dim_step);
    if (is_regular || start_found)
       (void) miattputdbl(outmincid, outvarid, MIstart, dim_start);
+   miattputstr(outmincid, outvarid, MIspacing, spacing);
 
    /* Create width variable if needed */
    set_ncopts(0);
