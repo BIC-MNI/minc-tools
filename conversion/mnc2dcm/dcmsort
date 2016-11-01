@@ -15,6 +15,7 @@ use strict;
 use warnings "all";
 use Getopt::Long;
 use Pod::Usage;
+use File::Find;
 use File::Basename;
 use File::MimeInfo::Magic;
 use Cwd;
@@ -64,26 +65,9 @@ pod2usage(-verbose => 1) if $opt{help};
 pod2usage(-exitstatus => 0, -verbose => 2) if $opt{man};
 pod2usage(-verbose => 0) && exit if ($#ARGV < 0);
 
-# get the input file and fill er up.
+# get the input files
 @infiles = ();
-foreach (@ARGV){
-   my(@buf);
-
-   # if a file
-   if(-f $_){
-      push(@infiles, $_);
-      next;
-      }
-
-   # if a directory
-   if(-d $_){
-      @buf = split(/\n/, `find $_ -type f`);
-      push(@infiles, @buf);
-      next;
-      }
-
-   die "This is bad - $_ probably doesn't exist\n";
-   }
+find(sub { push(@infiles, $File::Find::name) if -f }, @ARGV);
 
 # default to current directory
 if($opt{'outdir'} eq ''){
@@ -162,7 +146,11 @@ foreach $infile (@infiles){
    my $ImageTime = $d->value('0008', '0033');
 
    $StudyTime =~ s/\ //g;
+   my $shortStudyTime = $StudyTime;
+   $shortStudyTime =~ s/\.\d{6}$//;
+
    $SeriesTime =~ s/\ //g;
+
 
    # Sequence, Protocol Name
    my $SequenceName = $d->value('0018', '0024');
@@ -176,10 +164,10 @@ foreach $infile (@infiles){
 
    # figure out ID and record info
    if($opt{'by_id'}){
-      $ID = join('-', $PatientID, $StudyDate, $StudyTime);
+      $ID = join('-', $PatientID, $StudyDate, $shortStudyTime);
       }
    else{
-      $ID = "$PatientID\_$PatientName-$StudyID";
+      $ID = "$PatientID\_$PatientName-$StudyID-$StudyDate-$shortStudyTime";
       }
 
    $ID =~ s/\^/\-/g;
@@ -190,26 +178,25 @@ foreach $infile (@infiles){
       "$SequenceName - $ProtocolName  -- $infile\n" if $opt{'verbose'};
 
    # generate hashkey
-   my($hashkey) = "$ID.$StudyDate.$StudyTime";
-   $hashkey =~ s/\.\d{6}$//;
+   #my($ID) = "$ID.$StudyDate.$shortStudyTime";
 
    # add file to the db
-   $db{$hashkey}{$SeriesNumber}{$AcquisitionNumber}{$ImageNumber} = $infile;
+   $db{$ID}{$SeriesNumber}{$AcquisitionNumber}{$ImageNumber} = $infile;
 
    # sanity check
-   if(defined($SeriesTime{"$hashkey:$SeriesNumber"}) &&
-      $SeriesTime{"$hashkey:$SeriesNumber"} != $SeriesTime){
+   if(defined($SeriesTime{"$ID:$SeriesNumber"}) &&
+      $SeriesTime{"$ID:$SeriesNumber"} != $SeriesTime){
       print "\n +++ ERROR! SeriesTime does not match ($infile)\n";
       # exit(1);
       }
 
-   $SeriesDate{"$hashkey:$SeriesNumber"} = $SeriesDate;
-   $SeriesTime{"$hashkey:$SeriesNumber"} = $SeriesTime;
-   $ProtocolName{"$hashkey:$SeriesNumber"} = $ProtocolName;
+   $SeriesDate{"$ID:$SeriesNumber"} = $SeriesDate;
+   $SeriesTime{"$ID:$SeriesNumber"} = $SeriesTime;
+   $ProtocolName{"$ID:$SeriesNumber"} = $ProtocolName;
 
-   #$AcquisitionTime{"$hashkey:$SeriesNumber:$AcquisitionNumber"} = $AcquisitionTime;
-   #$ImageTime{"$hashkey:$SeriesNumber:$AcquisitionNumber:$ImageNumber"} = $ImageTime;
-   #$SequenceName{"$hashkey:$SeriesNumber"} = $SequenceName;
+   #$AcquisitionTime{"$ID:$SeriesNumber:$AcquisitionNumber"} = $AcquisitionTime;
+   #$ImageTime{"$ID:$SeriesNumber:$AcquisitionNumber:$ImageNumber"} = $ImageTime;
+   #$SequenceName{"$ID:$SeriesNumber"} = $SequenceName;
 
    print '.';
    }
