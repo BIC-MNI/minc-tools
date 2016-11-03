@@ -40,6 +40,7 @@ $me = &basename($0);
    help => 0,
    move => 0,
    copy => 0,
+   link => 0,
    by_id => 0,
    rename_log => undef,
    outdir => '',
@@ -55,6 +56,7 @@ $me = &basename($0);
    'f|fake' => \$opt{'fake'},
    'move' => \$opt{'move'},
    'copy' => \$opt{'copy'},
+   'link' => \$opt{'link'},
    'by_id' => \$opt{'by_id'},
    'outdir=s' => \$opt{'outdir'},
    'rename_log=s' => \$opt{'rename_log'},
@@ -236,7 +238,7 @@ foreach $id (sort keys(%db)){
 
          print '(' . join(' ', @imgs) . ') ' if($#imgs > 0);
 
-         if($opt{'move'} || $opt{'copy'}){
+         if($opt{'move'} || $opt{'copy'} || $opt{'link'}){
             my($outfile, $outdir, $protocol);
 
             foreach $img (@imgs){
@@ -270,6 +272,11 @@ foreach $id (sort keys(%db)){
                   if($opt{'copy'}){
                      &do_cmd('cp', '-i', $infile, $outfile);
                      }
+
+                  if($opt{'link'}){
+                     &do_cmd('ln', '-i', '-s', $infile, $outfile);
+                     }
+
                   }
                }
             }
@@ -342,8 +349,8 @@ stage no real sanity checking of the input dicom files is done such as
 checking for missing images and mismatched headers.
 
 By default dcmsort will just output a listing of what is in the input
-dicom files, if you want it to really move or copy the files in question
-use the --move or --copy options.
+dicom files, if you want it to really move, copy, or link the files in question
+use the --move, --copy or --link options.
 
 Examples:
 
@@ -400,6 +407,10 @@ Move the input files
 =item B<--copy>
 
 Copy the input files
+
+=item B<--link>
+
+Symbolically link the input files
 
 =item B<--by_id>
 
