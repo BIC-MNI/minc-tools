@@ -1892,7 +1892,9 @@ add_philips_info(Acr_Group group_list)
 
         if (pms_element != NULL && acr_element_is_sequence(pms_element)) {
           pms_element = (Acr_Element) acr_get_element_data(pms_element);
-          group_list = flatten_sequences(pms_element, group_list);
+          if (pms_element != NULL) { /* If sequence isn't empty. */
+            group_list = flatten_sequences(pms_element, group_list);
+          }
         }
       }
     }
