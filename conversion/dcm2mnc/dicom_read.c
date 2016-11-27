@@ -2198,16 +2198,6 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
     get_string_field(gi_ptr->acq.comments,
                      group_list, ACR_Image_comments);
 
-    /* Siemens Numaris 4 specific!
-     */
-
-#if 0
-    gi_ptr->acq.MrProt = strdup(acr_find_string(group_list, EXT_MrProt_dump,
-                                                ""));
-#else
-    gi_ptr->acq.MrProt = strdup("");
-#endif
-
     string = (char*)acr_find_string(group_list, ACR_Acquisition_contrast, "");
     if (string[0] == 0) {
       /* In at least one case, Philips makes you look inside of a proprietary
@@ -2605,6 +2595,7 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
       
 #if OPENJPEG_FOUND
       decoded_data = dicom_opj_decompress(data, encoded_length);
+#endif
 #if JPEG_FOUND
       if (decoded_data == NULL) {
         decoded_data = dicom_jpeg_decompress(data, encoded_length);
@@ -2617,10 +2608,6 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
       else {
         data = decoded_data;
       }
-#else
-      printf("ERROR: JPEG functionality is missing.\n");
-      exit(-1);
-#endif
     }
     else {
       data = acr_get_element_data(element);

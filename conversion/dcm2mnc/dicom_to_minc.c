@@ -725,6 +725,7 @@ read_std_dicom(const char *filename, int max_group)
       printf("UNKNOWN DICOM TRANSFER SYNTAX: %s\n", str_ptr);
       exit(-1);
     }
+    acr_delete_group_list(group_list);
 
     // Read in group list
     status = acr_input_group_list(afp, &group_list, max_group);
@@ -2592,24 +2593,33 @@ old_mosaic_ordering(Acr_Group group_list)
     if (G.Debug >= HI_LOGGING) {
       printf("Scanner version %s\n", str_ver);
     }
-    str_tmp = strstr(str_ver, "syngo MR 2004A 4VA");
-    if (str_tmp != NULL && atoi(str_tmp + 18) >= 25) {
-      /* software version >= VA25 */
+
+    if ((str_tmp = strstr(str_ver, "syngo MR 2004A 4VA")) != NULL) {
+      if (atoi(str_tmp + 18) >= 25) {
+        /* software version >= VA25 */
+        is_old = 0;
+      }
+    }
+    else if ((str_tmp = strstr(str_ver, "syngo MR A")) != NULL) {
+      if (atoi(str_tmp + 10) >= 25) {
+        /* software version >= VA25 */
+        is_old = 0;
+      }
+    }
+    else if ((str_tmp = strstr(str_ver, "syngo MR B")) != NULL) {
+      if (atoi(str_tmp + 10) >= 11) {
+        /* software version >= VB11 */
+        is_old = 0;
+      }
+    }
+    else if ((str_tmp = strstr(str_ver, "syngo MR D")) != NULL) {
       is_old = 0;
     }
-    str_tmp = strstr(str_ver, "syngo MR A");
-    if (str_tmp != NULL && atoi(str_tmp + 10) >= 25) {
-      /* software version >= VA25 */
+    else if ((str_tmp = strstr(str_ver, "syngo MR E")) != NULL) {
       is_old = 0;
     }
-    str_tmp = strstr(str_ver, "syngo MR B");
-    if (str_tmp != NULL && atoi(str_tmp + 10) >= 11) {
-      /* software version >= VB11 */
-      is_old = 0;
-    }
-    str_tmp = strstr(str_ver, "syngo MR D");
-    if (str_tmp != NULL) {
-      is_old = 0;
+    else {
+      printf("WARNING: Unrecognized Siemens version string: '%s'\n", str_ver);
     }
     return is_old;
 }

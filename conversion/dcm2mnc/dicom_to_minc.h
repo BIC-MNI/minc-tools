@@ -243,7 +243,6 @@ typedef struct {
         string_t image_type;
         double  sar;
         string_t comments;
-        char *MrProt;           // Siemens Numaris 4 specific
         short dti;              /* TRUE if we think this is DTI */
     } acq;
     struct Pet_info {

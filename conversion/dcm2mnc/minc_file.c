@@ -1113,11 +1113,6 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         miattputstr(mincid, varid, MIcomments,
                     general_info->acq.comments);
 
-    // this is Siemens Numaris 4 specific!
-    if (strlen(general_info->acq.MrProt) > 0)
-        miattputstr(mincid, varid, "MrProt_dump", 
-                    general_info->acq.MrProt);
-    
     /* Add DTI stuff if needed */
     if (general_info->acq.dti) {
         int length = general_info->cur_size[TIME];
@@ -1141,7 +1136,8 @@ void setup_minc_variables(int mincid, General_Info *general_info,
 				direction=TIME variable)*/
 	double *tmp_ptr2 = calloc(length*num_elements,sizeof(double));
 	
-	ncattput(mincid, varid, "b_matrix", NC_DOUBLE, num_elements*length, tmp_ptr2); 
+	ncattput(mincid, varid, "b_matrix", NC_DOUBLE, num_elements*length, tmp_ptr2);
+        free(tmp_ptr2);
     }
 
     /** PET STUFF **/
