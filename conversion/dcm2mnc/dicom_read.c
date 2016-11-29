@@ -2474,6 +2474,68 @@ dicom_jpeg_decompress(unsigned char *jpg_buffer, int jpg_size)
 
 #if OPENJPEG_FOUND
 #include <openjpeg.h>
+#include <dlfcn.h>
+
+/** Function pointers we will load from the shared library. */
+static void OPJ_CALLCONV (*_opj_set_default_decoder_parameters)(opj_dparameters_t *);
+
+static opj_dinfo_t* OPJ_CALLCONV (*_opj_create_decompress)(OPJ_CODEC_FORMAT);
+static void OPJ_CALLCONV (*_opj_setup_decoder)(opj_dinfo_t *, opj_dparameters_t *);
+static opj_image_t* OPJ_CALLCONV (*_opj_decode)(opj_dinfo_t *, opj_cio_t *);
+static opj_cio_t* OPJ_CALLCONV (*_opj_cio_open)(opj_common_ptr, unsigned char *, int);
+static void OPJ_CALLCONV (*_opj_cio_close)(opj_cio_t *);
+static void OPJ_CALLCONV (*_opj_destroy_decompress)(opj_dinfo_t *);
+
+/** 
+ * This structure simplifies the code for loading the above function
+ * pointers.
+ */
+static struct {
+  void **func;
+  const char *name;
+} opj_table[] = {
+  { (void **) &_opj_set_default_decoder_parameters, "opj_set_default_decoder_parameters" },
+  { (void **) &_opj_create_decompress, "opj_create_decompress" },
+  { (void **) &_opj_setup_decoder, "opj_setup_decoder" },
+  { (void **) &_opj_decode, "opj_decode" },
+  { (void **) &_opj_cio_open, "opj_cio_open" },
+  { (void **) &_opj_cio_close, "opj_cio_close" },
+  { (void **) &_opj_destroy_decompress, "opj_destroy_decompress"},
+  { NULL, NULL }
+};
+
+/** Actually load the openjpeg library. */
+static void *
+openjpeg_load(void)
+{
+  void *handle;
+  char *error;
+  int i;
+
+  dlerror();                    /* clear errors */
+  handle = dlopen("libopenjpeg.so", RTLD_LAZY);
+
+  for (i = 0; opj_table[i].func != NULL; i++) {
+    *opj_table[i].func = dlsym(handle, opj_table[i].name);
+    if ((error = dlerror()) != NULL) {
+      printf("ERROR: %s\n", error);
+      dlclose(handle);
+      return NULL;
+    }
+  }
+  return handle;
+}
+
+/* Release the openjpeg library when finished. */
+static void
+openjpeg_close(void *handle)
+{
+  int i;
+  dlclose(handle);
+  for (i = 0; opj_table[i].func != NULL; i++) {
+    *opj_table[i].func = NULL;
+  }
+}
 
 unsigned char *
 dicom_opj_decompress(unsigned char *jpg_buffer, int jpg_size)
@@ -2486,19 +2548,24 @@ dicom_opj_decompress(unsigned char *jpg_buffer, int jpg_size)
   int dicom_len;
   int width, height, pixel_size;
   int i;
+  void *handle = openjpeg_load();
+  if (handle == NULL) {
+    printf("WARNING: OpenJPEG library not loaded.\n");
+    return NULL;
+  }
 
-  opj_set_default_decoder_parameters(&dparameters);
-  if ((dinfo = opj_create_decompress(CODEC_J2K)) == NULL) {
+  _opj_set_default_decoder_parameters(&dparameters);
+  if ((dinfo = _opj_create_decompress(CODEC_J2K)) == NULL) {
     printf("ERROR: OpenJPEG initialization failed.\n");
     return NULL;
   }
-  opj_setup_decoder(dinfo, &dparameters);
-  cio = opj_cio_open((opj_common_ptr) dinfo, jpg_buffer, jpg_size);
+  _opj_setup_decoder(dinfo, &dparameters);
+  cio = _opj_cio_open((opj_common_ptr) dinfo, jpg_buffer, jpg_size);
   if (cio == NULL) {
     printf("ERROR: OpenJPEG initialization failed.\n");
     return NULL;
   }
-  if ((image = opj_decode(dinfo, cio)) == NULL) {
+  if ((image = _opj_decode(dinfo, cio)) == NULL) {
     printf("ERROR: OpenJPEG decoder failed.\n");
     return NULL;
   }
@@ -2527,8 +2594,9 @@ dicom_opj_decompress(unsigned char *jpg_buffer, int jpg_size)
   default:
     break;
   }
-  opj_cio_close(cio);
-  opj_destroy_decompress(dinfo);
+  _opj_cio_close(cio);
+  _opj_destroy_decompress(dinfo);
+  openjpeg_close(handle);
   return dicom_ptr;
 }
 #endif
