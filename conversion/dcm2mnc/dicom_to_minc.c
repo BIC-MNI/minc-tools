@@ -2108,12 +2108,15 @@ read_numa4_dicom(const char *filename, int max_group)
       int ns = acr_find_int(group_list, ACR_Number_of_slices, -1);
       int nt = acr_find_int(group_list, ACR_Number_of_temporal_positions, -1);
       int ni = acr_find_int(group_list, ACR_Images_in_acquisition, -1);
+      int ne = acr_find_int(group_list, ACR_Echo_train_length, -1);
 
       if (ns < 0 && nt < 0 && ni > G.n_distinct_coordinates) {
         acr_insert_short(&group_list, ACR_Number_of_slices,
                          G.n_distinct_coordinates);
-        acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
-                         ni / G.n_distinct_coordinates);
+        if (ne < 1) {
+          acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
+                           ni / G.n_distinct_coordinates);
+        }
       }
     }
 
