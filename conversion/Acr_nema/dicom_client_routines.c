@@ -128,6 +128,9 @@
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
 ---------------------------------------------------------------------------- */
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,10 +144,17 @@
 #include <netdb.h>
 #include <signal.h>
 #include <sys/time.h>
+
 #ifdef sgi
 #include <bstring.h>
 #endif
+
 #include <string.h>
+
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
+
 #include <ctype.h>
 #include <time.h>
 #include <acr_nema.h>
@@ -439,7 +449,7 @@ static Dicom_client_data *get_client_data_ptr(Acr_File *afp)
       }
    }
    else if ((hp = gethostbyname(host)) != NULL) {
-      bcopy(hp->h_addr, (char *) &server.sin_addr, hp->h_length);
+      bcopy(hp->h_addr_list[0], (char *) &server.sin_addr, hp->h_length);
       server.sin_family = hp->h_addrtype;
    }
    else {
