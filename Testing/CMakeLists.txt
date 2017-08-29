@@ -18,11 +18,14 @@ GET_PROPERTY(mincresample_bin TARGET mincresample PROPERTY LOCATION)
 
 # Copy files used by minccalc-test and other tests.
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-zero.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-zero.mnc" COPYONLY)
-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-one.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-one.mnc" COPYONLY)
-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-two.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-two.mnc" COPYONLY)
-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-rnd.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-rnd.mnc" COPYONLY)
-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-4d.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-4d.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-one.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/test-one.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-two.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/test-two.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-rnd.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/test-rnd.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-4d.mnc"   "${CMAKE_CURRENT_BINARY_DIR}/test-4d.mnc" COPYONLY)
 
+
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-zero-byte.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-zero-byte.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-labels.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-labels.mnc" COPYONLY)
 
 IF(MINC_TEST_ENVIRONMENT)
     SET(MINCTOOLS_TEST_ENVIRONMENT1 ${MINC_TEST_ENVIRONMENT})
@@ -97,6 +100,16 @@ SET_TESTS_PROPERTIES(minccalc-test-1
 SET_TESTS_PROPERTIES(minccalc-test-2
     PROPERTIES ENVIRONMENT "MINCCALC_BIN=${minccalc_bin};MINCSTATS_BIN=${mincstats_bin}")
 
+    
+ADD_TEST12(minccalc-labels-test ${CMAKE_CURRENT_SOURCE_DIR}/minccalc-labels-test.sh)
+
+# Set the test's environment.
+SET_TESTS_PROPERTIES(minccalc-labels-test-1
+    PROPERTIES ENVIRONMENT "MINCCALC_BIN=${minccalc_bin};MINCSTATS_BIN=${mincstats_bin}")
+SET_TESTS_PROPERTIES(minccalc-labels-test-2
+    PROPERTIES ENVIRONMENT "MINCCALC_BIN=${minccalc_bin};MINCSTATS_BIN=${mincstats_bin}")
+    
+    
 # Add the test itself.
 ADD_TEST12(mincresample-test ${CMAKE_CURRENT_SOURCE_DIR}/mincresample-test.sh)
 
