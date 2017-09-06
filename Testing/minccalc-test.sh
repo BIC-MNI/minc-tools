@@ -1,14 +1,17 @@
 #! /bin/bash
-
-let errors=0;
+let errors=0
 
 if [[ ! -x $MINCCALC_BIN ]]; then
-    MINCCALC_BIN=`which minccalc`;
+    echo "set MINCCALC_BIN"
+    exit 1
 fi
 
 if [[ ! -x $MINCSTATS_BIN ]]; then
-    MINCSTATS_BIN=`which mincstats`;
+    echo "set MINCSTATS_BIN"
+    exit 1 
 fi
+
+echo "MINC_FORCE_V2=${MINC_FORCE_V2}"
 
 echo -n Case 1...
 # Test a simple addition case.

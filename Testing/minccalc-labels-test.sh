@@ -1,5 +1,5 @@
 #! /bin/bash
-
+set -x
 let errors=0;
 
 if [[ ! -x $MINCCALC_BIN ]]; then
@@ -9,6 +9,8 @@ fi
 if [[ ! -x $MINCSTATS_BIN ]]; then
     MINCSTATS_BIN=`which mincstats`;
 fi
+
+
 
 echo -n test label arithmetics
 # Test a simple addition case.
