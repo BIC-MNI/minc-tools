@@ -60,6 +60,7 @@ typedef enum {
    ACR_VR_LO,
    ACR_VR_LT,
    ACR_VR_OB,
+   ACR_VR_OF,                   /* other float */
    ACR_VR_OW,
    ACR_VR_PN,
    ACR_VR_SH,

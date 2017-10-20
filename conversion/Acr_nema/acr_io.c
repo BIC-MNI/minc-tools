@@ -1006,6 +1006,13 @@ Acr_Status acr_peek_at_next_element_id(Acr_File *afp,
 
 }
 
+static int is_sequence_tag(Acr_Short grpid, Acr_Short elid)
+{
+  extern int lookup_element_vr(int grpid, int elid);
+
+  return (lookup_element_vr(grpid, elid) == ACR_VR_SQ);
+}
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : acr_read_one_element
 @INPUT      : afp - Acr_File pointer from which to read
@@ -1028,6 +1035,7 @@ Acr_Status acr_peek_at_next_element_id(Acr_File *afp,
 @CREATED    : November 10, 1993 (Peter Neelin)
 @MODIFIED   : January 29, 1997 (P.N.)
 ---------------------------------------------------------------------------- */
+
 Acr_Status acr_read_one_element(Acr_File *afp,
                                 int *group_id, int *element_id,
                                 char vr_name[],
@@ -1087,11 +1095,12 @@ Acr_Status acr_read_one_element(Acr_File *afp,
    *data_length = (long)datalen;
 
    /* Check for sequence VR */
-   if (is_sequence_vr(vr_name) || grpid == ACR_ITEM_GROUP) {
+   if (is_sequence_vr(vr_name) || grpid == ACR_ITEM_GROUP ||
+       is_sequence_tag(grpid, elid)) {
       *data_pointer = NULL;
       return ACR_OK;
    }
-   
+
    /* Allocate space for the data and null-terminate it */
    size_allocated = *data_length + 1;
    *data_pointer = MALLOC(size_allocated);

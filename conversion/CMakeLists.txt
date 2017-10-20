@@ -28,7 +28,8 @@ ADD_LIBRARY(acr_nema STATIC
    Acr_nema/globals.c
    Acr_nema/group.c
    Acr_nema/message.c
-   Acr_nema/value_repr.c)
+   Acr_nema/value_repr.c
+   Acr_nema/dicom_tags.c)
 
 ADD_EXECUTABLE(dcm2mnc
    dcm2mnc/dcm2mnc.c

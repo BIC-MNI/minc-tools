@@ -129,6 +129,7 @@ static Acr_VR_Entry VR_table[] = {
    {ACR_VR_LO, "LO",        string_to_numeric,  return_the_string },
    {ACR_VR_LT, "LT",        string_to_numeric,  return_the_string },
    {ACR_VR_OB, "OB",        return_zero,        return_empty_string },
+   {ACR_VR_OF, "OF",        return_zero,        return_empty_string },
    {ACR_VR_OW, "OW",        return_zero,        return_empty_string },
    {ACR_VR_PN, "PN",        return_zero,        return_the_string },
    {ACR_VR_SH, "SH",        string_to_numeric,  return_the_string },
