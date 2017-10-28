@@ -524,13 +524,19 @@ static double guess_numeric_type(Acr_VR_Entry *vr_entry,
                                  Acr_byte_order byte_order,
                                  char *data, long data_length)
 {
+   int i, c;
    switch (data_length) {
    case ACR_SIZEOF_SHORT:
       return get_short(vr_entry, byte_order, data, data_length);
-      break;
    case ACR_SIZEOF_LONG:
-      return get_long(vr_entry, byte_order, data, data_length);
-      break;
+      /* Check whether all of the bytes are numeric character codes.
+       */
+      for (i = c = 0; i < data_length; i++)
+        if (data[i] < '0' || data[i] > '9')
+          c++;
+      if (c != 0)
+         return get_long(vr_entry, byte_order, data, data_length);
+      /* else fall through */
    default:
       return string_to_numeric(vr_entry, byte_order, data, data_length);
    }
