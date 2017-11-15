@@ -711,13 +711,13 @@ read_std_dicom(const char *filename, int max_group)
 
     if (!strcmp(str_ptr, ACR_IMPLICIT_VR_LITTLE_END_UID) ||
         !strcmp(str_ptr, ACR_EXPLICIT_VR_LITTLE_END_UID) ||
-        !strcmp(str_ptr, ACR_EXPLICIT_VR_BIG_END_UID)) {
+        !strcmp(str_ptr, ACR_EXPLICIT_VR_BIG_END_UID) ||
+        !strcmp(str_ptr, "1.2.840.10008.1.2.4.70")) { /* JPEG lossless */
       /* known transfer syntax */
     }
 #if OPENJPEG_FOUND || JPEG_FOUND
     else if (!strcmp(str_ptr, "1.2.840.10008.1.2.4.90") ||
-             !strcmp(str_ptr, "1.2.840.10008.1.2.4.91") ||
-             !strcmp(str_ptr, "1.2.840.10008.1.2.4.70")) {
+             !strcmp(str_ptr, "1.2.840.10008.1.2.4.91")) {
       /* jpeg */
     }
 #endif

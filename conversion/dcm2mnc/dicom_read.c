@@ -2601,6 +2601,7 @@ dicom_opj_decompress(unsigned char *jpg_buffer, int jpg_size)
 }
 #endif
 
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : get_dicom_image_data
    @INPUT      : group_list - input data
@@ -2628,6 +2629,7 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
     nc_type datatype;
     void *decoded_data = NULL;
     int encoded_length;
+    int dimX, dimY, bits, frames;
 
     /* Get the image information */
     bits_alloc = (int)acr_find_short(group_list, ACR_Bits_allocated, 0);
@@ -2661,8 +2663,13 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
       data = acr_get_element_data(element);
       encoded_length = acr_get_element_length(element);
       
+#include "jpg_0xc3.h"
+      decoded_data = decode_jpeg_sof_0xc3(data, encoded_length, 0,
+                                          &dimX, &dimY, &bits, &frames);
 #if OPENJPEG_FOUND
-      decoded_data = dicom_opj_decompress(data, encoded_length);
+      if (decoded_data == NULL) {
+        decoded_data = dicom_opj_decompress(data, encoded_length);
+      }
 #endif
 #if JPEG_FOUND
       if (decoded_data == NULL) {

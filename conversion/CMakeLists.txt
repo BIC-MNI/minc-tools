@@ -38,6 +38,7 @@ ADD_EXECUTABLE(dcm2mnc
    dcm2mnc/dicom_read.c
    dcm2mnc/minc_file.c
    dcm2mnc/progress.c
+   dcm2mnc/jpg_0xc3.c
    dcm2mnc/string_to_filename.c)
    
 TARGET_LINK_LIBRARIES(dcm2mnc acr_nema)
