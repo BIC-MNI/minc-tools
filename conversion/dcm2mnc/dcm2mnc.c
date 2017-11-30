@@ -460,7 +460,7 @@ main(int argc, char *argv[])
         else {
             /* read up to but not including pixel data
              */
-            group_list = read_numa4_dicom(cur_fname_ptr, ACR_IMAGE_GID - 1);
+            group_list = read_numa4_dicom(cur_fname_ptr, ACR_IMAGE_GID - 1, 0);
         } 
 
         if (group_list == NULL) {

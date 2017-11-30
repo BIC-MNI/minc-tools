@@ -388,7 +388,7 @@ dicom_to_minc(int num_files,
         /* Read the file
          */
         if (G.file_type == N4DCM) {
-            group_list = read_numa4_dicom(file_list[ifile], max_group);
+            group_list = read_numa4_dicom(file_list[ifile], max_group, num_files);
         } 
         else if (G.file_type == IMA) {
             group_list = siemens_to_dicom(file_list[ifile], max_group);
@@ -557,7 +557,7 @@ dicom_to_minc(int num_files,
         /* Read the file 
          */
         if (G.file_type == N4DCM) {
-            group_list = read_numa4_dicom(file_list[ifile], max_group);
+            group_list = read_numa4_dicom(file_list[ifile], max_group, num_files);
         }
         else if (G.file_type == IMA) {
             group_list = siemens_to_dicom(file_list[ifile], max_group);
@@ -2082,7 +2082,8 @@ add_shimadzu_info(Acr_Group group_list)
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : read_numa4_dicom
    @INPUT      : filename - read a standard DICOM file
-   max_group - maximum group number to read
+                 max_group - maximum group number to read
+                 num_files - number of files in series
    @OUTPUT     : (none)
    @RETURNS    : group list read in from file
    @DESCRIPTION: Routine to read in a group list from a file.
@@ -2094,7 +2095,7 @@ add_shimadzu_info(Acr_Group group_list)
    ---------------------------------------------------------------------------- */
 
 Acr_Group
-read_numa4_dicom(const char *filename, int max_group)
+read_numa4_dicom(const char *filename, int max_group, int num_files)
 {
     Acr_Group group_list;
     Acr_String str_ptr;
@@ -2110,7 +2111,7 @@ read_numa4_dicom(const char *filename, int max_group)
       int ni = acr_find_int(group_list, ACR_Images_in_acquisition, -1);
       int ne = acr_find_int(group_list, ACR_Echo_train_length, -1);
 
-      if (ns < 0 && nt < 0 && ni > G.n_distinct_coordinates) {
+      if (ns < 0 && nt < 0 && ni > G.n_distinct_coordinates && ni == num_files) {
         acr_insert_short(&group_list, ACR_Number_of_slices,
                          G.n_distinct_coordinates);
         if (ne <= 1) {
