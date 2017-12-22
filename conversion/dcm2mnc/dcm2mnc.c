@@ -460,7 +460,7 @@ main(int argc, char *argv[])
         else {
             /* read up to but not including pixel data
              */
-            group_list = read_numa4_dicom(cur_fname_ptr, ACR_IMAGE_GID - 1);
+            group_list = read_numa4_dicom(cur_fname_ptr, ACR_IMAGE_GID - 1, num_files);
         } 
 
         if (group_list == NULL) {
@@ -668,6 +668,9 @@ dcm_sort_function(const void *entry1, const void *entry2)
     int slice1 = (*file_info_list1)->slice_number;
     int slice2 = (*file_info_list2)->slice_number;
 
+    int type1 = (*file_info_list1)->image_type;
+    int type2 = (*file_info_list2)->image_type;
+
     int ncmp;
 
     if (session1 < session2) return -1;
@@ -678,6 +681,8 @@ dcm_sort_function(const void *entry1, const void *entry2)
                             (*file_info_list2)->protocol_name)) != 0) {
       return ncmp;
     }
+    else if (type1 < type2) return -1;
+    else if (type1 > type2) return 1;
     else if (frame1 < frame2) return -1;
     else if (frame1 > frame2) return 1;
     else if (image1 < image2) return -1;

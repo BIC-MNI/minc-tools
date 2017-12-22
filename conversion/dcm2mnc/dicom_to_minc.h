@@ -301,7 +301,7 @@ extern int dicom_to_minc(int num_files,
                          const char *file_prefix, 
                          const char **output_file_name);
 extern Acr_Group read_std_dicom(const char *filename, int max_group);
-extern Acr_Group read_numa4_dicom(const char *filename, int max_group);
+extern Acr_Group read_numa4_dicom(const char *filename, int max_group, int num_files);
 extern int search_list(int value, const int *list_ptr, int list_length, 
                        int start_index);
 extern Acr_Group copy_spi_to_acr(Acr_Group group_list);

@@ -1099,7 +1099,7 @@ get_identification_info(Acr_Group group_list,
     if (rec_num != NULL)
         *rec_num = 0;
     if (image_type != NULL)
-        *image_type = 0;
+        *image_type = acr_find_int(group_list, GEMS_Image_type, -1);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

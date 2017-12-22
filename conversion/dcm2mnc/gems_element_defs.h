@@ -51,6 +51,8 @@ GLOBAL_ELEMENT(GEMS_Images_in_series       , 0x0025, 0x1007, SL);
 GLOBAL_ELEMENT(GEMS_Rela_private_creator_id, 0x0021, 0x0010, SH);
 GLOBAL_ELEMENT(GEMS_Locations_in_acquisition, 0x0021, 0x104f, SS);
 
+GLOBAL_ELEMENT(GEMS_Image_type, 0x0043, 0x102f, SS);
+
 /* not yet fully defined */
 /* from http://www.gehealthcare.com/usen/interoperability/dicom/docs/5162373r1.pdf */
 #if 0
@@ -61,6 +63,7 @@ GLOBAL_ELEMENT(GEMS_DTI_diffusion_directions, 0x0019, 0x10e0, DS);
 GLOBAL_ELEMENT(GEMS_DTI_diffusion_directions, 0x0019, 0x10df, DS);
 GLOBAL_ELEMENT(GEMS_Concatenated_SAT, 0x0019, 0x10d9, DS);
 GLOBAL_ELEMENT(GEMS_Diffusion_direction, 0x0021, 0x105a, SL);
+
 /* this field apparently consists of 4 integers - the first gives the
  * b-value in DTI??
  */

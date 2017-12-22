@@ -388,7 +388,7 @@ dicom_to_minc(int num_files,
         /* Read the file
          */
         if (G.file_type == N4DCM) {
-            group_list = read_numa4_dicom(file_list[ifile], max_group);
+            group_list = read_numa4_dicom(file_list[ifile], max_group, num_files);
         } 
         else if (G.file_type == IMA) {
             group_list = siemens_to_dicom(file_list[ifile], max_group);
@@ -557,7 +557,7 @@ dicom_to_minc(int num_files,
         /* Read the file 
          */
         if (G.file_type == N4DCM) {
-            group_list = read_numa4_dicom(file_list[ifile], max_group);
+            group_list = read_numa4_dicom(file_list[ifile], max_group, num_files);
         }
         else if (G.file_type == IMA) {
             group_list = siemens_to_dicom(file_list[ifile], max_group);
@@ -2094,7 +2094,7 @@ add_shimadzu_info(Acr_Group group_list)
    ---------------------------------------------------------------------------- */
 
 Acr_Group
-read_numa4_dicom(const char *filename, int max_group)
+read_numa4_dicom(const char *filename, int max_group, int num_files)
 {
     Acr_Group group_list;
     Acr_String str_ptr;
@@ -2113,7 +2113,7 @@ read_numa4_dicom(const char *filename, int max_group)
       if (ns < 0 && nt < 0 && ni > G.n_distinct_coordinates) {
         acr_insert_short(&group_list, ACR_Number_of_slices,
                          G.n_distinct_coordinates);
-        if (ne <= 1) {
+        if (ne <= 1 && ni == num_files) {
           acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
                            ni / G.n_distinct_coordinates);
         }
