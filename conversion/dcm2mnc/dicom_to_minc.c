@@ -2098,6 +2098,9 @@ add_gems_slice_order(File_Info *fi_ptr, General_Info *gi_ptr)
         }
     }
 
+    /* Free the temporary array we used. */
+    free(sort_array);
+
     if (memcmp(sliceorder, ascending, sizeof(sliceorder)) == 0) {
         strncpy(gi_ptr->acq.slice_order, "ascending", STRING_T_LEN);
     }
