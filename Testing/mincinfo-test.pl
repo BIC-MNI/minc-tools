@@ -59,7 +59,7 @@ if ($r1 ne $c2result)
 print "Case 3 - test the dimnames option.\n";
 
 my $r1 = `$mincinfo_bin -dimnames test-zero.mnc`;
-if ($r1 ne "xspace yspace zspace \n")
+if ($r1 ne "zspace yspace xspace \n")
 {
     print "Case 3 failed, incorrect output format.\n";
     print "$r1\n";
@@ -177,7 +177,7 @@ print "Case 12 - test the minc_version option.\n";
 my $r1 = `$mincinfo_bin -minc_ver test-zero.mnc test-rnd.mnc`;
 my @arr = split(/^/m, $r1);
 chomp(@arr);
-if ($#arr != 5 || $arr[0] ne "Version: 2 (HDF5)" || $arr[0] ne $arr[3])
+if ($#arr != 5 || $arr[0] ne "Version: 1 (netCDF)" || $arr[0] ne $arr[3])
 {
     print "Case 12 failed, incorrect output values.\n";
     for (my $i = 0; $i <= $#arr; $i++) { print "/$arr[$i]/\n"; }
