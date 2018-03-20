@@ -51,6 +51,9 @@
 #cmakedefine HAVE_STRING_H 1 
 
 #cmakedefine OPENJPEG_FOUND 1
+#cmakedefine OPENJPEG1_FOUND 1
+#cmakedefine OPENJPEG2_FOUND 1
+
 #cmakedefine JPEG_FOUND 1
 
 #define H5Acreate_vers 2
