@@ -100,7 +100,6 @@ ENDIF(NOT APPLE)
 IF(OPENJPEG_FOUND)
 # determine the version
 IF(OPENJPEG_LIBRARY MATCHES "libopenjp2")
-    message("Found OpenJPEG version 2")
     SET(OPENJPEG1_FOUND OFF)
     SET(OPENJPEG2_FOUND ON)
 ELSE()
