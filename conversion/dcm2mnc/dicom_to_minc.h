@@ -286,6 +286,9 @@ typedef struct {
    double b_value;              /* DTI b-value, if present */
    double grad_direction[WORLD_NDIMS]; /* DTI gradient direction */
    double b_matrix[B_MATRIX_COUNT]; 
+   int tpos_id; /* Temporal position identifier (for GE slice order) */
+   double trigger_time; /* Trigger time (for GE slice order) */
+   double slice_location; /* Slice location (for GE slice order) */
 } File_Info;
 
 /* Structure for storing the actual image data */

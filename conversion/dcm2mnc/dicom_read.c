@@ -985,6 +985,12 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
      */
     fi_ptr->b_value = (double)acr_find_double(group_list, ACR_Diffusion_b_value, -1);
 
+    /* Get GEMS fMRI information if available.
+     */
+    fi_ptr->tpos_id = (int)acr_find_int(group_list, ACR_Temporal_position_identifier, -1);
+    fi_ptr->trigger_time = (double)acr_find_double(group_list, ACR_Trigger_time, -1.0);
+    fi_ptr->slice_location = (double)acr_find_double(group_list, ACR_Slice_location, 0.0);
+
     element = acr_find_group_element(group_list,
                                      ACR_Diffusion_gradient_orientation);
 

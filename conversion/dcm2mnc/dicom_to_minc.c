@@ -283,6 +283,7 @@ static void free_info(General_Info *gi_ptr, File_Info *fi_ptr,
                       int num_files);
 static int dimension_sort_function(const void *v1, const void *v2);
 static void sort_dimensions(General_Info *gi_ptr);
+static void add_gems_slice_order(File_Info *fi_ptr, General_Info *gi_ptr);
 static int prot_find_string(Acr_Element Protocol, const char *name,
                             char *value);
 static char *dump_protocol_text(Acr_Element Protocol);
@@ -500,6 +501,9 @@ dicom_to_minc(int num_files,
 
     /* Sort the dimensions */
     sort_dimensions(&gi);
+
+    /* Find the acquisition slice order if GEMS fMRI */
+    add_gems_slice_order(fi_ptr, &gi);
 
     /* Create the output file
      */
@@ -1995,6 +1999,122 @@ add_gems_info(Acr_Group group_list)
     return (group_list);
 }
 
+/* ----------------------------- MNI Header -----------------------------------
+   @NAME       : add_gems_slice_order()
+   @INPUT      : fi_tpr, gi_ptr
+   @OUTPUT     : gi_ptr
+   @RETURNS    : (nothing)
+   @DESCRIPTION: Routine to compute the slice order of GEMS fMRI data.
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
+   @CREATED    : 2017 (Jean-Philippe Coutu)
+   @MODIFIED   :
+   ---------------------------------------------------------------------------- */
+
+static void
+add_gems_slice_order(File_Info *fi_ptr, General_Info *gi_ptr)
+{
+    int ifile;
+    Sort_Element *sort_array;
+    /* Note: this currently hacks the Sort_Element datatype and the compar
+     * subroutine dimension_sort_function, both written for sort_dimensions().
+     * Those could be generalized to be applicable to both cases, or specific
+     * datatype and compar subroutines could be written for the slice order
+     */
+
+    /* Don't proceed if any Temporal position identifier is missing, or if any
+     * Trigger time is missing from first volume of series
+     */
+    int num_slices = 0;
+    for (ifile = 0; ifile < gi_ptr->num_files; ifile++) {
+        if (fi_ptr[ifile].tpos_id == -1) {
+            return;
+        }
+        else if (fi_ptr[ifile].tpos_id == 1) {
+            if (fi_ptr[ifile].trigger_time == -1) {
+                return;
+            }
+            num_slices++;
+        }
+    }
+
+    /* Set up the array for sorting trigger times. If two trigger times are the
+     * same, don't proceed, as this should not happen
+     */
+    sort_array = malloc(num_slices * sizeof(*sort_array));
+    CHKMEM(sort_array);
+
+    int i = 0, j;
+    for (ifile = 0; ifile < gi_ptr->num_files; ifile++) {
+        if (fi_ptr[ifile].tpos_id == 1) {
+            sort_array[i].original_index = i;
+            sort_array[i].value = fi_ptr[ifile].trigger_time;
+            sort_array[i].width = fi_ptr[ifile].slice_location;
+            for (j = 0; j < i; j++) {
+                if (fabs(sort_array[j].value - sort_array[i].value) < 0.0001) {
+                    return;
+                }
+            }
+            i++;
+        }
+    }
+
+    /* Sort the trigger times. */
+    qsort((void *) sort_array, (size_t) num_slices, sizeof(*sort_array),
+              dimension_sort_function);
+
+    /* Create the slice location array, from array sorted by trigger time. */
+    for (i=0; i < num_slices; i++) {
+        sort_array[i].original_index = i;
+        sort_array[i].value = sort_array[i].width;
+    }
+
+    /* Sort the slice locations, with sorted indices providing slice order. */
+    qsort((void *) sort_array, (size_t) num_slices, sizeof(*sort_array),
+              dimension_sort_function);
+
+    /* Now compare slice order with possible schemes and assign if match */
+    int sliceorder [num_slices];
+    int ascending [num_slices];
+    int descending [num_slices];
+    int interleaved [num_slices];
+    int interleaved_descending [num_slices];
+    int odd = 0, even = 1 + ((num_slices - 1) / 2);
+
+    for (i=0; i < num_slices; i++) {
+        sliceorder[i] = sort_array[i].original_index;
+        ascending[i] = i;
+        descending[i] = num_slices - i - 1;
+        if (i % 2) {
+            interleaved[i] = even;
+            interleaved_descending[num_slices-i-1] = even;
+            even++;
+        }
+        else {
+            interleaved[i] = odd;
+            interleaved_descending[num_slices-i-1] = odd;
+            odd++;
+        }
+    }
+
+    /* Free the temporary array we used. */
+    free(sort_array);
+
+    if (memcmp(sliceorder, ascending, sizeof(sliceorder)) == 0) {
+        strncpy(gi_ptr->acq.slice_order, "ascending", STRING_T_LEN);
+    }
+    else if (memcmp(sliceorder, descending, sizeof(sliceorder)) == 0) {
+        strncpy(gi_ptr->acq.slice_order, "descending", STRING_T_LEN);
+    }
+    else if (memcmp(sliceorder, interleaved, sizeof(sliceorder)) == 0) {
+        strncpy(gi_ptr->acq.slice_order, "interleaved", STRING_T_LEN);
+    }
+    else if (memcmp(sliceorder, interleaved_descending, sizeof(sliceorder)) == 0) {
+        strncpy(gi_ptr->acq.slice_order, "interleaved_descending", STRING_T_LEN);
+    }
+
+}
 
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : copy_spi_to_acr()
