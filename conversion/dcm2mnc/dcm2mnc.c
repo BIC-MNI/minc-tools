@@ -157,6 +157,10 @@ static int use_the_files(int num_files,
                          Data_Object_Info *data_info[],
                          const char *out_dir);
 static void usage(void);
+static int collect_files(char *directory,
+                          char ***file_list,
+                          int num_files,
+                          struct stat st);
 static void free_list(int num_files, 
                       char **file_list, 
                       Data_Object_Info **file_info_list);
@@ -349,46 +353,7 @@ main(int argc, char *argv[])
     for (ifile = 0 ; ifile < num_file_args; ifile++) {
 #if HAVE_DIRENT_H
         if (stat(argv[ifile + 1], &st) == 0 && S_ISDIR(st.st_mode)) {
-            DIR *dp;
-            struct dirent *np;
-            char *tmp_str;
-
-            if (G.Debug) {
-                printf("Expanding directory '%s'\n", argv[ifile + 1]);
-            }
-
-            length = strlen(argv[ifile + 1]);
-
-            dp = opendir(argv[ifile + 1]);
-            if (dp != NULL) {
-                while ((np = readdir(dp)) != NULL) {
-                    /* Ignore files with names beginning with '.' */
-                    if (np->d_name[0] == '.' && G.ignore_leading_dot)
-                        continue;
-                    /* Generate the full path to the file.
-                     */
-                    tmp_str = malloc(length + strlen(np->d_name) + 2);
-                    strcpy(tmp_str, argv[ifile + 1]);
-                    if (tmp_str[length-1] != '/') {
-                        tmp_str[length] = '/';
-                        tmp_str[length+1] = '\0';
-                    }
-                    strcat(&tmp_str[length], np->d_name);
-                    if (stat(tmp_str, &st) == 0 && S_ISREG(st.st_mode)) {
-                        file_list = realloc(file_list,
-                                            (num_files + 1) * sizeof(char *));
-                        file_list[num_files++] = tmp_str;
-                    }
-                    else {
-                        free(tmp_str);
-                    }
-                }
-                closedir(dp);
-            }
-            else {
-                fprintf(stderr, "Error opening directory '%s'\n", 
-                        argv[ifile + 1]);
-            }
+            num_files = collect_files(argv[ifile + 1], &file_list, num_files, st);
         }
         else {
             file_list = realloc(file_list, (num_files + 1) * sizeof(char *));
@@ -592,6 +557,60 @@ main(int argc, char *argv[])
 
     
     exit(exit_status);
+}
+
+static int
+collect_files(char *directory,
+          char ***file_list,
+          int num_files,
+          struct stat st)
+{
+    DIR *dp;
+    struct dirent *np;
+    char *tmp_str;
+    int length;
+
+    if (G.Debug) {
+        printf("Expanding directory '%s'\n", directory);
+    }
+
+    length = strlen(directory);
+
+    dp = opendir(directory);
+    if (dp != NULL) {
+        while ((np = readdir(dp)) != NULL) {
+            /* Ignore files with names beginning with '.' */
+            if (np->d_name[0] == '.' && G.ignore_leading_dot)
+                continue;
+            /* Generate the full path to the file.
+             */
+            tmp_str = malloc(length + strlen(np->d_name) + 2);
+            strcpy(tmp_str, directory);
+            if (tmp_str[length-1] != '/') {
+                tmp_str[length] = '/';
+                tmp_str[length+1] = '\0';
+            }
+            strcat(&tmp_str[length], np->d_name);
+            if (stat(tmp_str, &st) == 0 && S_ISDIR(st.st_mode)) {
+                num_files = collect_files(tmp_str, &file_list[0], num_files, st);
+                free(tmp_str);
+            }
+            else if (stat(tmp_str, &st) == 0 && S_ISREG(st.st_mode)) {
+                *file_list = realloc(*file_list,
+                                    (num_files + 1) * sizeof(char *));
+                file_list[0][num_files++] = tmp_str;
+            }
+            else {
+                free(tmp_str);
+            }
+        }
+        closedir(dp);
+    }
+    else {
+        fprintf(stderr, "Error opening directory '%s'\n", directory);
+    }
+
+    return num_files;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
