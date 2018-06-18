@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
    double   min, max;
    char    *ptr;
 
-   char    *axis_order[VIO_MAX_DIMENSIONS] = { MIzspace, MIyspace, MIxspace, MItime, MIvector_dimension };
+   char    *axis_order[VIO_MAX_DIMENSIONS] = { MIzspace, MIyspace, MIxspace, "", "" };
 
    /* Save time stamp and args */
    arg_string = time_stamp(argc, argv);
