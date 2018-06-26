@@ -1,24 +1,14 @@
 # Fix tools tests to avoid modifications to source directory (bert).
 # 
-# Get path to mincstats binary.
+# Get path to minctools binaries.
 GET_PROPERTY(mincstats_bin TARGET mincstats PROPERTY LOCATION)
-
-# Get path to mincinfo binary.
 GET_PROPERTY(mincinfo_bin TARGET mincinfo PROPERTY LOCATION)
-
-# Get path to mincextract binary
 GET_PROPERTY(mincextract_bin TARGET mincextract PROPERTY LOCATION)
-
-# Get path to mincaverage binary.
 GET_PROPERTY(mincaverage_bin TARGET mincaverage PROPERTY LOCATION)
-
-# Get path to mincaverage binary.
 GET_PROPERTY(mincresample_bin TARGET mincresample PROPERTY LOCATION)
-
-# Get path to minccalc binary.
 GET_PROPERTY(minccalc_bin TARGET minccalc PROPERTY LOCATION)
-
 GET_PROPERTY(mincreshape_bin TARGET mincreshape PROPERTY LOCATION)
+GET_PROPERTY(mincmorph_bin TARGET mincmorph PROPERTY LOCATION)
 
 # Copy files used by minccalc-test and other tests.
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-zero.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-zero.mnc" COPYONLY)
@@ -28,6 +18,23 @@ CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-rnd.mnc"  "${CMAKE_CURRENT_BINA
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-4d.mnc"   "${CMAKE_CURRENT_BINARY_DIR}/test-4d.mnc" COPYONLY)
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-zero-byte.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-zero-byte.mnc" COPYONLY)
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-labels.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-labels.mnc" COPYONLY)
+
+# Copy files used by mincmorph-test
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-erosion.mnc" "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-erosion.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-dilation.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-dilation.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-padded.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-padded.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-distance.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-distance.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-shell.mnc"   "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-shell.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-two-shells.mnc" "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-two-shells.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-mdilate.mnc" "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-mdilate.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-group.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-group.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-binarise.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-binarise.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-clamp.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-clamp.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-pad.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-pad.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-convolve.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-convolve.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-lowpass.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-lowpass.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-open.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-open.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-close.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-close.mnc" COPYONLY)
 
 IF(MINC_TEST_ENVIRONMENT)
     SET(MINCTOOLS_TEST_ENVIRONMENT ${MINC_TEST_ENVIRONMENT})
@@ -41,6 +48,7 @@ LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCINFO_BIN=${mincinfo_bin}")
 LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCRESAMPLE_BIN=${mincresample_bin}")
 LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCCALC_BIN=${minccalc_bin}")
 LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCRESHAPE_BIN=${mincreshape_bin}")
+LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCMORPH_BIN=${mincmorph_bin}")
 
 SET(MINCTOOLS_TEST_ENVIRONMENT1 ${MINCTOOLS_TEST_ENVIRONMENT})
 SET(MINCTOOLS_TEST_ENVIRONMENT2 ${MINCTOOLS_TEST_ENVIRONMENT})
@@ -86,5 +94,7 @@ ADD_TEST12(mincresample-test ${CMAKE_CURRENT_SOURCE_DIR}/mincresample-test.sh)
 # Get path to mincaverage binary.
 
 ADD_TEST12(mincreshape-test ${CMAKE_CURRENT_SOURCE_DIR}/mincreshape-test.pl)
+
+ADD_TEST12(mincmorph-test ${CMAKE_CURRENT_SOURCE_DIR}/mincmorph-test.sh)
 
 #TODO: add more tests?
