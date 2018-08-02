@@ -65,6 +65,8 @@ typedef struct {
    double   min;
    double   max;
 
+   double   maxdiff;    /* biggest absolute difference */
+
    double   mean;
    double   var;
    double   sd;
@@ -129,6 +131,7 @@ static int do_xcorr = FALSE;
 static int do_zscore = FALSE;
 static int do_vratio = FALSE;
 static int do_sim = FALSE;
+static int do_maxd = FALSE;
 
 ArgvInfo argTable[] = {
    {"-verbose", ARGV_CONSTANT, (char *)TRUE, (char *)&verbose,
@@ -172,6 +175,9 @@ ArgvInfo argTable[] = {
     "z-score (2 volumes)"},
    {"-similarity", ARGV_CONSTANT, (char *)TRUE, (char *)&do_sim,
     "Similarity measures for labeled volumes (2 volumes)"},
+   {"-maxdiff", ARGV_CONSTANT, (char *)TRUE, (char *)&do_maxd,
+    "Highest absolute voxel-wise difference"},
+
 //   {"-vr", ARGV_CONSTANT, (char *)TRUE, (char *)&do_vratio,
 //    "variance ratio (2 volumes)"},
 
@@ -203,11 +209,11 @@ int main(int argc, char *argv[]){
    infiles = &argv[1];
 
    /* check arguments */
-   if(!do_rmse && !do_xcorr && !do_zscore && !do_vratio && !do_ssq && !do_sim){
+   if(!do_rmse && !do_xcorr && !do_zscore && !do_vratio && !do_ssq && !do_sim && !do_maxd){
       do_all = TRUE;
       }
    if(do_all){
-      do_ssq = do_rmse = do_xcorr = do_zscore = do_vratio = TRUE;
+      do_ssq = do_rmse = do_xcorr = do_zscore = do_vratio = do_maxd = TRUE;
       }
 
    /* check for infiles */
@@ -254,6 +260,8 @@ int main(int argc, char *argv[]){
       ld.vd[i].ssum = 0;
       ld.vd[i].min = DBL_MAX;
       ld.vd[i].max = -DBL_MAX;
+
+      ld.vd[i].maxdiff = 0.0;
 
       ld.vd[i].sum_prd0 = 0;
       ld.vd[i].ssum_add0 = 0;
@@ -322,6 +330,10 @@ int main(int argc, char *argv[]){
      if(do_zscore){
        print_result("zscore:       ", ld.vd[i].zscore);
      }
+     if(do_maxd){
+       print_result("maxdiff:      ", ld.vd[i].maxdiff);
+     }
+    
      if (do_sim) {
        double nvox = ld.vd[i].nvox;
        int j, k;
@@ -484,7 +496,7 @@ void pass_0(void *caller_data, long num_voxels,
                ld->vd[i].ssum_dif0 += SQR2(valuei - value0);
                ld->vd[i].ssum_prd0 += SQR2(valuei * value0);
                }
-
+            
             /* min and max */
             if(valuei < ld->vd[i].min){
                ld->vd[i].min = valuei;
@@ -492,6 +504,12 @@ void pass_0(void *caller_data, long num_voxels,
             else if(valuei > ld->vd[i].max){
                ld->vd[i].max = valuei;
                }
+
+            /* max diff. */
+            if( fabs(valuei - value0) > ld->vd[i].maxdiff ){
+               ld->vd[i].maxdiff = fabs(valuei - value0);
+              }            
+
             }
          }
       }
@@ -635,5 +653,6 @@ void dump_stats(Loop_Data * ld){
       fprintf(stdout, " | [%02d] xcorr        %.10g\n", i, ld->vd[i].xcorr);
       fprintf(stdout, " | [%02d] zscore       %.10g\n", i, ld->vd[i].zscore);
       fprintf(stdout, " | [%02d] vratio       %.10g\n", i, ld->vd[i].vratio);
+      fprintf(stdout, " | [%02d] maxdiff      %.10g\n", i, ld->vd[i].maxdiff);
       }
    }
