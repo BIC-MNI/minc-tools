@@ -201,6 +201,20 @@ if ($n != 5)
     print "Histogram has the wrong number of bins: $n.\n";
     $errors++;
 }
+
+print "Case 10 - Test the variance option on volumes that are almost exactly 1.\n";
+
+my $r1 = `$mincstats_bin -stddev -variance test-ratio.mnc`;
+my @arr = split(/^/m, $r1);
+chomp(@arr);
+if ($arr[0] !~ /^Variance:\s+0$/ ||
+    $arr[1] !~ /^Stddev:\s+0$/)
+{
+    print "Case 10 failed, incorrect output value.\n";
+    print "$r1\n";
+    $errors++;
+}
+
 print "OK.\n" if $errors == 0;
 print
 exit $errors > 0;
