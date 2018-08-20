@@ -163,6 +163,9 @@ typedef struct {
    double   max;
    double   sum;
    double   sum2;
+   double   shift;
+   double   shiftsum;
+   double   shiftsum2;
    double   mu;                 /* current estimate of mean. */
    double   M2;                 /* for calculation of second moment */
    double   M3;                 /* for calculation of third moment */
@@ -945,6 +948,10 @@ int main(int argc, char *argv[])
       }
    }
 
+   /* Get a quick estimate of the mean to shift values
+        when calculating the variance */
+   stats->shift = (real_range[0] + real_range[1])/2.0;
+
    /* Do math */
    loop_options = create_loop_options();
    set_loop_first_input_mincid(loop_options, mincid);
@@ -975,9 +982,10 @@ int main(int argc, char *argv[])
          stats->vol_per = stats->vvoxels / nvoxels * 100;
          stats->hist_per = stats->hvoxels / nvoxels * 100;
          stats->mean = (stats->vvoxels > 0) ? stats->sum / stats->vvoxels : 0.0;
+         /* Calculate variance of the shifted values to avoid cancellation issues */
          stats->variance =
             (stats->vvoxels > 1) ?
-            (stats->sum2 - SQR(stats->sum) / stats->vvoxels) / (stats->vvoxels - 1)
+            (stats->shiftsum2 - SQR(stats->shiftsum) / stats->vvoxels) / (stats->vvoxels - 1)
             : 0.0;
          stats->stddev = sqrt(stats->variance);
          stats->volume = voxel_volume * stats->vvoxels;
@@ -1395,6 +1403,8 @@ void do_stats(double value, long index[], Stats_Info * stats)
       stats->vvoxels++;
       stats->sum += value;
       stats->sum2 += SQR(value);
+      stats->shiftsum += (value - stats->shift);
+      stats->shiftsum2 += SQR(value - stats->shift);
       if (Kurtosis || Skewness) {
         update_moments(stats, value);
       }
@@ -1920,6 +1930,9 @@ void init_stats(Stats_Info * stats, int hist_bins)
    stats->max = -DBL_MAX;
    stats->sum = 0.0;
    stats->sum2 = 0.0;
+   stats->shift = 0.0;
+   stats->shiftsum = 0.0;
+   stats->shiftsum2 =0.0;
    stats->mu = 0.0;
    stats->M2 = 0.0;
    stats->M3 = 0.0;

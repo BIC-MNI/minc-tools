@@ -22,6 +22,7 @@ CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-labels.mnc" "${CMAKE_CURRENT_BI
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-dimname.mnc"  "${CMAKE_CURRENT_BINARY_DIR}/test-dimname.mnc" COPYONLY)
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-float.mnc"   "${CMAKE_CURRENT_BINARY_DIR}/test-float.mnc" COPYONLY)
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-double.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-double.mnc" COPYONLY)
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-ratio.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-ratio.mnc" COPYONLY)
 
 # Copy files used by mincmorph-test
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mincmorph/test-erosion.mnc" "${CMAKE_CURRENT_BINARY_DIR}/mincmorph/test-erosion.mnc" COPYONLY)
