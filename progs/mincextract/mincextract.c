@@ -490,6 +490,13 @@ int main(int argc, char *argv[])
    }       /* End loop over slices */
 
    /* Clean up */
+   if (fclose(stdout) == EOF){
+       fprintf(stderr, "Error closing stdout.\n");
+       exit(EXIT_FAILURE);
+   }
+   if (fclose(stderr) == EOF){
+       exit(EXIT_FAILURE);
+   }
    (void) miclose(mincid);
    (void) miicv_free(icvid);
    free(data);
