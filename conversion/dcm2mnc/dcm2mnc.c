@@ -964,8 +964,8 @@ use_the_files(int num_files,
           }
 
           printf("INFO: Number of distinct coordinates: %d\n", n_elements );
-          if ( n_slices_nominal % n_elements == 0 &&
-               n_slices_nominal > n_elements ) {
+          if ( ( n_slices_nominal % n_elements == 0 &&
+                 n_slices_nominal > n_elements ) || n_slices_nominal < 0) {
             G.n_distinct_coordinates = n_elements;
           }
         }

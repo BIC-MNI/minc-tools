@@ -472,6 +472,9 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
         if (def_val == 0) {
           def_val = acr_find_int(group_list, mri_total_list[imri], 0);
         }
+        if (def_val == 0 && G.n_distinct_coordinates > 0) {
+          def_val = G.n_distinct_coordinates;
+        }
         gi_ptr->max_size[imri] = def_val;
       }
       else if (imri == TIME) {
