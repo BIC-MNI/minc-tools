@@ -1525,6 +1525,7 @@ get_coordinate_info(Acr_Group group_list,
     double slice_thickness, slice_spacing;
 
     double RowColVec[6]; /* row/column unit vectors in  dicom element */
+    char *modality_str;
 
     const Orientation orientation_list[WORLD_NDIMS] = {
         SAGITTAL, CORONAL, TRANSVERSE
@@ -1540,6 +1541,7 @@ get_coordinate_info(Acr_Group group_list,
     }
     found_coordinate = FALSE;
 
+    modality_str = acr_find_string(group_list, ACR_Modality, "");
 #if 0
     /* TODO: For now this appears to be necessary.  In cases I don't fully
      * understand, the Siemens Numaris 3 DICOM image orientation does not
@@ -1852,16 +1854,20 @@ get_coordinate_info(Acr_Group group_list,
                                                   ACR_Actual_frame_duration,
                                                   0.0) / MS_PER_SECOND;
 
-    /* PET scan times (bert)
-     */
-    frame_time = acr_find_double(group_list, ACR_Trigger_time, -1.0);
-    if (frame_time >= 0.0) {
+    /* Acquisition times may be accurate for PET. */
+    if (!strcmp(modality_str, ACR_MODALITY_PT) &&
+        (frame_time = acr_find_double(group_list, ACR_Acquisition_time, -1.0)) >= 0) {
+      frame_time = convert_time_to_seconds(frame_time);
+      /* Round to nearest millisecond */
+      frame_time = round(frame_time * 1000) / 1000;
+    }
+    else if ((frame_time = acr_find_double(group_list, ACR_Trigger_time, -1.0)) >= 0) {
       frame_time /= 1000.0;
       start_time = 0;
     }
     else {
-      start_time = (double)acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
-      frame_time = (double)acr_find_double(group_list, ACR_Actual_frame_duration, -1.0);
+      start_time = acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
+      frame_time = acr_find_double(group_list, ACR_Actual_frame_duration, -1.0);
       if (start_time > 0.0 && frame_time > 0.0) {
         if (G.adjust_frame_time) {
             double new_time = (start_time - frame_time / 2.0) / 1000.0;
