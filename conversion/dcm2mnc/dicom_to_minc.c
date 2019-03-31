@@ -1931,7 +1931,7 @@ add_gems_info(Acr_Group group_list)
          * rely on this proprietary nonsense.
          */
         tmp_str = acr_find_string(group_list, ACR_Modality, "");
-        if (strcmp(tmp_str, "PT") && G.Debug) {
+        if (strcmp(tmp_str, ACR_MODALITY_PT) && G.Debug) {
             printf("WARNING: GEMS data not found\n");
         }
     }
@@ -2247,13 +2247,19 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
     str_ptr = acr_find_string(group_list, ACR_Manufacturer, "");
     if (strstr(str_ptr, "SIEMENS") != NULL ||
         strstr(str_ptr, "Siemens") != NULL) {
-
+      /* At the moment we have no need of the manufacturer-specific
+       * information with Siemens PET, and there are minor bugs that
+       * cause bad behavior if the proprietary data is parsed.
+       */
+      char *modality_str = acr_find_string(group_list, ACR_Modality, "");
+      if (strcmp(modality_str, ACR_MODALITY_PT) != 0) {
         group_list = add_siemens_info(group_list);
 
         /* Now copy proprietary fields into the correct places in the 
          * standard groups.
          */
         group_list = copy_spi_to_acr(group_list);
+      }
     }
     else if (strstr(str_ptr, "Philips") != NULL) {
         group_list = add_philips_info(group_list);
