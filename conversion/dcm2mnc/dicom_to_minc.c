@@ -2594,55 +2594,49 @@ dimension_sort_function(const void *v1, const void *v2)
         return 0;
 }
 
+/* Find a particular entry in the ASCCONV section of the Siemens
+ * proprietary data. This is an ASCII dump of some prototocol
+ * information that is not normally found elsewhere.
+ */
 int
 prot_find_string(Acr_Element elem_ptr, const char *name_str, char *value)
 {
-    static const char prot_head[] = "### ASCCONV BEGIN ";
-    long cur_offset,tmp_offset;
-    long max_offset;
-    char *field_ptr;
-    int  ix1, ix2;
+  static const char header[] = "### ASCCONV BEGIN ";
+  char *cur_ptr = elem_ptr->data_pointer;
+  char *end_ptr = cur_ptr + elem_ptr->data_length - sizeof(header);
 
-    max_offset = elem_ptr->data_length - sizeof(prot_head);
-    tmp_offset = max_offset;
-
-    // Scan through the element containing the protocol, to find the 
-    // ASCII dump of the MrProt structure.
-    //
-    /*For some reason, some dicom files have 2 "ASCCONV BEGIN" tags, this screws up the search.
-     Keep the second one we find for now, don't know if this will always work for these dual-ASCCONV
-     files. IRL*/
-    
-    for (cur_offset = 0; cur_offset < max_offset; cur_offset++) {
-        if (!memcmp(elem_ptr->data_pointer + cur_offset,
-                    prot_head, sizeof(prot_head) - 1)) {
-            tmp_offset = cur_offset;
-        }
-    }
-
-    cur_offset = tmp_offset; /*set it to the last occurence of "ASCCONV BEGIN"*/   
-    
-    /* bail if we didn't find the protocol
-     */
-    if (cur_offset == max_offset) {
-        *value = 0;
-        return (0);
-    }
-
-    field_ptr = strstr(elem_ptr->data_pointer + cur_offset, name_str);
-    if (field_ptr != NULL) {
+  /* Scan through the element looking for the header.
+   */
+  for ( ; cur_ptr < end_ptr; cur_ptr++) {
+    if (*cur_ptr == '#' && !strncmp(header, cur_ptr, sizeof(header) - 1)) {
+      /* Found the header, so look for the specific string. We could
+       * speed this up if we parsed the whole thing in one go!
+       */
+      char *field_ptr = strstr(cur_ptr, name_str);
+      if (field_ptr != NULL) {
+        char *sp, *tp;
         sscanf(field_ptr, "%*s %*s %s", value);
-        ix1 = 0;
-        for (ix2 = 0; value[ix2] != '\0'; ix2++) {
-            if (value[ix2] != '"') {
-                value[ix1++] = value[ix2];
-            }
+        /* Remove any double-quote characters from the value. */
+        for (sp = tp = value; *sp != '\0'; sp++) {
+          if (*sp != '"') {
+            *tp++ = *sp;
+          }
         }
-    } 
-    else {
+        return (1);
+      }
+      else {
+        /* For compatability with the previous version of the function,
+         * return an explicit zero. This is needed partly because
+         * the code is so inconsistent about how/if it handles the results
+         * of this function.
+         */
         strcpy(value, "0");
+        return (0);
+      }
     }
-    return (1);
+  }
+  *value = 0;
+  return (0);
 }
 
 static char *
