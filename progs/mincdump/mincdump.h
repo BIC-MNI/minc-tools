@@ -15,7 +15,9 @@
 #define  Printf  (void) printf
 
 typedef int boolean;
+#if NC_VERSION_MAJOR==4 && NC_VERSION_MINOR>5
 enum {false=0, true=1};
+#endif
 
 struct ncdim {			/* dimension */
     char name[NC_MAX_NAME];
