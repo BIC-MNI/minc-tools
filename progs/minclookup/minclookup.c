@@ -223,6 +223,7 @@ static double lookup_min = DEFAULT_RANGE;
 static double lookup_max = DEFAULT_RANGE;
 static int discrete_lookup = FALSE;
 static char *null_value_string = NULL;
+static int is_labels = FALSE;
 #if MINC2
 static int minc2_format = FALSE;
 #endif /* MINC2 */
@@ -261,6 +262,8 @@ ArgvInfo argTable[] = {
        "Write signed integer data."},
    {"-unsigned", ARGV_CONSTANT, (char *) FALSE, (char *) &is_signed,
        "Write unsigned integer data (default if type specified)."},
+   {"-labels", ARGV_CONSTANT, (char *) TRUE, (char *) &is_labels,
+       "integer operation on labels"},
    {"-valid_range", ARGV_FLOAT, (char *) 2, (char *) valid_range,
        "Valid range for output data."},
    {"-gray", ARGV_CONSTANT, (char *) LU_GRAY, (char *) &lookup_type,
@@ -366,6 +369,7 @@ int main(int argc, char *argv[])
    loop_options = create_loop_options();
    set_loop_clobber(loop_options, clobber);
    set_loop_verbose(loop_options, verbose);
+   set_loop_labels(loop_options, is_labels || discrete_lookup);
 #if MINC2
    set_loop_v2format(loop_options, minc2_format);
 #endif /* MINC2 */
