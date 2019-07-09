@@ -142,10 +142,10 @@ main(int argc, char **argv)
     char *str_ptr;              /* Generic ASCIZ string pointer */
     int r;                      /* Result code. */
     static int vflag = 0;       /* Verbose flag (default is quiet) */
-    VIO_Real start[VIO_N_DIMENSIONS];
-    VIO_Real step[VIO_N_DIMENSIONS];
-    VIO_Real dircos[VIO_N_DIMENSIONS][VIO_N_DIMENSIONS];
-    int spatial_axes[VIO_N_DIMENSIONS];
+    VIO_Real start[MAX_NII_DIMS];
+    VIO_Real step[MAX_NII_DIMS];
+    VIO_Real dircos[MAX_NII_DIMS][VIO_N_DIMENSIONS];
+    int spatial_axes[MAX_NII_DIMS];
     VIO_General_transform transform;
     VIO_Transform *linear_transform;
 
@@ -693,6 +693,7 @@ main(int argc, char **argv)
     if (vflag) {
         fprintf(stdout, "done.\n");
     }
+    delete_general_transform(&transform);
 
     return (0);
 }

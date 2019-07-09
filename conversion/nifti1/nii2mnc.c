@@ -13,8 +13,8 @@
 
 /* Names of MINC spatial dimensions, in our "standard" world ordering.
  */
-static const char *spatial_names[VIO_N_DIMENSIONS] = {
-    MIxspace, MIyspace, MIzspace
+static const char *spatial_names[VIO_N_DIMENSIONS+2] = {
+    MIxspace, MIyspace, MIzspace, MItime, MIvector_dimension
 };
 
 static int usage(void)
@@ -242,11 +242,11 @@ main(int argc, char **argv)
     double nii_vrange[2];       /* NIfTI voxel range. */
     double mnc_time_step;
     double mnc_time_start;
-    int trivial_axes[VIO_N_DIMENSIONS] = {VIO_X, VIO_Y, VIO_Z};
-    int spatial_axes[VIO_N_DIMENSIONS] = {VIO_X, VIO_Y, VIO_Z};
-    double dim_starts[VIO_N_DIMENSIONS];
-    double dim_steps[VIO_N_DIMENSIONS];
-    double dim_dircos[VIO_N_DIMENSIONS][VIO_N_DIMENSIONS];
+    int trivial_axes[VIO_N_DIMENSIONS+2] = {VIO_X, VIO_Y, VIO_Z,3,4};// VF: HACK to make it work with 4D and 5D nifti files
+    int spatial_axes[VIO_N_DIMENSIONS+2] = {VIO_X, VIO_Y, VIO_Z,3,4};// 
+    double dim_starts[VIO_N_DIMENSIONS+2];
+    double dim_steps[VIO_N_DIMENSIONS+2];
+    double dim_dircos[VIO_N_DIMENSIONS+2][VIO_N_DIMENSIONS];
 
     /* Other stuff */
     char out_str[1024];         /* Big string for filename */
@@ -257,7 +257,7 @@ main(int argc, char **argv)
     static int qflag = 0;       /* Quiet flag (default is non-quiet) */
     static int rflag = 1;       /* Scan range flag */
     static int cflag = 0;       /* Clobber flag */
-    const char *mnc_ordered_dim_names[VIO_N_DIMENSIONS];
+    const char *mnc_ordered_dim_names[VIO_N_DIMENSIONS+2]; // VF: HACK to make it work with 4D and 5D nifti files
 
     static ArgvInfo argTable[] = {
         {"-byte", ARGV_CONSTANT, (char *) NC_BYTE, (char *)&mnc_vtype,
