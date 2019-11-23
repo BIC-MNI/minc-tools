@@ -499,6 +499,7 @@ main(int argc, char **argv)
     /* Initialize the NIfTI structure
      */
     nii_ptr = nifti_make_new_nim(NULL, nifti_datatype, FALSE);
+    nii_ptr->xyz_units = NIFTI_UNITS_MM ;
 
     my_nifti_set_description(nii_ptr, argc, argv);
 
@@ -533,6 +534,7 @@ main(int argc, char **argv)
       case 3:
         nii_ptr->nt = (int)length;
         nii_ptr->dt = nii_step[i];
+        nii_ptr->time_units = NIFTI_UNITS_SEC;
         break;
       case 4:
         nii_ptr->nu = (int)length;
@@ -556,7 +558,6 @@ main(int argc, char **argv)
         nii_ndims = 5;
     }
 #endif
-
 
     nii_ptr->ndim = nii_ndims; /* Total number of dimensions in file */
     nii_ptr->nifti_type = nifti_filetype;
