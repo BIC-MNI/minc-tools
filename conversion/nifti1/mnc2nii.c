@@ -321,8 +321,6 @@ main(int argc, char **argv)
         long tmp;
 
         ncdiminq(mnc_fd, mnc_dimids[i], name, &tmp);
-        printf("Dim:%d \"%s\"\n",i, name);
-
         if (!strcmp(name, MIxspace)) {
           spatial_axes[VIO_X] = i;
         }
