@@ -321,13 +321,15 @@ main(int argc, char **argv)
         long tmp;
 
         ncdiminq(mnc_fd, mnc_dimids[i], name, &tmp);
-        if (!strcmp(name, "xspace")) {
+        printf("Dim:%d \"%s\"\n",i, name);
+
+        if (!strcmp(name, MIxspace)) {
           spatial_axes[VIO_X] = i;
         }
-        else if (!strcmp(name, "yspace")) {
+        else if (!strcmp(name, MIyspace)) {
           spatial_axes[VIO_Y] = i;
         }
-        else if (!strcmp(name, "zspace")) {
+        else if (!strcmp(name, MIzspace)) {
           spatial_axes[VIO_Z] = i;
         }
     }
@@ -562,6 +564,7 @@ main(int argc, char **argv)
     nii_ptr->ndim = nii_ndims; /* Total number of dimensions in file */
     nii_ptr->nifti_type = nifti_filetype;
 
+
     for (i = 0; i < VIO_N_DIMENSIONS; i++) {
         int id = ncvarid(mnc_fd, mnc_spatial_names[i]);
         int tmp;
@@ -575,12 +578,12 @@ main(int argc, char **argv)
         start[axis] = 0.0;
         step[axis] = 1.0;
         dircos[axis][VIO_X] = dircos[axis][VIO_Y] = dircos[axis][VIO_Z] = 0.0;
-        dircos[axis][axis] = 1.0;
+        dircos[axis][i] = 1.0;
 
         miattget(mnc_fd, id, MIstart, NC_DOUBLE, 1, &start[axis], &tmp);
         miattget(mnc_fd, id, MIstep, NC_DOUBLE, 1, &step[axis], &tmp);
         miattget(mnc_fd, id, MIdirection_cosines, NC_DOUBLE, VIO_N_DIMENSIONS,
-                 &dircos[axis], &tmp);
+                 &dircos[axis], &tmp); /*will overwrite dircos if variable is there*/
         miattgetstr(mnc_fd, id, MIspacetype, sizeof(att_str), att_str);
         /* Try to set the S-transform code correctly.
          */
