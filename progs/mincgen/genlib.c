@@ -156,7 +156,7 @@ cstring(
 	return cp;
 
       case NC_DOUBLE:
-	cp = (char *) emalloc (20);
+	cp = (char *) emalloc (22);//VF: why 20?
 	doublep = (double *)valp;
 	(void) sprintf(cp,"%.16g",* (doublep + num));
 	return cp;
