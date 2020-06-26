@@ -25,13 +25,10 @@ fi
 
 infile="$1"
 
-# Create temporary directory
-tmpdir="/tmp/mincview-$$"
 
-# cleanup nicely
-trap "rm -rf $tmpdir" 0 1 2 3 13 15
+tmpdir=`mktemp -d`
+trap "rm -rf $tmpdir" EXIT QUIT HUP INT TERM
 
-mkdir -p $tmpdir
 
 # Get dimension names
 dims=( $(mincinfo -vardims image $infile ) )

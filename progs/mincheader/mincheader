@@ -65,15 +65,8 @@ die () {
     exit 1
 }
 
-# create tmpdir
-tmpdir=${TMPDIR:-/tmp}/mincedit.$$
-trap 'rm -rf "$tmpdir"' 0
-trap ' exit ' 1 2 15
-(umask 077 && mkdir $tmpdir) || {
-   echo "$0: Could not create temporary directory! Exiting." 1>&2
-   echo ""
-   exit 1
-   }
+tmpdir=`mktemp -d`
+trap "rm -rf $tmpdir" EXIT QUIT HUP INT TERM
 
 me=`basename $0`
 usage="Usage: $me [-data] <minc file>"
