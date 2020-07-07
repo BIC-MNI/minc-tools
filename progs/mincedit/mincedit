@@ -87,13 +87,9 @@ me=`basename $0`
 usage="Usage: $me <minc file> [<editor>]"
 
 # create tmpdir
-tmpdir=${TMPDIR:-/tmp}/mincedit.$$
-trap 'rm -rf "$tmpdir"' 0
-trap ' exit ' 0 1 2 3 15
-(umask 077 && mkdir $tmpdir) || {
-   echo "$me: Could not create temporary directory! Exiting." 1>&2 
-   exit 1
-   }
+tmpdir=`mktemp -d`
+trap "rm -rf $tmpdir" EXIT QUIT HUP INT TERM
+
 
 # check arguments
 case $# in

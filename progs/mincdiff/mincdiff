@@ -65,24 +65,16 @@ while test $# -gt 2; do
 done
 test $# -eq 2 || die "Usage: $0 [-header|-body] [-l] [diff options] <file1.mnc> <file2.mnc>"
 
-if test x$TMPDIR = x; then
-    for TMPDIR in /usr/tmp /var/tmp /tmp; do
-	test -d $TMPDIR && break;
-    done
-fi
-test -d $TMPDIR || die "TMPDIR $TMPDIR does not exist."
-
+tmpdir=`mktemp -d`
+trap "rm -rf $tmpdir" EXIT QUIT HUP INT TERM
 
 # Files created
-tmp1="$TMPDIR/mincdiff-$$-tmp1"
-tmp2="$TMPDIR/mincdiff-$$-tmp2"
-header1="$TMPDIR/mincdiff-$$-header1"
-header2="$TMPDIR/mincdiff-$$-header2"
-body1="$TMPDIR/mincdiff-$$-body1"
-body2="$TMPDIR/mincdiff-$$-body2"
-
-# Clean up upon exit
-trap "/bin/rm -f $tmp1 $tmp2 $header1 $header2 $body1 $body2" 0 1 2 15
+tmp1="$tmpdir/mincdiff-$$-tmp1"
+tmp2="$tmpdir/mincdiff-$$-tmp2"
+header1="$tmpdir/mincdiff-$$-header1"
+header2="$tmpdir/mincdiff-$$-header2"
+body1="$tmpdir/mincdiff-$$-body1"
+body2="$tmpdir/mincdiff-$$-body2"
 
 # Expand the files
 dumpfile1=`mincexpand $1 $tmp1 -name_only`
