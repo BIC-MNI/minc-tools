@@ -731,12 +731,12 @@ int trilinear_interpolant(Volume_Data *volume,
              f1r2 * v010 +
              f1f2 * v011) + volume->offset[slcind]);
    *result +=
-      f0 * (volume->scale[slcind+1] *
+      f0 * (volume->scale[slcnext] *
             (r1r2 * v100 +
              r1f2 * v101 +
              f1r2 * v110 +
-             f1f2 * v111) + volume->offset[slcind+1]);
-   
+             f1f2 * v111) + volume->offset[slcnext]);
+
    return TRUE;
 
 }
