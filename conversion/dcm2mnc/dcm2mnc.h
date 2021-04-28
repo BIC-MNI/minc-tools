@@ -205,10 +205,11 @@ typedef struct {
     int rec_num;
     int image_type;
     int num_echoes;
-    int echo_number;
+    double echo_number; // Use dbl in case we use the e. time as e. nmbr
     int num_dyn_scans;
     int dyn_scan_number;
     int global_image_number;
+    int pet_image_index;
     int num_slices_nominal;
     int slice_number;
     int acq_rows;
@@ -222,6 +223,7 @@ typedef struct {
     string_t protocol_name;
     string_t patient_name;
     string_t patient_id;
+    string_t image_type_string;
     double slice_location;
     int coord_found;
     double coord[WORLD_NDIMS];
@@ -256,6 +258,7 @@ struct globals {
     char * command_line;
     int opts;
     mosaic_seq_t mosaic_seq;
+    int num_partitions;
     int use_stdin;
     int use_filelist; 		/*use file with list of filenames   ilana*/
     char * filename_format;
@@ -263,6 +266,7 @@ struct globals {
     int prefer_coords;           /* In event of slice thickness conflict, 
                                     use the coordinate information rather 
                                     than the slice thickness or spacing. */
+    int ignore_empty_time;      /* Ignore empty timeframes */
     int min_acq_num;            /* Minimum acquisition number (0020,0012). */
     int max_acq_num;            /* Maximum acquisition number. */
     int min_img_num;            /* Minimum image number (0020,0013). */
@@ -274,6 +278,16 @@ struct globals {
     int ignore_leading_dot;     /* If TRUE, ignore files with leading '.' */
     int file_format;            /* Preferred MINC file format (1 or 2). */
     int n_distinct_coordinates; /* Total number of distinct coordinates. */
+    int n_slices_nominal;
+    int n_files;
+    int n_files_total;
+    int bogus_PET_index;
+    int bogus_frame_reference_time;
+    int bogus_trigger_time;
+    int bogus_temporal_id;
+    double sliceNormV1;
+    double sliceNormV2;
+    double sliceNormV3;
 };
 
 /* Values for options flags */

@@ -165,9 +165,14 @@ GLOBAL_ELEMENT(ACR_Window_width          , 0x0028, 0x1051, DS);
 GLOBAL_ELEMENT(ACR_Rescale_intercept     , 0x0028, 0x1052, DS);
 GLOBAL_ELEMENT(ACR_Rescale_slope         , 0x0028, 0x1053, DS);
 
+GLOBAL_ELEMENT(ACR_RealWorldValueMappingSequence      , 0x0040, 0x9096, SQ);
+GLOBAL_ELEMENT(ACR_RealWorldValue_Intercept           , 0x0040, 0x9224, FD);
+GLOBAL_ELEMENT(ACR_RealWorldValue_Slope               , 0x0040, 0x9225, FD);
 GLOBAL_ELEMENT(ACR_Detector_information_seq, 0x0054, 0x0022, SQ);
 GLOBAL_ELEMENT(ACR_Number_of_slices      , 0x0054, 0x0081, US);
 GLOBAL_ELEMENT(ACR_Number_of_time_slices , 0x0054, 0x0101, US);
+GLOBAL_ELEMENT(ACR_Number_of_Mosaic_Images , 0x0019, 0x100a, US);
+GLOBAL_ELEMENT(ACR_Number_of_Echoes      , 0x0019, 0x107e, SS);
 GLOBAL_ELEMENT(ACR_Units                 , 0x0054, 0x1001, CS);
 GLOBAL_ELEMENT(ACR_Frame_reference_time  , 0x0054, 0x1300, DS);
 GLOBAL_ELEMENT(ACR_PET_Image_index       , 0x0054, 0x1330, US);

@@ -80,7 +80,10 @@ GLOBAL_ELEMENT(PMS_Private_group_creator_2            , 0x2005, 0x0011, LO);
 GLOBAL_ELEMENT(PMS_Private_group_creator_3            , 0x2005, 0x0012, LO);
 GLOBAL_ELEMENT(PMS_Private_group_creator_4            , 0x2005, 0x0013, LO);
 GLOBAL_ELEMENT(PMS_Private_group_creator_5            , 0x2005, 0x0014, LO);
-GLOBAL_ELEMENT(PMS_Acquisition_parameters_seq, 0x2005, 0x140f, SQ);
+GLOBAL_ELEMENT(PMS_Private_Rescale_intercept          , 0x2005, 0x100d, FL);
+GLOBAL_ELEMENT(PMS_Private_Rescale_slope              , 0x2005, 0x100e, FL);
+GLOBAL_ELEMENT(PMS_Acquisition_parameters_seq         , 0x2005, 0x140f, SQ);
+GLOBAL_ELEMENT(PMS_MRImageLabelType                   , 0x2005, 0x1429, CS);
 
 /* These values indicate the index of the B-values and gradient
  * orientations within the scan, and the total number of B-values and

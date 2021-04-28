@@ -11,6 +11,11 @@ extern int dicom_read_position(Acr_Group group_list, int n, double position[3]);
 extern int dicom_read_orientation(Acr_Group group_list, double orientation[6]);
 extern int dicom_read_pixel_size(Acr_Group group_list, double pixel_size[2]);
 
+extern double get_slice_separation( Acr_Group group_list);
+extern void calculate_dircos(double RowColVec[6], double dircos[VOL_NDIMS][WORLD_NDIMS], int do_coordinate_conversion);
+extern double convert_seconds_to_time(double seconds);
+extern double convert_time_to_seconds(double dicomtime);
+
 extern void convert_dicom_coordinate(double coord[]);
 extern int is_numaris3(Acr_Group group_list);
 

@@ -897,7 +897,9 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         while (temp[i] != 0 && !isdigit(temp[i]))
           i++;
         if (temp[i] == 0) {
-          fprintf(stderr, "WARNING: Age was not numeric!!\n");
+            if (G.Debug >= HI_LOGGING) {
+                fprintf(stderr, "WARNING: Age was not numeric!!\n");
+            }
         }
         else {
           age = atof(&temp[i]);
@@ -910,7 +912,9 @@ void setup_minc_variables(int mincid, General_Info *general_info,
           else if (temp[i] == 'D') /* age is in days */
             age /= 365.0;
           else if (temp[i] != 'Y') { /* age is in years */
-            fprintf(stderr, "WARNING: Age units (%s) unknown.\n", temp);
+            if (G.Debug >= HI_LOGGING) {
+                fprintf(stderr, "WARNING: Age units (%s) unknown.\n", temp);
+            }
             age = 0.0;
           }
           miattputdbl(mincid, varid, MIage, age);

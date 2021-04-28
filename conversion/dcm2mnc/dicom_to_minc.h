@@ -104,6 +104,8 @@
 #define SECONDS_PER_DAY (HOURS_PER_DAY*SECONDS_PER_HOUR)
 #define MS_PER_SECOND 1000
 #define COORDINATE_EPSILON (0.005) /* bert- relaxed from 1.0e-5 */
+#define DICOM_SECONDS_PER_HOUR 10000.0
+#define DICOM_SECONDS_PER_MINUTE 100.0
 
 /* Default value for ncopts */
 #define NCOPTS_DEFAULT NC_VERBOSE
@@ -178,6 +180,9 @@ typedef struct {
     int num_slices_in_file;
     int sub_image_rows;
     int sub_image_columns;
+    int fix_multi_echo_fMRI;
+    int found_philips_MRLabels;
+    int missing_scale;
     struct {
         string_t name;
         string_t identification;
@@ -288,7 +293,9 @@ typedef struct {
    double b_matrix[B_MATRIX_COUNT]; 
    int tpos_id; /* Temporal position identifier (for GE slice order) */
    double trigger_time; /* Trigger time (for GE slice order) */
+   double RTIA_timer; /* RTIA timer (for GE slice order) */
    double slice_location; /* Slice location (for GE slice order) */
+   double rep_time; /* Repetition time (for time positions) */
 } File_Info;
 
 /* Structure for storing the actual image data */
@@ -304,7 +311,7 @@ extern int dicom_to_minc(int num_files,
                          const char *file_prefix, 
                          const char **output_file_name);
 extern Acr_Group read_std_dicom(const char *filename, int max_group);
-extern Acr_Group read_numa4_dicom(const char *filename, int max_group, int num_files);
+extern Acr_Group read_numa4_dicom(const char *filename, int max_group);
 extern int search_list(int value, const int *list_ptr, int list_length, 
                        int start_index);
 extern Acr_Group copy_spi_to_acr(Acr_Group group_list);
