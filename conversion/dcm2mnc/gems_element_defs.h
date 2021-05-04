@@ -45,13 +45,20 @@ GLOBAL_ELEMENT(GEMS_Fast_phases            , 0x0019, 0x10f2, SS);
 
 GLOBAL_ELEMENT(GEMS_Sers_private_creator_id, 0x0025, 0x0010, SH);
 GLOBAL_ELEMENT(GEMS_Images_in_series       , 0x0025, 0x1007, SL);
+GLOBAL_ELEMENT(GEMS_Number_of_acquisitions, 0x0025, 0x1011, SS);
 
 /* From GEHC-DICOM-Conformance_DV231_DOC1143469_Rev1.pdf */
 
 GLOBAL_ELEMENT(GEMS_Rela_private_creator_id, 0x0021, 0x0010, SH);
 GLOBAL_ELEMENT(GEMS_Locations_in_acquisition, 0x0021, 0x104f, SS);
+GLOBAL_ELEMENT(GEMS_RTIA_timer, 0x0021, 0x105e, DS);
 
-GLOBAL_ELEMENT(GEMS_Image_type, 0x0043, 0x102f, SS);
+/* From https://www3.gehealthcare.com/~/media/documents/us-global/products/interoperability/dicom/magnetic-resonance/gehc-dicom-conformance_dv231_doc1143469_rev1.pdf
+and comparing with actual data given the undefined 'User data #' fields */
+
+GLOBAL_ELEMENT(GEMS_Diffusion_direction_x, 0x0019, 0x10bb, DS);
+GLOBAL_ELEMENT(GEMS_Diffusion_direction_y, 0x0019, 0x10bc, DS);
+GLOBAL_ELEMENT(GEMS_Diffusion_direction_z, 0x0019, 0x10bd, DS);
 
 /* not yet fully defined */
 /* from http://www.gehealthcare.com/usen/interoperability/dicom/docs/5162373r1.pdf */
@@ -63,7 +70,6 @@ GLOBAL_ELEMENT(GEMS_DTI_diffusion_directions, 0x0019, 0x10e0, DS);
 GLOBAL_ELEMENT(GEMS_DTI_diffusion_directions, 0x0019, 0x10df, DS);
 GLOBAL_ELEMENT(GEMS_Concatenated_SAT, 0x0019, 0x10d9, DS);
 GLOBAL_ELEMENT(GEMS_Diffusion_direction, 0x0021, 0x105a, SL);
-
 /* this field apparently consists of 4 integers - the first gives the
  * b-value in DTI??
  */

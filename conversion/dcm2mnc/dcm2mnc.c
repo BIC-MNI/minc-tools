@@ -220,6 +220,12 @@ ArgvInfo argTable[] = {
      (char *) &G.mosaic_seq,
      "Mosaic sequence is in interleaved slice order."},
 
+     {"-num_partitions",
+     ARGV_INT,
+     (char *) NULL,
+     (char *) &G.num_partitions,
+     "Number of mosaic partitions to use if missing in the dicomtags."},
+
     {"-minmax", 
      ARGV_CONSTANT, 
      (char *)TRUE, 
@@ -249,6 +255,12 @@ ArgvInfo argTable[] = {
      (char *) TRUE,
      (char *) &G.prefer_coords,
      "Derive step value from coordinates rather than slice spacing."},
+
+    {"-ignoreemptytime",
+     ARGV_CONSTANT,
+     (char *) TRUE,
+     (char *) &G.ignore_empty_time,
+     "Ignore empty timeframes."},
 
     {"-abort",
      ARGV_CONSTANT,
@@ -411,6 +423,9 @@ main(int argc, char *argv[])
      */
 
     num_files_ok = 0;
+    int j;
+    int bogus_PET_index[num_files];
+    double count_reference_times, count_trigger_times = 0.0;
     for (ifile = 0; ifile < num_files; ifile++) {
         char *cur_fname_ptr = file_list[ifile];
 
@@ -425,7 +440,7 @@ main(int argc, char *argv[])
         else {
             /* read up to but not including pixel data
              */
-            group_list = read_numa4_dicom(cur_fname_ptr, ACR_IMAGE_GID - 1, num_files);
+            group_list = read_numa4_dicom(cur_fname_ptr, ACR_IMAGE_GID - 1);
         } 
 
         if (group_list == NULL) {
@@ -440,6 +455,28 @@ main(int argc, char *argv[])
             /* Copy it back to the (possibly earlier) position in the real
              * file list.
              */
+
+            /* Set this global variable if a time position ID is missing in a
+             * slice to make sure to use another dicomtag to identify the time
+             * position of all the frames
+             */
+            if ((int)acr_find_int(group_list, ACR_Temporal_position_identifier, -1) < 0) {
+                G.bogus_temporal_id = 1;
+            }
+
+            count_reference_times += (double)acr_find_double(group_list, ACR_Frame_reference_time, 0.0);
+            count_trigger_times += (double)acr_find_double(group_list, ACR_Trigger_time, 0.0);
+
+            bogus_PET_index[ifile] = acr_find_int(group_list, ACR_PET_Image_index, -1);
+            if (bogus_PET_index[ifile] >= 0) {
+                for (j = 0; j < ifile; j++) {
+                    if (bogus_PET_index[ifile] == bogus_PET_index[j]) {
+                        G.bogus_PET_index = 1;
+                        break;
+                    }
+                }
+            }
+
             file_list[num_files_ok] = cur_fname_ptr;
 
             /* allocate space for the current entry to file_info_list 
@@ -460,6 +497,14 @@ main(int argc, char *argv[])
             num_files_ok++;
         }
     } /* end of loop over files to get basic info */
+
+        if (!count_reference_times) {
+            G.bogus_frame_reference_time = 1;
+        }
+
+        if (!count_trigger_times) {
+            G.bogus_trigger_time = 1;
+        }
 
     if (G.Debug) {
         printf("Using %d files\n", num_files_ok);
@@ -509,7 +554,7 @@ main(int argc, char *argv[])
                 fname += strlen(fname) - 32;
             }
 
-            printf("%4d %-32.32s %14.6f %8d %8d %4d %4d %4d %4d %4d %4d %4d %4d %4d %5d %16s %16s\n",
+            printf("%4d %-32.32s %14.6f %8d %8d %4d %4f %4d %4d %4d %4d %4d %4d %4d %5d %16s %16s\n",
                    ifile,
                    fname,
                    info->study_id,
@@ -680,15 +725,21 @@ dcm_sort_function(const void *entry1, const void *entry2)
     int frame1 = (*file_info_list1)->dyn_scan_number;
     int frame2 = (*file_info_list2)->dyn_scan_number;
 
+    // echo index
+    double echo1 = (*file_info_list1)->echo_number;
+    double echo2 = (*file_info_list2)->echo_number;
+
     // image index
     int image1 = (*file_info_list1)->global_image_number;
     int image2 = (*file_info_list2)->global_image_number;
 
+    if (G.bogus_PET_index) {
+        image1 = (*file_info_list1)->pet_image_index;
+        image2 = (*file_info_list2)->pet_image_index;
+    }
+
     int slice1 = (*file_info_list1)->slice_number;
     int slice2 = (*file_info_list2)->slice_number;
-
-    int type1 = (*file_info_list1)->image_type;
-    int type2 = (*file_info_list2)->image_type;
 
     int ncmp;
 
@@ -700,10 +751,10 @@ dcm_sort_function(const void *entry1, const void *entry2)
                             (*file_info_list2)->protocol_name)) != 0) {
       return ncmp;
     }
-    else if (type1 < type2) return -1;
-    else if (type1 > type2) return 1;
     else if (frame1 < frame2) return -1;
     else if (frame1 > frame2) return 1;
+    else if (echo1  < echo2)  return -1;
+    else if (echo1  > echo2)  return 1;
     else if (image1 < image2) return -1;
     else if (image1 > image2) return 1;
     else if (slice1 < slice2) return -1;
@@ -741,12 +792,13 @@ use_the_files(int num_files,
     int cur_acq_id;
     int cur_rec_num;
     int cur_image_type;
-    int cur_echo_number;
+    double cur_echo_number;
     int cur_dyn_scan_number;
     string_t cur_patient_name;
     string_t cur_patient_id;
     string_t cur_sequence_name;
     string_t cur_protocol_name;
+    string_t cur_image_type_string;
     int exit_status;
     const char *output_file_name;
     string_t file_prefix;
@@ -755,6 +807,7 @@ use_the_files(int num_files,
     int trust_location;
     int trust_coord;
     int user_opts;              /* Options as set by user. We may override.. */
+    int number_of_series_converted = 0, failed = 0;
 
     if (out_dir != NULL) {    /* if an output directory name has been 
                                * provided on the command line
@@ -799,6 +852,7 @@ use_the_files(int num_files,
          */
 
         acq_num_files = 0;
+        G.n_files_total = num_files;
 
         for (ifile = 0; ifile < num_files; ifile++) {
 
@@ -829,6 +883,7 @@ use_the_files(int num_files,
                 strcpy(cur_patient_id, di_ptr[ifile]->patient_id);
                 strcpy(cur_sequence_name, di_ptr[ifile]->sequence_name);
                 strcpy(cur_protocol_name, di_ptr[ifile]->protocol_name);
+                strcpy(cur_image_type_string, di_ptr[ifile]->image_type_string);
 
                 used_file[ifile] = TRUE;
             }
@@ -844,6 +899,7 @@ use_the_files(int num_files,
                      (di_ptr[ifile]->dyn_scan_number == cur_dyn_scan_number ||
                       !G.splitDynScan) &&
                      !strcmp(cur_protocol_name, di_ptr[ifile]->protocol_name) &&
+                     !strcmp(cur_image_type_string, di_ptr[ifile]->image_type_string) &&
                      !strcmp(cur_patient_name, di_ptr[ifile]->patient_name) &&
                      !strcmp(cur_patient_id, di_ptr[ifile]->patient_id)) {
 
@@ -914,6 +970,7 @@ use_the_files(int num_files,
 
         /* See how many coordinate points there are. */
         G.n_distinct_coordinates = 0;
+        G.n_slices_nominal = 0;
         if (trust_coord) {
 #define N_HASH 1013
           struct coord_set {
@@ -964,9 +1021,12 @@ use_the_files(int num_files,
           }
 
           printf("INFO: Number of distinct coordinates: %d\n", n_elements );
-          if ( ( n_slices_nominal % n_elements == 0 &&
-                 n_slices_nominal > n_elements ) || n_slices_nominal < 0) {
+          if (n_elements > 1) {
             G.n_distinct_coordinates = n_elements;
+            if ( n_slices_nominal % G.n_distinct_coordinates == 0 &&
+                 n_slices_nominal > G.n_distinct_coordinates) {
+                G.n_slices_nominal = 1;
+            }
           }
         }
 
@@ -1020,54 +1080,31 @@ use_the_files(int num_files,
             }
         }
 
-        if (G.min_acq_num == G.max_acq_num) {
-          printf("WARNING: Acquisition number is not informative.\n");
+        if (G.Debug >= HI_LOGGING) {
+            if (G.min_acq_num != G.max_acq_num) {
+                int ix = acq_file_index[0];
+                if (G.max_acq_num == di_ptr[ix]->num_dyn_scans) {
+                    /* Acquisition number is per scan (e.g. time).
+                    */
+                    printf("WARNING: Acquisition number is per scan.\n");
+                }
+                else if (G.max_acq_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
+                    printf("WARNING: Acquisition number is global.\n");
+                }
+            }
+            if (G.min_img_num != G.max_img_num) {
+                int ix = acq_file_index[0];
+                if (G.max_img_num == di_ptr[ix]->num_slices_nominal) {
+                    printf("WARNING: Image number is per slice.\n");
+                }
+                else if (G.max_img_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
+                    printf("WARNING: Image number is global.\n");
+                }
+            }
+            if (G.min_img_num < 0 || G.min_img_num > 1) {
+                printf("WARNING: Minimum image number is %d\n", G.min_img_num);
+            }
         }
-        else {
-          int ix = acq_file_index[0];
-          if (G.max_acq_num == di_ptr[ix]->num_dyn_scans) {
-            /* Acquisition number is per scan (e.g. time).
-             */
-            printf("WARNING: Acquisition number is per scan.\n");
-          }
-          else if (G.max_acq_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
-            printf("WARNING: Acquisition number is global.\n");
-          }
-          else {
-            printf("WARNING: Acquisition number is a mystery.\n");
-          }
-              
-        }
-
-        if (G.min_img_num == G.max_img_num) {
-          /* Acquisition number is uninformative.
-           */
-          printf("WARNING: Image number is not informative.\n");
-        }
-        else {
-          int ix = acq_file_index[0];
-
-          if (G.max_img_num == di_ptr[ix]->num_slices_nominal) {
-            printf("WARNING: Image number is per slice.\n");
-          }
-          else if (G.max_img_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
-            printf("WARNING: Image number is global.\n");
-          }
-          else {
-            printf("WARNING: Image number is a mystery.\n");
-          }
-        }
-
-        if (G.min_acq_num < 0 || G.min_acq_num > 1) {
-          printf("WARNING: Minimum acquisition number is %d\n", G.min_acq_num);
-        }
-
-        if (G.min_img_num < 0 || G.min_img_num > 1) {
-          printf("WARNING: Minimum image number is %d\n", G.min_img_num);
-        }
-
-        if (G.min_tpos_id == G.max_tpos_id || G.min_tpos_id > 1)
-          printf("WARNING: Temporal position identifier is useless.\n");
         
         printf("INFO: Acquisition number ranges from %d to %d\n", G.min_acq_num, G.max_acq_num);
         printf("INFO: Image number ranges from %d to %d\n", G.min_img_num, G.max_img_num);
@@ -1075,13 +1112,15 @@ use_the_files(int num_files,
 
         /* Create minc file
          */
+        G.n_files = acq_num_files;
         exit_status = dicom_to_minc(acq_num_files, 
                                     acq_file_list, 
                                     NULL,
                                     G.clobber, 
                                     file_prefix, 
                                     &output_file_name);
-				    
+        number_of_series_converted++;
+        failed += exit_status;
         G.opts = user_opts;
        
         if (exit_status != EXIT_SUCCESS) 
@@ -1126,7 +1165,13 @@ use_the_files(int num_files,
     free(acq_file_list);
     free(acq_file_index);
     free(used_file);
-
+    /* Non-zero exit only if ALL DICOM series failed conversion */
+    if (number_of_series_converted > failed) {
+        exit_status = EXIT_SUCCESS;
+        if (G.Debug && failed > 0) {
+            printf("WARNING: %d out of %d DICOM series failed conversion.\n", failed, number_of_series_converted);
+        }
+    }
     return exit_status;
 }
 

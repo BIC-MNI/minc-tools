@@ -81,6 +81,8 @@ GLOBAL_ELEMENT(SPI_Saturation_regions                 , 0x0019, 0x1290, IS);
 GLOBAL_ELEMENT(SPI_Magnetic_field_strength            , 0x0019, 0x1412, DS);
 GLOBAL_ELEMENT(SPI_Base_raw_matrix_size               , 0x0019, 0x14d4, IS);
 
+GLOBAL_ELEMENT(SPI_Private_creator_0021               , 0x0021, 0x0011, LO);
+GLOBAL_ELEMENT(SPI_ICE_Dims                           , 0x0021, 0x1106, LO);
 GLOBAL_ELEMENT(SPI_Field_of_view                      , 0x0021, 0x1120, DS);
 GLOBAL_ELEMENT(SPI_Image_magnification_factor         , 0x0021, 0x1122, DS);
 GLOBAL_ELEMENT(SPI_View_direction                     , 0x0021, 0x1130, CS);
@@ -104,6 +106,7 @@ GLOBAL_ELEMENT(SPI_Number_of_slices_cur               , 0x0021, 0x1341, IS);
 GLOBAL_ELEMENT(SPI_Current_slice_number               , 0x0021, 0x1342, IS);
 GLOBAL_ELEMENT(SPI_Order_of_slices                    , 0x0021, 0x134f, IS);
 GLOBAL_ELEMENT(SPI_Number_of_echoes                   , 0x0021, 0x1370, IS);
+GLOBAL_ELEMENT(SPI_Locations_in_Acquisitions          , 0x0021, 0x104f, SS);
 
 /* These are the two large fields in Siemens files in which many parameters
  * are dumped. The ASCCONV block is located in the second (0029, 1020), but

@@ -212,8 +212,9 @@
 
 #define IMAGE_NDIMS 2
 
-static double convert_time_to_seconds(double dicom_time);
-static void get_intensity_info(Acr_Group group_list, File_Info *file_info);
+static void get_intensity_info(Acr_Group group_list,
+                               File_Info *file_info,
+                                General_Info *general_info);
 static void get_coordinate_info(Acr_Group group_list, File_Info *file_info,
                                 Orientation *orientation,
                                 World_Index volume_to_world[VOL_NDIMS],
@@ -230,7 +231,7 @@ static void get_identification_info(Acr_Group group_list,
                                     int *rec_num, int *image_type);
 
 static void get_pet_info(Acr_Group group_list, struct Pet_info *pet_ptr);
-
+static void do_gradient_transformation(Acr_Group group_list, double bvecs_new[3]);
 static int irnd(double x)
 {
     if (x > 0.0) {
@@ -436,7 +437,6 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
   Acr_Element_Id mri_total_list[MRI_NDIMS];
   int imri;
   int index;
-
   // Initialize array for MRI dimension lengths
   //
   mri_total_list[SLICE] = ACR_Images_in_acquisition;
@@ -472,8 +472,15 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
         if (def_val == 0) {
           def_val = acr_find_int(group_list, mri_total_list[imri], 0);
         }
-        if (def_val == 0 && G.n_distinct_coordinates > 0) {
-          def_val = G.n_distinct_coordinates;
+
+        if ((def_val == 0 && G.n_distinct_coordinates > 1 && gi_ptr->num_files % G.n_distinct_coordinates == 0)
+        || (def_val * acr_find_int(group_list, ACR_Number_of_temporal_positions, -1) != gi_ptr->num_files && def_val > 0
+        && G.n_distinct_coordinates > 1 && acr_find_int(group_list, ACR_Number_of_temporal_positions, -1) > 0) ) {
+            def_val = G.n_distinct_coordinates;
+        }
+        
+        if (def_val == 0) {
+          def_val = gi_ptr->num_files;
         }
         gi_ptr->max_size[imri] = def_val;
       }
@@ -489,7 +496,7 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
         /* Some Philips scans DO NOT PROPERLY SET the (0020,0105) value.
          * Here's a first try at a workaround:
          */
-        if (def_val == 1 &&
+        if ((def_val == 1 || gi_ptr->num_files % (2 * def_val * gi_ptr->max_size[SLICE]) == 0) &&
             gi_ptr->num_files % gi_ptr->max_size[SLICE] == 0 &&
             gi_ptr->num_files > gi_ptr->max_size[SLICE]) {
           /* Extra paranoia - only ignore this if the manufacturer
@@ -524,9 +531,14 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
           def_val = acr_find_int(group_list,
                                  mri_total_list[imri],
                                  def_val);
+          if (G.n_distinct_coordinates > 0 && gi_ptr->num_files > 1 && 
+              def_val > gi_ptr->num_files/G.n_distinct_coordinates) {
+              def_val = -1;
+          }
         }
 
-        if (def_val < 0) {
+        if (def_val < 0 || ( def_val == 0 && G.file_type == N4DCM ) ||
+        (def_val == 1 && !strcmp(acr_find_string(group_list, ACR_Modality, ""), "PT")) ) {
           /* As our last resort, we try to determine this by seeing how many
              files we have, and dividing by the number of slices.
           */
@@ -538,14 +550,28 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
             }
           }
         }
-
+        else if (gi_ptr->found_philips_MRLabels == 1) {
+              def_val *= 2;
+        }
         gi_ptr->max_size[imri] = def_val;
-
       }
       else {
-        gi_ptr->max_size[imri] = acr_find_int(group_list,
+        int number_of_echoes = acr_find_int(group_list, ACR_Number_of_Echoes, -1);
+        int locations_in_acquisitions = acr_find_int(group_list, SPI_Locations_in_Acquisitions, -1);
+        int image_count = acr_find_int(group_list, GEMS_Images_in_series, -1);
+
+        if (number_of_echoes > 1 && locations_in_acquisitions > 0 && image_count > 1
+            && ( (G.n_files_total/number_of_echoes) == gi_ptr->num_files
+            || (image_count/number_of_echoes) == gi_ptr->num_files )
+            && imri == ECHO && gi_ptr->max_size[imri] < number_of_echoes) {
+                gi_ptr->max_size[imri] = number_of_echoes;
+                gi_ptr->fix_multi_echo_fMRI = 1;
+        }
+        else {
+                gi_ptr->max_size[imri] = acr_find_int(group_list,
                                               mri_total_list[imri],
                                               def_val);
+        }
       }
     }
     else {
@@ -571,8 +597,9 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
        */
       int number_of_3D_partitions =
         acr_find_int(group_list, SPI_Number_of_3D_raw_partitions_nominal, 1);
-      if (number_of_3D_partitions < 1) {
-        number_of_3D_partitions = 1;
+      if (number_of_3D_partitions < 1 || (G.n_distinct_coordinates == gi_ptr->num_files
+      && number_of_3D_partitions > 1) ){
+        number_of_3D_partitions = gi_ptr->num_files;
       }
       /* Do this only if there is a plausible reason to think we need it.
        */
@@ -648,57 +675,95 @@ get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_In
 
       /* Use alternative index fields for time, if needed.
        */
-      if (imri == TIME && tmp_index < 0) {
-        int range_check = 1;
-        /* Only use the acquisition number if we've determined it is
-         * not constant.
-         */
-        if (G.min_acq_num != G.max_acq_num) {
-          tmp_index = acr_find_int(group_list, ACR_Acquisition, -1);
-          /* If the acquisition number corresponds to the time axis,
-           * we DON'T want to perform the range check below.
+      if (imri == TIME) {
+
+          /* Force the use of another dicomtag if ACR_Temporal_position_identifier
+           * is missing in a subset of slices
            */
-          if (G.max_acq_num == gi_ptr->max_size[TIME] ||
-              G.max_acq_num == gi_ptr->max_size[TIME] - 1) {
-            range_check = 0;
+          if (G.bogus_temporal_id && !G.bogus_PET_index) {
+              tmp_index = -1;
           }
-        }
 
-        if (tmp_index < 0) {
-          /* Yet another alternative field from some PET scans.
-           * Generally needs to be range-checked.
+          if (tmp_index < 0) {
+
+              if (G.bogus_PET_index) {
+                  if (!G.bogus_frame_reference_time) {
+                      tmp_index = (int)acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
+                  }
+                  else {
+                      tmp_index = (int)acr_find_double(group_list, ACR_Acquisition_time, -1.0);
+                  }
+              }
+
+          int range_check = 1;
+          /* Only use the acquisition number if we've determined it is
+           * not constant.
            */
-          tmp_index = acr_find_int(group_list, ACR_PET_Image_index, -1);
-        }
+          if (G.min_acq_num != G.max_acq_num) {
+            tmp_index = acr_find_int(group_list, ACR_Acquisition, -1);
+            /* If the acquisition number corresponds to the time axis,
+             * we DON'T want to perform the range check below.
+             */
+            if (G.max_acq_num == gi_ptr->max_size[TIME] ||
+                G.max_acq_num == gi_ptr->max_size[TIME] - 1 ||
+                G.max_acq_num - G.min_acq_num == gi_ptr->max_size[TIME]-1) {
+              range_check = 0;
+            }
+          }
 
-        if (tmp_index < 0) {
-          /* If all else fails, try this. Will almost certainly need
-           * to be range-checked.
+          if (tmp_index < 0 && !G.bogus_PET_index) {
+            /* Yet another alternative field from some PET scans.
+             * Generally needs to be range-checked.
+             */
+            tmp_index = acr_find_int(group_list, ACR_PET_Image_index, -1);
+          }
+
+          if (tmp_index < 0) {
+            /* If all else fails, try this. Will almost certainly need
+             * to be range-checked.
+             */
+            tmp_index = acr_find_int(group_list, ACR_Image, -1);
+            /* With multiple echos, ACR_Image can go higher than the number of slices
+             * In these cases we have to range_check by number of slices x number of echos
+             */
+            range_check = gi_ptr->max_size[ECHO];
+          }
+
+          /* Force the index to remain inside the established range of the
+           * dimension, if known. Often these values will vary from 1-N
+           * where N is the total number of slices in an acquisition.
+           * We do NOT perform this check if we're dealing with
+           * a mosaic or multiframe image.
            */
-          tmp_index = acr_find_int(group_list, ACR_Image, -1);
-        }
 
-        /* Force the index to remain inside the established range of the
-         * dimension, if known. Often these values will vary from 1-N
-         * where N is the total number of slices in an acquisition.
-         * We do NOT perform this check if we're dealing with
-         * a mosaic or multiframe image.
-         */
-
-        if (range_check &&
-            tmp_index >= 1 &&
-            gi_ptr->max_size[SLICE] > 1 &&
-            gi_ptr->max_size[TIME] > 1 &&
-            gi_ptr->subimage_type == SUBIMAGE_TYPE_NONE) {
-          /* Keep the index inside the proper range, if known.
-           */
-          tmp_index = ((tmp_index - 1) / gi_ptr->max_size[SLICE]) + 1;
-          //printf("D: %d ", tmp_index);
+          if (range_check &&
+              tmp_index >= 1 &&
+              gi_ptr->max_size[SLICE] > 1 &&
+              (gi_ptr->max_size[TIME] > 1 || (gi_ptr->max_size[ECHO] > 1 && range_check > 1)) &&
+              gi_ptr->subimage_type == SUBIMAGE_TYPE_NONE) {
+            /* Keep the index inside the proper range, if known.
+             */
+            tmp_index = ((tmp_index - 1) / (gi_ptr->max_size[SLICE] * range_check)) + 1;
+            //printf("D: %d ", tmp_index);
+          }
         }
       }
       if (tmp_index < 0) {
         tmp_index = 1;
       }
+
+      if (imri == TIME) {
+          if (gi_ptr->found_philips_MRLabels == 1) {
+            /* Make sure LABEL is the first volume */
+            if (strstr(acr_find_string(group_list, PMS_MRImageLabelType, ""), "CONTROL") != NULL) {                  
+                  tmp_index *= 2;
+              }
+              else {
+                  tmp_index += (tmp_index-1);
+              }
+          }
+      }
+
       fi_ptr->index[imri] = tmp_index;
     }
     else {
@@ -765,7 +830,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
 
     /* Get intensity information
      */
-    get_intensity_info(group_list, fi_ptr);
+    get_intensity_info(group_list, fi_ptr, gi_ptr);
 
     /* Check for necessary values not found
      */
@@ -807,8 +872,11 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
      * position derived above.  This seems to be much more reliable with
      * IMA files, but not for real DICOM.
      */
-    if (G.file_type == IMA) {
-      fi_ptr->index[SLICE] = irnd(fi_ptr->coordinate[SLICE] * 100.0);
+    if ( G.file_type == IMA ||
+       ( G.file_type == N4DCM && !strcmp(acr_find_string(group_list, ACR_Modality, ""), "MR") && (strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "SIEMENS") == NULL) ) ||
+       ( G.file_type == N4DCM && !strcmp(acr_find_string(group_list, ACR_Modality, ""), "PT") && ( strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "CPS") != NULL) ) ||
+       G.min_acq_num != G.max_acq_num && !is_siemens_mosaic(group_list)) {
+       fi_ptr->index[SLICE] = irnd(fi_ptr->coordinate[SLICE] * 100.0);
     }
 
     /* Set up general info on first pass
@@ -896,7 +964,8 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
            * be unspecified and can be guessed only by the number of
            * distinct locations discovered.
            */
-          if (imri != SLICE && gi_ptr->max_size[imri] <= 1) {
+          if (imri != SLICE && gi_ptr->max_size[imri] <= 1 && !(imri == TIME &&
+                !((G.file_type == N4DCM) && (gi_ptr->num_slices_in_file > 1)))) {
             if (/* G.Debug && */ fi_ptr->index[imri] > 1) {
               printf("Warning: merging extra indices on %s axis: ",
                      Mri_Names[imri]);
@@ -926,7 +995,13 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
           }
 
           /* If it is not, then add it */
-          if (index < 0) {
+          if (index < 0 && gi_ptr->coordinates[SLICE][0] != fi_ptr->coordinate[SLICE]) {
+
+                int number_of_fMRI_frames = 0;
+                if (gi_ptr->fix_multi_echo_fMRI > 0 ) {
+                       number_of_fMRI_frames = gi_ptr->num_files/acr_find_int(group_list, SPI_Locations_in_Acquisitions, -1);
+                   }
+
             if (G.Debug >= HI_LOGGING) {
               printf("Need to add index %d to %s list, %d/%d\n",
                      cur_index, Mri_Names[imri],
@@ -936,7 +1011,15 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
 
             /* Check whether we can add a new index */
             if (gi_ptr->cur_size[imri] >= gi_ptr->max_size[imri]) {
-              gi_ptr->max_size[imri]++;
+                if (imri == TIME && gi_ptr->fix_multi_echo_fMRI > 0 && number_of_fMRI_frames > 0) {
+                    if (gi_ptr->max_size[TIME] < number_of_fMRI_frames) {
+                        gi_ptr->max_size[imri]++;
+                    }
+                }
+                else {
+                    gi_ptr->max_size[imri]++;
+                }
+
               gi_ptr->indices[imri] =
                 realloc(gi_ptr->indices[imri],
                         gi_ptr->max_size[imri] * sizeof(int));
@@ -957,7 +1040,20 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
             gi_ptr->indices[imri][index] = cur_index;
             gi_ptr->coordinates[imri][index] = fi_ptr->coordinate[imri];
             gi_ptr->widths[imri][index] = fi_ptr->width[imri];
-            gi_ptr->cur_size[imri]++;
+
+           if (imri == SLICE && G.n_distinct_coordinates > 0){
+               if (gi_ptr->cur_size[imri] < G.n_distinct_coordinates) {
+                   gi_ptr->cur_size[imri]++;
+               }
+           }
+           else if (imri == TIME && gi_ptr->fix_multi_echo_fMRI > 0 && number_of_fMRI_frames > 0) {
+               if (gi_ptr->cur_size[imri] < number_of_fMRI_frames) {
+                   gi_ptr->cur_size[imri]++;
+               }
+           }
+           else {
+               gi_ptr->cur_size[imri]++;
+           }
 
             if (G.Debug) {
               printf("Added %s coordinate %f at %d %f %f %f\n",
@@ -986,13 +1082,18 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
 
     /* Get DTI information if available.
      */
-    fi_ptr->b_value = (double)acr_find_double(group_list, ACR_Diffusion_b_value, -1);
+    fi_ptr->b_value = (double)acr_find_double(group_list, ACR_Diffusion_b_value, 0);
+
+    /* Determine the series is DTI if at least one b-value is found to be above 0 */
+    gi_ptr->acq.dti = (gi_ptr->acq.dti == 1 || fi_ptr->b_value > 0);
 
     /* Get GEMS fMRI information if available.
      */
     fi_ptr->tpos_id = (int)acr_find_int(group_list, ACR_Temporal_position_identifier, -1);
     fi_ptr->trigger_time = (double)acr_find_double(group_list, ACR_Trigger_time, -1.0);
     fi_ptr->slice_location = (double)acr_find_double(group_list, ACR_Slice_location, 0.0);
+    fi_ptr->RTIA_timer = (double)acr_find_double(group_list, GEMS_RTIA_timer, -1.0);
+    fi_ptr->rep_time = (double)acr_find_double(group_list, ACR_Repetition_time, 0.0);
 
     element = acr_find_group_element(group_list,
                                      ACR_Diffusion_gradient_orientation);
@@ -1000,10 +1101,20 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
     Acr_Double grad_direction[WORLD_NDIMS];
     if (element == NULL ||
         acr_get_element_double_array(element, WORLD_NDIMS, grad_direction) != WORLD_NDIMS) {
-        grad_direction[XCOORD] =
-            grad_direction[YCOORD] =
-            grad_direction[ZCOORD] = 0; /*this should be 0 for the b=0 images*/
+        /* Attempt to get gradient directions from GEMS, otherwise this should be 0 for the b=0 images*/
+        grad_direction[XCOORD] = acr_find_double(group_list, GEMS_Diffusion_direction_x, 0);
+        grad_direction[YCOORD] = acr_find_double(group_list, GEMS_Diffusion_direction_y, 0);
+        grad_direction[ZCOORD] = acr_find_double(group_list, GEMS_Diffusion_direction_z, 0);
     }
+
+    if (strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "SIEMENS") != NULL || strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "Siemens") != NULL || strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "Philips") != NULL) {
+        double bvec_corrected[3];
+        do_gradient_transformation(group_list, bvec_corrected);
+        grad_direction[XCOORD] = bvec_corrected[XCOORD];
+        grad_direction[YCOORD] = bvec_corrected[YCOORD];
+        grad_direction[ZCOORD] = bvec_corrected[ZCOORD];
+    }
+
     fi_ptr->grad_direction[XCOORD] = (double)grad_direction[XCOORD];
     fi_ptr->grad_direction[YCOORD] = (double)grad_direction[YCOORD];
     fi_ptr->grad_direction[ZCOORD] = (double)grad_direction[ZCOORD];
@@ -1054,10 +1165,17 @@ get_identification_info(Acr_Group group_list,
     int number_of_averages;
 
     if (study_id != NULL) {
+        double sID = (float)acr_find_int(group_list, ACR_Study, 0);
+        if (sID > 0) {
+            /* Use numeric studyID (0020,0010) by default if provided */
+            *study_id = sID;
+        }
+        else {
         // generate a study ID number from date & time:  yyyymmdd.hhmmss
         // (should be unique enough for our application)
-        *study_id = (((float)acr_find_int(group_list, ACR_Study_date, 0)) +
-                     ((float)acr_find_int(group_list, ACR_Study_time, 0))/1e6);
+            *study_id = (((float)acr_find_int(group_list, ACR_Study_date, 0)) +
+                    ((float)acr_find_int(group_list, ACR_Study_time, 0))/1e6);
+        }
     }
     if (acq_id != NULL) {
 
@@ -1108,7 +1226,7 @@ get_identification_info(Acr_Group group_list,
     if (rec_num != NULL)
         *rec_num = 0;
     if (image_type != NULL)
-        *image_type = acr_find_int(group_list, GEMS_Image_type, -1);
+        *image_type = 0;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -1124,10 +1242,12 @@ get_identification_info(Acr_Group group_list,
    @MODIFIED   :
    ---------------------------------------------------------------------------- */
 static void
-get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
+get_intensity_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr)
 {
     double window_centre, window_width;
-    double rescale_intercept, rescale_slope;
+    double rescale_intercept_public, rescale_slope_public, rescale_slope_real; 
+    double rescale_intercept_real, Philips_private_scale_slope, Philips_private_scale_intercept;
+    double rescale_slope, rescale_intercept;
     int ivalue;                 /* 0000 for unsigned, 0001 for signed */
     int imin, imax;             /* Default minimum and maximum values */
 
@@ -1191,21 +1311,53 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
         fi_ptr->pixel_max = imax;
     }
 
-    /* Get the rescale intercept and slope.  If they are not present,
-     * we use the default values of 0.0 for the intercept and 1.0 for
-     * the slope.
+    /* retrieving two pair of public tags RS, RI and one pair of private tags SI, SS, according to PMC3998685
+     * setting default value if they don't exist
      */
-    rescale_intercept = (double)acr_find_double(group_list, ACR_Rescale_intercept, 0);
-    rescale_slope = (double)acr_find_double(group_list, ACR_Rescale_slope, 1);
 
-    /* If the rescale slope is set to zero, force the default value of
-     * one and issue a warning.
-     */
-    if (rescale_slope == 0.0) {
-        printf("WARNING: File contains a rescale slope value of zero.\n");
-        rescale_slope = 1.0;
+    /* public real world value of RS and RI*/
+    rescale_intercept_real = (double)acr_find_double(group_list, ACR_RealWorldValue_Intercept, 0);
+    rescale_slope_real = (double)acr_find_double(group_list, ACR_RealWorldValue_Slope, 0);
+    /* public RS and RI */
+    rescale_slope_public = (double)acr_find_double(group_list, ACR_Rescale_slope, 0);
+    rescale_intercept_public = (double)acr_find_double(group_list, ACR_Rescale_intercept, 0);
+    /* private SS and SI */
+    Philips_private_scale_slope = acr_find_double(group_list, PMS_Private_Rescale_slope, 0.0);
+    Philips_private_scale_intercept = acr_find_double(group_list, PMS_Private_Rescale_intercept, 0.0);
+
+    /* if real world value is there, we ignore other tags, we use the real world public values for slope and intercept */
+    rescale_slope = rescale_slope_real;
+    rescale_intercept = rescale_intercept_real;
+    /* if other pair of public tags and private tags are there, we use RS RI SS in the equation of PMC3998685*/
+    if(rescale_slope == 0 && rescale_slope_public != 0 && Philips_private_scale_slope != 0 &&
+        strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "Philips") != NULL){
+
+        rescale_slope = rescale_slope_public / (Philips_private_scale_slope * rescale_slope_public);
+        rescale_intercept = rescale_intercept_public / (Philips_private_scale_slope * rescale_slope_public);
+
     }
+    /* if only that pair of public tags is there, we use these public values RS RI 
+    instead of the real world public values for slope and intercept */
+    else if(rescale_slope == 0 && rescale_slope_public != 0){
 
+        rescale_slope = rescale_slope_public;
+        rescale_intercept = rescale_intercept_public;
+
+    }
+    /* if only that pair of private tags is there, we use SI and SS with equation in PMC3998685*/
+    else if(rescale_slope == 0 && Philips_private_scale_slope != 0 &&
+        strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "Philips") != NULL){
+
+        rescale_slope = 1 / Philips_private_scale_slope;
+        rescale_intercept = -1 * (Philips_private_scale_intercept / Philips_private_scale_slope);
+
+    }
+    /* if there is no tag present, we set the default value and give warning message */
+    else if (rescale_slope == 0){
+        rescale_slope = 1;
+        rescale_intercept = 0;
+        gi_ptr->missing_scale = 1;
+    }
     fi_ptr->slice_min = fi_ptr->pixel_min * rescale_slope + rescale_intercept;
     fi_ptr->slice_max = fi_ptr->pixel_max * rescale_slope + rescale_intercept;
 
@@ -1416,6 +1568,12 @@ dicom_read_orientation(Acr_Group group_list, double orientation[6])
                result, (char *)acr_get_element_string(element));
         return (0);
     }
+    /* Swap row and column if we encounter HFDR PT */
+    if (strstr(acr_find_string(group_list, ACR_Patient_position, ""), "HFDR") != NULL && !strcmp(acr_find_string(group_list, ACR_Modality, ""), "PT") && result == 6) {
+        double row = orientation[0], col = orientation[1];
+        orientation[0] = col;
+        orientation[1] = row;
+    }
     return (1);
 }
 
@@ -1482,6 +1640,91 @@ dicom_read_pixel_size(Acr_Group group_list, double pixel_size[IMAGE_NDIMS])
     return (result);
 }
 
+/* Figure out the slice thickness.  It could be from either one of
+ * two possible places in the file.
+ *
+ * This code has changed several times, and there may be no single
+ * correct way of deriving the true slice spacing from the official
+ * DICOM slice thickness and slice spacing fields.  My best guess is
+ * to look for both fields, and to adopt the slice spacing when both
+ * fields are set.
+ */
+double get_slice_separation(Acr_Group group_list){
+    double sep = 1.0;
+    double slice_thickness = (double)acr_find_double(group_list, ACR_Slice_thickness, 0);
+    double slice_spacing = (double)acr_find_double(group_list, ACR_Spacing_between_slices, 0);
+
+    if (slice_thickness == 0.0) {
+        /* No slice thickness value found. */
+        if (slice_spacing == 0.0) {
+            if (G.Debug >= HI_LOGGING) {
+                printf("Using default slice thickness of 1.0\n");
+            }
+        }
+        else {
+            if (G.Debug >= HI_LOGGING) {
+                printf("Using (0018,0088) for slice thickness\n");
+            }
+            sep =  slice_spacing;
+        }
+    }
+    else if (slice_spacing == 0.0) {
+        /* No slice spacing value found. */
+        if (G.Debug >= HI_LOGGING) {
+            printf("Using (0018,0050) for slice thickness\n");
+        }
+        sep = slice_thickness;
+    }
+    else {
+        /* Both fields are set.  I choose the slice spacing rather
+         * than the slice thickness in this case. However, I believe
+         * there is some evidence that this can cause problems in rare
+         * cases.
+         */
+        if (G.Debug && !NEARLY_EQUAL(slice_thickness, slice_spacing)) {
+            printf("Tags (0018,0050) and (0018,0088) have different values: ");
+            printf(" (0018,0050) = %.10f, (0018,0088) = %.10f\nUsing (0018,0088) as slice step.\n",
+                   slice_thickness, slice_spacing);
+        }
+        sep =  slice_spacing;
+    }
+    return sep;
+}
+
+
+void calculate_dircos(double RowColVec[6], double dircos[VOL_NDIMS][WORLD_NDIMS],
+                      int do_coordinate_conversion){
+
+        dircos[VCOLUMN][XCOORD] = RowColVec[0];
+        dircos[VCOLUMN][YCOORD] = RowColVec[1];
+        dircos[VCOLUMN][ZCOORD] = RowColVec[2];
+
+        dircos[VROW][XCOORD] = RowColVec[3];
+        dircos[VROW][YCOORD] = RowColVec[4];
+        dircos[VROW][ZCOORD] = RowColVec[5];
+
+        if(do_coordinate_conversion){
+            convert_dicom_coordinate(dircos[VROW]);
+            convert_dicom_coordinate(dircos[VCOLUMN]);
+        }
+
+        /* slice direction unit vector is cross product of row,
+           col vectors:
+         */
+        dircos[VSLICE][XCOORD] =
+            dircos[VCOLUMN][YCOORD] * dircos[VROW][ZCOORD] -
+            dircos[VCOLUMN][ZCOORD] * dircos[VROW][YCOORD];
+
+        dircos[VSLICE][YCOORD] =
+            dircos[VCOLUMN][ZCOORD] * dircos[VROW][XCOORD] -
+            dircos[VCOLUMN][XCOORD] * dircos[VROW][ZCOORD];
+
+        dircos[VSLICE][ZCOORD] =
+            dircos[VCOLUMN][XCOORD] * dircos[VROW][YCOORD] -
+            dircos[VCOLUMN][YCOORD] * dircos[VROW][XCOORD];
+}
+
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : get_coordinate_info
    @INPUT      : group_list - input data
@@ -1525,7 +1768,6 @@ get_coordinate_info(Acr_Group group_list,
     double slice_thickness, slice_spacing;
 
     double RowColVec[6]; /* row/column unit vectors in  dicom element */
-    char *modality_str;
 
     const Orientation orientation_list[WORLD_NDIMS] = {
         SAGITTAL, CORONAL, TRANSVERSE
@@ -1541,7 +1783,6 @@ get_coordinate_info(Acr_Group group_list,
     }
     found_coordinate = FALSE;
 
-    modality_str = acr_find_string(group_list, ACR_Modality, "");
 #if 0
     /* TODO: For now this appears to be necessary.  In cases I don't fully
      * understand, the Siemens Numaris 3 DICOM image orientation does not
@@ -1591,34 +1832,9 @@ get_coordinate_info(Acr_Group group_list,
      */
     if (!found_dircos[VCOLUMN] || !found_dircos[VROW] || !found_dircos[VSLICE]) {
         if (dicom_read_orientation(group_list, RowColVec)) {
-            dircos[VCOLUMN][XCOORD] = RowColVec[0];
-            dircos[VCOLUMN][YCOORD] = RowColVec[1];
-            dircos[VCOLUMN][ZCOORD] = RowColVec[2];
-
-            dircos[VROW][XCOORD] = RowColVec[3];
-            dircos[VROW][YCOORD] = RowColVec[4];
-            dircos[VROW][ZCOORD] = RowColVec[5];
-
+            calculate_dircos(RowColVec, dircos, 1);
             found_dircos[VCOLUMN] = TRUE;
             found_dircos[VROW] = TRUE;
-
-            convert_dicom_coordinate(dircos[VROW]);
-            convert_dicom_coordinate(dircos[VCOLUMN]);
-
-            /* slice direction unit vector is cross product of row,
-               col vectors:
-             */
-            dircos[VSLICE][XCOORD] =
-                dircos[VCOLUMN][YCOORD] * dircos[VROW][ZCOORD] -
-                dircos[VCOLUMN][ZCOORD] * dircos[VROW][YCOORD];
-
-            dircos[VSLICE][YCOORD] =
-                dircos[VCOLUMN][ZCOORD] * dircos[VROW][XCOORD] -
-                dircos[VCOLUMN][XCOORD] * dircos[VROW][ZCOORD];
-
-            dircos[VSLICE][ZCOORD] =
-                dircos[VCOLUMN][XCOORD] * dircos[VROW][YCOORD] -
-                dircos[VCOLUMN][YCOORD] * dircos[VROW][XCOORD];
             found_dircos[VSLICE] = TRUE;
         }
     }
@@ -1704,6 +1920,19 @@ get_coordinate_info(Acr_Group group_list,
                (*orientation == CORONAL) ? "CORONAL" : "TRANSVERSE");
     }
 
+    int curr_dim, prev_dim;
+    for (ivolume = 0; ivolume < VOL_NDIMS; ivolume++) {
+        curr_dim = volume_to_world[ivolume];
+        if ( ivolume > 0 && prev_dim == curr_dim) {
+            /* By default use these settings, orientation likely unreliable if it's messed up this way */
+            volume_to_world[VSLICE] = ZCOORD;
+            volume_to_world[VROW] = YCOORD;
+            volume_to_world[VCOLUMN] = XCOORD;
+            break;
+        }
+        prev_dim = curr_dim;
+    }
+
     /* Get step information
      */
 
@@ -1712,53 +1941,7 @@ get_coordinate_info(Acr_Group group_list,
     steps[VCOLUMN] = psize[0];
     steps[VROW] = psize[1];     /* anisotropic resolution? */
 
-    /* Figure out the slice thickness.  It could be from either one of
-     * two possible places in the file.
-     *
-     * This code has changed several times, and there may be no single
-     * correct way of deriving the true slice spacing from the official
-     * DICOM slice thickness and slice spacing fields.  My best guess is
-     * to look for both fields, and to adopt the slice spacing when both
-     * fields are set.
-     */
-    slice_thickness = (double)acr_find_double(group_list, ACR_Slice_thickness, 0);
-    slice_spacing = (double)acr_find_double(group_list, ACR_Spacing_between_slices, 0);
-
-    if (slice_thickness == 0.0) {
-        /* No slice thickness value found. */
-        if (slice_spacing == 0.0) {
-            if (G.Debug >= HI_LOGGING) {
-                printf("Using default slice thickness of 1.0\n");
-            }
-            steps[VSLICE] = 1.0;
-        }
-        else {
-            if (G.Debug >= HI_LOGGING) {
-                printf("Using (0018,0088) for slice thickness\n");
-            }
-            steps[VSLICE] = slice_spacing;
-        }
-    }
-    else if (slice_spacing == 0.0) {
-        /* No slice spacing value found. */
-        if (G.Debug >= HI_LOGGING) {
-            printf("Using (0018,0050) for slice thickness\n");
-        }
-        steps[VSLICE] = slice_thickness;
-    }
-    else {
-        /* Both fields are set.  I choose the slice spacing rather
-         * than the slice thickness in this case. However, I believe
-         * there is some evidence that this can cause problems in rare
-         * cases.
-         */
-        if (G.Debug && !NEARLY_EQUAL(slice_thickness, slice_spacing)) {
-            printf("WARNING: slice thickness conflict: ");
-            printf("old = %.10f, new = %.10f\n",
-                   slice_thickness, slice_spacing);
-        }
-        steps[VSLICE] = slice_spacing;
-    }
+    steps[VSLICE] = get_slice_separation(group_list);
 
     /* Make sure that direction cosines point the right way (dot
      * product of direction cosine and axis is positive) and that step
@@ -1854,21 +2037,17 @@ get_coordinate_info(Acr_Group group_list,
                                                   ACR_Actual_frame_duration,
                                                   0.0) / MS_PER_SECOND;
 
-    /* Acquisition times may be accurate for PET. */
-    if (!strcmp(modality_str, ACR_MODALITY_PT) &&
-        (frame_time = acr_find_double(group_list, ACR_Acquisition_time, -1.0)) >= 0) {
-      frame_time = convert_time_to_seconds(frame_time);
-      /* Round to nearest millisecond */
-      frame_time = round(frame_time * 1000) / 1000;
-    }
-    else if ((frame_time = acr_find_double(group_list, ACR_Trigger_time, -1.0)) >= 0) {
+    /* PET scan times (bert)
+     */
+    frame_time = acr_find_double(group_list, ACR_Trigger_time, -1.0);
+    if (frame_time >= 0.0 && !G.bogus_trigger_time) {
       frame_time /= 1000.0;
       start_time = 0;
     }
     else {
-      start_time = acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
-      frame_time = acr_find_double(group_list, ACR_Actual_frame_duration, -1.0);
-      if (start_time > 0.0 && frame_time > 0.0) {
+      start_time = (double)acr_find_double(group_list, ACR_Frame_reference_time, -1.0);
+      frame_time = (double)acr_find_double(group_list, ACR_Actual_frame_duration, -1.0);
+      if (start_time >= 0.0 && frame_time > 0.0) {
         if (G.adjust_frame_time) {
             double new_time = (start_time - frame_time / 2.0) / 1000.0;
             if (new_time < -1.0) {
@@ -2253,6 +2432,85 @@ get_gems_pet_info(Acr_Group group_list, struct Pet_info *pet_ptr)
   /* TODO: Dose and route information does not seem to be present?? */
 }
 
+/* Convert DTI vectors from scanner coordinates to image frame of reference */
+static void do_gradient_transformation(Acr_Group group_list, double bvecs_new[3]) {
+
+    double orient[6], sum = 0.0;
+    Acr_Double old_bvec[WORLD_NDIMS];
+    int wdim, vdim, vol_ndim = VOL_NDIMS, v;
+
+    Acr_Element element = acr_find_group_element(group_list, ACR_Diffusion_gradient_orientation);
+
+    if (element == NULL || acr_get_element_double_array(element, WORLD_NDIMS, old_bvec) != WORLD_NDIMS) {
+        old_bvec[XCOORD] = 0.0;
+        old_bvec[YCOORD] = 0.0;
+        old_bvec[ZCOORD] = 0.0;
+    }
+
+    /* Get 6 orientations from 0020,0037 */
+    dicom_read_orientation(group_list, orient);
+
+    double orientation_vector[VOL_NDIMS][WORLD_NDIMS];
+
+    orientation_vector[VCOLUMN][XCOORD] = orient[0];
+    orientation_vector[VCOLUMN][YCOORD] = orient[1];
+    orientation_vector[VCOLUMN][ZCOORD] = orient[2];
+    orientation_vector[VROW][XCOORD] = orient[3];
+    orientation_vector[VROW][YCOORD] = orient[4];
+    orientation_vector[VROW][ZCOORD] = orient[5];
+
+    orientation_vector[VSLICE][XCOORD] = orientation_vector[VCOLUMN][YCOORD] * orientation_vector[VROW][ZCOORD] -
+                              orientation_vector[VCOLUMN][ZCOORD] * orientation_vector[VROW][YCOORD];
+    orientation_vector[VSLICE][YCOORD] = orientation_vector[VCOLUMN][ZCOORD] * orientation_vector[VROW][XCOORD] -
+                              orientation_vector[VCOLUMN][XCOORD] * orientation_vector[VROW][ZCOORD];
+    orientation_vector[VSLICE][ZCOORD] = orientation_vector[VCOLUMN][XCOORD] * orientation_vector[VROW][YCOORD] -
+                              orientation_vector[VCOLUMN][YCOORD] * orientation_vector[VROW][XCOORD];
+
+    /*  undoing the bit in copy_spi_to_acr() */
+    if (strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "SIEMENS") != NULL || strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "Siemens") != NULL){
+        old_bvec[ZCOORD] = -1*old_bvec[ZCOORD];
+    }
+    /* Compute new bvec by computing the dot product of bvecs and orientation vectors */
+    for (vdim = 0; vdim < VOL_NDIMS; vdim++) {
+             vol_ndim--;
+             for (wdim = 0; wdim < WORLD_NDIMS; wdim++) {
+                sum += orientation_vector[vol_ndim][wdim] * old_bvec[wdim];
+                 if (wdim == WORLD_NDIMS-1) {
+                    bvecs_new[vdim] = sum;
+                    /* Reset sum */
+                    sum = 0.0;
+                 }
+             }
+      }
+
+      /* Do vector length normalization */
+      double vector_length = sqrt((bvecs_new[0]*bvecs_new[0])+(bvecs_new[1]*bvecs_new[1])+(bvecs_new[2]*bvecs_new[2]));
+      double bvn[3]; bvn[0] = bvecs_new[0]; bvn[1] = bvecs_new[1]; bvn[2] = bvecs_new[2];
+      /* Avoid division by zero */
+      if (vector_length != 0) {
+          for (v = 0; v < WORLD_NDIMS; v++) {
+              bvecs_new[v] = bvn[v]/vector_length;
+          }
+      }
+
+    if (bvecs_new[YCOORD] != 0) {
+        bvecs_new[YCOORD] = -1*bvecs_new[YCOORD];
+    }
+
+    /* Compute determinant of the orientation and check if spatial reflection is needed  */
+    if (is_siemens_mosaic(group_list)) {
+        int orientation = acr_find_int(group_list, EXT_Slice_orientation, -1);
+
+        double det = (orient[0]*orient[4]*G.sliceNormV3)-(orient[0]*orient[5]*G.sliceNormV2)-(orient[1]*orient[3]*G.sliceNormV3)+(orient[1]*orient[5]*G.sliceNormV1)+(orient[2]*orient[3]*G.sliceNormV2)-(orient[2]*orient[4]*G.sliceNormV1);
+        /* Do spatial reflection only when we obtain a negative determinant for siemens mosaic */
+        if (det < 0) {
+            if (bvecs_new[YCOORD] != 0) {
+                bvecs_new[YCOORD] = -1*bvecs_new[YCOORD];
+            }
+        }
+    }
+}
+
 static void
 get_standard_pet_info(Acr_Group group_list, Acr_Element sequence,
                       struct Pet_info *pet_ptr)
@@ -2411,12 +2669,9 @@ get_pet_info(Acr_Group group_list, struct Pet_info *pet_ptr)
    @CREATED    : February 28, 1997 (Peter Neelin)
    @MODIFIED   :
    ---------------------------------------------------------------------------- */
-static double
+extern double
 convert_time_to_seconds(double dicom_time)
 {
-    /* Constants */
-#define DICOM_SECONDS_PER_HOUR 10000.0
-#define DICOM_SECONDS_PER_MINUTE 100.0
 
     /* Variables */
     double hh, mm, ss;
@@ -2431,7 +2686,40 @@ convert_time_to_seconds(double dicom_time)
 
     /* Work out the number of seconds */
 
-    return (hh * 3600.0) + (mm * 60.0) + ss;
+    return (hh * (double)SECONDS_PER_HOUR) + (mm * (double)SECONDS_PER_MINUTE) + ss;
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+   @NAME       : convert_seconds_to_time
+   @INPUT      : real time in seconds from beginning of day
+   @OUTPUT     : (none)
+   @RETURNS    : dicom_time
+   @DESCRIPTION: Routine to convert real seconds since start of day to dicom seconds (decimal hhmmss.xxxxx). Reverses the transform made by convert_time_to_seconds
+   @METHOD     :
+   @GLOBALS    :
+   @CALLS      :
+   @CREATED    : December 10, 2020 (Massine Yahia)
+   @MODIFIED   :
+   ---------------------------------------------------------------------------- */
+extern double
+convert_seconds_to_time(double seconds)
+{
+    /* Constants */
+
+    /* Variables */
+    double ss;
+    int hh, mm;
+    /* Get the components of the time */
+
+    hh = (seconds / SECONDS_PER_HOUR);
+    seconds -= hh * SECONDS_PER_HOUR;
+    mm = (seconds / SECONDS_PER_MINUTE);
+    seconds -= mm * SECONDS_PER_MINUTE;
+    ss = seconds;
+
+    /* Work out the number of seconds */
+
+    return (hh * DICOM_SECONDS_PER_HOUR) + (mm * DICOM_SECONDS_PER_MINUTE) + ss;
 }
 
 #if JPEG_FOUND
@@ -2914,6 +3202,16 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     di_ptr->echo_number = acr_find_int(group_list,
                                        ACR_Echo_number,
                                        IDEFAULT);
+    /* if we expect multiple echoes from the echo train length,
+     * but we have no echo number in the tags,
+     * try to use the echo time as the echo number...
+     */
+    if(di_ptr->echo_number == IDEFAULT && di_ptr->num_echoes > 0){
+        di_ptr->echo_number = acr_find_double(group_list,
+                                              ACR_Echo_time,
+                                              IDEFAULT);
+    }
+
 
     di_ptr->num_dyn_scans = acr_find_int(group_list,
                                          ACR_Acquisitions_in_series,
@@ -2925,6 +3223,10 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
 
     di_ptr->global_image_number = acr_find_int(group_list,
                                                ACR_Image,
+                                               IDEFAULT);
+
+    di_ptr->pet_image_index = acr_find_int(group_list,
+                                               ACR_PET_Image_index,
                                                IDEFAULT);
 
     /* rhoge:
@@ -3016,6 +3318,7 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     get_string_field(di_ptr->patient_name, group_list, ACR_Patient_name);
     fix_patient_name(di_ptr->patient_name);
     get_string_field(di_ptr->patient_id, group_list, ACR_Patient_identification);
+    get_string_field(di_ptr->image_type_string, group_list, ACR_Image_type);
 }
 
 

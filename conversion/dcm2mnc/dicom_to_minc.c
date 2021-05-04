@@ -273,6 +273,7 @@ typedef struct {
 static int mosaic_init(Acr_Group, Mosaic_Info *, int);
 static void mosaic_cleanup(Mosaic_Info *);
 static int mosaic_insert_subframe(Acr_Group, Mosaic_Info *, int, int);
+static int find_philips_MRLabels(const char *file_list[], int num_files);
 
 /* DICOM Multiframe conversion functions (see NOTE: above) */
 static void multiframe_init(Acr_Group, Multiframe_Info *, int);
@@ -282,6 +283,7 @@ static void multiframe_insert_subframe(Acr_Group, Multiframe_Info *, int, int);
 static void free_info(General_Info *gi_ptr, File_Info *fi_ptr, 
                       int num_files);
 static int dimension_sort_function(const void *v1, const void *v2);
+static void fix_dimensions(File_Info *fi_ptr, General_Info *gi_ptr);
 static void sort_dimensions(General_Info *gi_ptr);
 static void add_gems_slice_order(File_Info *fi_ptr, General_Info *gi_ptr);
 static int prot_find_string(Acr_Element Protocol, const char *name,
@@ -357,6 +359,7 @@ dicom_to_minc(int num_files,
     }
 
     /* Initialize some values for general info */
+    gi.missing_scale = 0;
     gi.initialized = FALSE;
     gi.group_list = NULL;
     gi.num_files = num_files;
@@ -366,6 +369,9 @@ dicom_to_minc(int num_files,
         gi.coordinates[imri] = NULL;
         gi.widths[imri] = NULL;
     }
+
+    gi.found_philips_MRLabels = find_philips_MRLabels(file_list, num_files);
+    /* initialize variable for frame times sorting */
 
     /* Loop through file list getting information
      * (note that we have to duplicate the handling
@@ -389,7 +395,7 @@ dicom_to_minc(int num_files,
         /* Read the file
          */
         if (G.file_type == N4DCM) {
-            group_list = read_numa4_dicom(file_list[ifile], max_group, num_files);
+            group_list = read_numa4_dicom(file_list[ifile], max_group);
         } 
         else if (G.file_type == IMA) {
             group_list = siemens_to_dicom(file_list[ifile], max_group);
@@ -447,7 +453,6 @@ dicom_to_minc(int num_files,
                 CHKMEM(fi_ptr);
             }
         }
-        
 
         /* loop over subimages in mosaic
          */
@@ -498,6 +503,9 @@ dicom_to_minc(int num_files,
             break;
         }
     }
+
+    /* Fix dimensions if needed */
+    fix_dimensions(fi_ptr, &gi);
 
     /* Sort the dimensions */
     sort_dimensions(&gi);
@@ -555,13 +563,14 @@ dicom_to_minc(int num_files,
         if (!fi_ptr[ifile].valid) {
             printf("WARNING: file %s was marked invalid\n", 
                    file_list[ifile]);
+            iimage++;
             continue;
         }
      
         /* Read the file 
          */
         if (G.file_type == N4DCM) {
-            group_list = read_numa4_dicom(file_list[ifile], max_group, num_files);
+            group_list = read_numa4_dicom(file_list[ifile], max_group);
         }
         else if (G.file_type == IMA) {
             group_list = siemens_to_dicom(file_list[ifile], max_group);
@@ -574,9 +583,12 @@ dicom_to_minc(int num_files,
                 exit(-1);
             }
             else {
-                fprintf(stderr, "WARNING: parsing file '%s' during 2nd pass.\n",
-                        file_list[ifile]);
+                if (G.Debug >= HI_LOGGING) {
+                    fprintf(stderr, "WARNING: parsing file '%s' during 2nd pass.\n",
+                      file_list[ifile]);
+                }
                 fi_ptr[ifile].valid = FALSE;
+                iimage++;
                 continue;
             }
         }
@@ -824,10 +836,12 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
     /* See if the magic 8-byte header is present. If not, we start
      * right off with the number of elements.
      */
+
     if (byte_ptr[0] == 'S' && byte_ptr[1] == 'V' &&
         byte_ptr[2] == '1' && byte_ptr[3] == '0') {
         byte_pos += 8;          /* Skip header */
     }
+
 
     acr_get_long(ACR_LITTLE_ENDIAN, 1, byte_ptr + byte_pos, &n_items);
 
@@ -873,7 +887,10 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
         if (n_values > 0) {
             for (i = 0; i < n_values; i++) {
                 byte_pos += 4;      /* skip */
-
+                /* Return group list if out of range */
+                if (byte_pos > byte_cnt) {
+                    return (group_list);
+                }
                 acr_get_long(ACR_LITTLE_ENDIAN, 1, byte_ptr + byte_pos, &len);
 
                 byte_pos += 4;
@@ -907,7 +924,9 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
             /*double tmp = atof(value[0]); this atof makes the value null!  ilana*/
             Acr_Double tmp = atoi(value[0]);
             /*need a hack for ICBM scan, see below ilana*/
-            acr_insert_double(&group_list, ACR_Diffusion_b_value, 1, &tmp); 
+            if ( (double)acr_find_double(group_list, ACR_Diffusion_b_value, 0) != 0 ) {
+                acr_insert_double(&group_list, ACR_Diffusion_b_value, 1, &tmp);
+            }
         }
         else if (!strcmp(name, "DiffusionGradientDirection")) {
             Acr_Double tmp[3];
@@ -939,10 +958,14 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
                 Acr_Double tmp[3];
                 Acr_Short orientation;
 
-                tmp[0] = atof(value[0]);
-                tmp[1] = atof(value[1]);
-                tmp[2] = atof(value[2]);
+                tmp[0] = fabs(atof(value[0]));
+                tmp[1] = fabs(atof(value[1]));
+                tmp[2] = fabs(atof(value[2]));
                 
+                G.sliceNormV1 = tmp[0];
+                G.sliceNormV2 = tmp[1];
+                G.sliceNormV3 = tmp[2];
+
                 orientation = TRANSVERSE;
                 if (tmp[0] > tmp[2] && tmp[0] > tmp[1]) {
                   orientation = SAGITTAL;
@@ -1006,7 +1029,24 @@ get_time_index_from_sequence_name(Acr_Group group_list, int num_b0)
   }
   acr_insert_numeric(&group_list, ACR_Temporal_position_identifier, 
                      (double)enc_ix);
+  G.bogus_temporal_id = 0;
   return enc_ix;
+}
+
+void
+do_siemens_double_word_byte_swap(Acr_Element element)
+{
+    /* Do double word byte swap on csa data block if neccessary */
+    int i;
+    if (element->data_pointer[0] == 'V' && element->data_pointer[1] == 'S' &&
+    element->data_pointer[2] == '0' && element->data_pointer[3] == '1') {
+        for (i = 0; i < element->data_length; i+=2) {
+            int byte1 = element->data_pointer[i];
+            int byte2 = element->data_pointer[i+1];
+            element->data_pointer[i] = byte2;
+            element->data_pointer[i+1] = byte1;
+        }
+    }
 }
 
 void
@@ -1207,7 +1247,13 @@ do_siemens_diffusion(Acr_Group group_list, Acr_Element protocol)
      * no good way of storing per-slice timing information
      * right now.
      */
-    acr_insert_numeric(&group_list, ACR_Acquisition_time, acr_find_double(group_list, ACR_Series_time, 0) + enc_ix);
+    double new_acq_time =
+            convert_seconds_to_time(
+                convert_time_to_seconds(acr_find_double(group_list, ACR_Series_time, 0))
+                                        + (double)enc_ix
+            );
+
+    acr_insert_numeric(&group_list, ACR_Acquisition_time, new_acq_time);
     /* end of diffusion scan handling */
 
 
@@ -1233,9 +1279,39 @@ add_siemens_info(Acr_Group group_list)
     int interpolation_flag;
     int temp;
 
+    /* If we're missing an echo number, try to extract it from the ICE dims
+     * private tag */
+    str_ptr = acr_find_string(group_list, SPI_Private_creator_0021, "");
+    if (acr_find_int(group_list, ACR_Echo_number, -1) < 0 &&
+        !strncmp(str_ptr, "SIEMENS MR SDI 02", 17)) {
+
+        /* Could not find much documentation about the ICE Dims private tag
+         * although the format seems to be X_[int]_[int]_[int]_...
+         * where the first integer is the echo number */
+        char *ice_dims = acr_find_string(group_list, SPI_ICE_Dims, "");
+        if (ice_dims != "") {
+            char *tok = strtok(ice_dims, "_");
+
+            /* If the string was not split, the tag is probably an UN value
+               so don't use it */
+            if (tok != NULL){
+                while (tok != NULL && !strncmp(tok, "X", strlen(tok))) {
+                    tok = strtok(NULL, "_");
+                }
+
+                int echo_n = atoi(tok);
+                if (G.Debug >= HI_LOGGING){
+                    printf("Inserting echo number from private siemens element\n");
+                }
+                acr_insert_numeric(&group_list, ACR_Echo_number, echo_n);
+            }
+        }
+    }
+
     str_ptr = acr_find_string(group_list, SPI_Private_creator_0029, "");
     element = acr_find_group_element(group_list, SPI_Protocol2);
     if (!strncmp(str_ptr, "SIEMENS CSA HEADER", 18) && element != NULL) {
+        do_siemens_double_word_byte_swap(element);
         group_list = parse_siemens_proto2(group_list, element);
     }
 
@@ -1263,6 +1339,7 @@ add_siemens_info(Acr_Group group_list)
 
     protocol = acr_find_group_element(group_list, SPI_Protocol);
     if (protocol != NULL) {
+        do_siemens_double_word_byte_swap(protocol);
         /* parse_siemens_junk(protocol); */
 
         if (G.Debug >= HI_LOGGING) {
@@ -1271,8 +1348,8 @@ add_siemens_info(Acr_Group group_list)
 
         /* Add number of dynamic scans:
          */
-        prot_find_string(protocol, "lRepetitions", str_buf);
-        
+        prot_find_string(protocol, "lRepetitions\t", str_buf);
+
         if (strtol(str_buf, NULL, 0) == 0){ /* lRepetitions not found in ASCONV header*/
             int frames = acr_find_int(group_list,
                                       ACR_Cardiac_number_of_images,0);
@@ -1526,6 +1603,17 @@ add_siemens_info(Acr_Group group_list)
             }
         }
 
+        /* Assume squared if ACR_rows and ACR_columns are identical for Siemens mosaic */
+        if ((acr_find_int(group_list, ACR_Rows, 1) == acr_find_int(group_list, ACR_Columns, 1)) &&
+            (subimage_rows != subimage_cols) && is_siemens_mosaic(group_list)) {
+            if ( subimage_rows < subimage_cols ) {
+                subimage_rows = subimage_cols;
+            }
+            else {
+                subimage_cols = subimage_rows;
+            }
+        }
+
         /* If these are not set or still zero, assume this is NOT a mosaic
          * format file.
          */
@@ -1572,10 +1660,30 @@ add_siemens_info(Acr_Group group_list)
              * slices in dicom group 
              */
             else if (!strncmp(str_ptr, "3D", 2)) {
-                acr_insert_numeric(&group_list, EXT_Slices_in_file, 
-                                   (double)num_partitions);
-                acr_insert_numeric(&group_list, SPI_Number_of_slices_nominal, 
-                                   (double)num_partitions);
+                if ( acr_find_int(group_list, ACR_Number_of_Mosaic_Images, 1) != (int)num_partitions &&
+                    acr_find_int(group_list, ACR_Number_of_Mosaic_Images, 1) >  1) {
+                    /* Use ACR_Number_of_Mosaic_Images as slice number for Siemens 3D mosaic if it is not same as num_parititions */
+                    acr_insert_numeric(&group_list, EXT_Slices_in_file,
+                                  acr_find_int(group_list, ACR_Number_of_Mosaic_Images, 1));
+                    acr_insert_numeric(&group_list, SPI_Number_of_slices_nominal,
+                                  acr_find_int(group_list, ACR_Number_of_Mosaic_Images, 1));
+                }
+                else {
+                   if (num_partitions == 0 && !G.num_partitions) {
+                        printf("Warning: a dicom tag is missing for splitting the mosaic, the conversion is possibly wrong\n");
+                   }
+                   else if (num_partitions == 0 && G.num_partitions) {
+                        printf("Warning: the '-num_partitions' option is used to convert the mosaic dicoms\n");
+                        num_partitions = G.num_partitions;
+                   }
+                   else if (num_partitions != 0 && G.num_partitions) {
+                        printf("Warning: The '-num_partitions' option was ignored since the necessary dicomtag is present\n");
+                   }
+                   acr_insert_numeric(&group_list, EXT_Slices_in_file,
+                               (double)num_partitions);
+                    acr_insert_numeric(&group_list, SPI_Number_of_slices_nominal,
+                               (double)num_partitions);
+                }
                 /* also have to provide slice spacing - in case of 3D it's same
                  * as slice thickness (and not provided in dicom header!)
                  */
@@ -1738,7 +1846,9 @@ add_philips_info(Acr_Group group_list)
         creator_id.element_id = 0;
     }
     if (creator_id.element_id > 0xff || creator_id.element_id < 0x01) {
-        printf("WARNING: Can't find Philips static creator ID.\n");
+        if (G.Debug >= HI_LOGGING) {
+            printf("WARNING: Can't find Philips static creator ID.\n");
+        }
 
         /* OK, this may be an old Philips file with the SPI stuff in it.
          */
@@ -1826,7 +1936,7 @@ add_philips_info(Acr_Group group_list)
         PMS_SET_CREATOR(PMS_Number_of_Slices_MR, &creator_id);
         slice_count = acr_find_int(group_list, PMS_Number_of_Slices_MR, -1);
         if (slice_count <= 0) {
-            if (G.Debug)
+            if (G.Debug >= HI_LOGGING)
                 printf("WARNING: Can't find Philips slice count\n");
         }
         else {
@@ -1849,7 +1959,7 @@ add_philips_info(Acr_Group group_list)
         PMS_SET_CREATOR(PMS_Slice_Number_MR, &creator_id);
         slice_index = acr_find_int(group_list, PMS_Slice_Number_MR, -1);
         if (slice_index < 0) {
-            if (G.Debug)
+            if (G.Debug >= HI_LOGGING)
                 printf("WARNING: Can't find Philips slice index\n");
         }
         else {
@@ -1867,7 +1977,7 @@ add_philips_info(Acr_Group group_list)
     int c1 = acr_find_int(group_list, PMS_B_value_count, -1);
     int c2 = acr_find_int(group_list, PMS_Gradient_orientation_count, -1);
     if (i1 > 0 && i2 > 0 && c1 > 1 && c2 > 1) {
-      int id = (i1 < c1) ? i1 : (c1 + i2);
+      int id = (i1 - 1) * c2 + i2;
       /* Replace broken acquisition number (0020,0012).
        */
       acr_insert_numeric(&group_list, ACR_Acquisition, id);
@@ -1875,6 +1985,7 @@ add_philips_info(Acr_Group group_list)
       /* Set the temporal position identifier.
        */
       acr_insert_numeric(&group_list, ACR_Temporal_position_identifier, id);
+      G.bogus_temporal_id = 0;
 
       /* Fake a real trigger time. This may be incorrect usage, but the
        * existing trigger time is probably not helpful.
@@ -1883,6 +1994,15 @@ add_philips_info(Acr_Group group_list)
       acr_insert_numeric(&group_list, ACR_Trigger_time, id * 1000.0);
     }
 
+    /* Extract real world mapping values from mapping sequence  */
+    if (acr_find_group_element(group_list, ACR_RealWorldValueMappingSequence) != NULL) {
+          /* Store real wold slope */
+          acr_insert_numeric(&group_list, ACR_RealWorldValue_Slope,
+                             (double)acr_get_element_numeric(acr_recurse_for_element(group_list, 0, ACR_RealWorldValueMappingSequence, ACR_RealWorldValue_Slope)));
+          /* Store real wolrd intercept */
+          acr_insert_numeric(&group_list, ACR_RealWorldValue_Intercept,
+                             (double)acr_get_element_numeric(acr_recurse_for_element(group_list, 0, ACR_RealWorldValueMappingSequence, ACR_RealWorldValue_Intercept)));
+    }
     /* Now we do some very aggressive "flattening" of parameters that should
        be in the main DICOM, taking them from the proprietary sequence.
     */
@@ -1913,28 +2033,7 @@ add_gems_info(Acr_Group group_list)
     int image_count;
     int image_index;
     double tr;
-    int ok;
-
-    ok = 1;
-    tmp_str = acr_find_string(group_list, GEMS_Acqu_private_creator_id, "");
-    if (strcmp(tmp_str, "GEMS_ACQU_01")) {
-        ok = 0;
-    }
-
-    tmp_str = acr_find_string(group_list, GEMS_Sers_private_creator_id, "");
-    if (strcmp(tmp_str, "GEMS_SERS_01")) {
-        ok = 0;
-    }
-
-    if (!ok) {
-        /* Warn only for non-PET things.  We know the PET scanner doesn't
-         * rely on this proprietary nonsense.
-         */
-        tmp_str = acr_find_string(group_list, ACR_Modality, "");
-        if (strcmp(tmp_str, ACR_MODALITY_PT) && G.Debug) {
-            printf("WARNING: GEMS data not found\n");
-        }
-    }
+    int pet;
 
     tmp_str = acr_find_string(group_list, ACR_Image_type, "");
     image_index = acr_find_int(group_list, ACR_Image, -1);
@@ -1949,12 +2048,46 @@ add_gems_info(Acr_Group group_list)
         acr_insert_long(&group_list, ACR_Images_in_acquisition, image_count);
     }
 
+    /* Warn only for non-PET things.  We know the PET scanner doesn't
+     * rely on this proprietary nonsense.
+     */
+    pet = !(strcmp(acr_find_string(group_list, ACR_Modality, ""), "PT"));
+
+    tmp_str = acr_find_string(group_list, GEMS_Sers_private_creator_id, "");
+    if (strcmp(tmp_str, "GEMS_SERS_01") && G.Debug >= HI_LOGGING &&
+        acr_find_int(group_list, ACR_Images_in_acquisition, -1) < 0 &&
+        !pet ) {
+        printf("Warning: GEMS_SERS_01 Data Element not found\n");
+    }
+
+    if (acr_find_int(group_list, ACR_Number_of_slices, -1) == G.n_distinct_coordinates && G.n_slices_nominal != 0 &&
+        acr_find_int(group_list, ACR_Images_in_acquisition, -1) > G.n_distinct_coordinates &&
+        acr_find_int(group_list, ACR_Echo_train_length, -1) <= 1 && G.n_distinct_coordinates != 0 &&
+        acr_find_int(group_list, GEMS_Locations_in_acquisition, -1) == G.n_files) {
+        acr_insert_short(&group_list, ACR_Number_of_temporal_positions, acr_find_int(group_list, GEMS_Locations_in_acquisition, -1) / G.n_distinct_coordinates);
+    }
+
+    /* Use the repetition time if it exists
+     */
+    if (tr != 0.0){
+        if (acr_find_double(group_list, ACR_Actual_frame_duration, -1.0) < 0) {
+            acr_insert_numeric(&group_list, ACR_Actual_frame_duration,
+                                tr);
+        }
+    }
+
     /* Do this only for EPI images for now 
      */
     if (strstr(tmp_str, "\\EPI") != NULL &&
         image_index >= 0 &&
         image_count > 0 &&
         tr != 0.0) {
+
+        tmp_str = acr_find_string(group_list, GEMS_Acqu_private_creator_id, "");
+        if (strcmp(tmp_str, "GEMS_ACQU_01") && G.Debug && !pet) {
+            printf("Warning: GEMS_ACQU_01 Data Element not found\n");
+        }
+
         int frame_count = acr_find_int(group_list, 
                                        GEMS_Fast_phases, -1);
 
@@ -1968,10 +2101,6 @@ add_gems_info(Acr_Group group_list)
         if (acr_find_double(group_list, ACR_Frame_reference_time, -1.0) < 0) {
             acr_insert_numeric(&group_list, ACR_Frame_reference_time,
                                (double)(((image_index - 1) / image_count) * tr) );
-        }
-        if (acr_find_double(group_list, ACR_Actual_frame_duration, -1.0) < 0) {
-            acr_insert_numeric(&group_list, ACR_Actual_frame_duration,
-                               tr);
         }
 
         if (G.Debug >= HI_LOGGING) {
@@ -2009,96 +2138,172 @@ add_gems_info(Acr_Group group_list)
    @GLOBALS    :
    @CALLS      :
    @CREATED    : 2017 (Jean-Philippe Coutu)
-   @MODIFIED   :
+   @MODIFIED   : 2019 (Nicholas Ho)
    ---------------------------------------------------------------------------- */
 
 static void
 add_gems_slice_order(File_Info *fi_ptr, General_Info *gi_ptr)
 {
     int ifile;
+    int iframe;
+    int sanity_rep_time;
     Sort_Element *sort_array;
+
+    /* First use the repetition time and the time index to determine the time coordinate if it is reliable
+     */
+    if (fi_ptr[0].valid == TRUE) {
+        sanity_rep_time = 1;
+        for (ifile = 0; ifile < (gi_ptr->num_files-1); ifile++) {
+            if (fi_ptr[ifile].rep_time != fi_ptr[ifile + 1].rep_time){
+                sanity_rep_time = 0;
+            }
+        }
+
+        if (fi_ptr[0].rep_time != 0.0 && sanity_rep_time){
+            for (ifile = 0; ifile < gi_ptr->num_files; ifile++) {
+                fi_ptr[ifile].coordinate[TIME] = fi_ptr[ifile].rep_time * (fi_ptr[ifile].index[TIME] - 1.0) / 1000.0;
+            }
+            for (iframe = 0; iframe < gi_ptr->max_size[TIME]; iframe++) {
+                gi_ptr->coordinates[TIME][iframe] = iframe * fi_ptr[0].rep_time / 1000.0;
+            }
+        }
+    }
+
     /* Note: this currently hacks the Sort_Element datatype and the compar
      * subroutine dimension_sort_function, both written for sort_dimensions().
      * Those could be generalized to be applicable to both cases, or specific
      * datatype and compar subroutines could be written for the slice order
      */
 
-    /* Don't proceed if any Temporal position identifier is missing, or if any
-     * Trigger time is missing from first volume of series
+    /* Set up the array for RTIA timer first, then trigger time. If two trigger times or RTIA timers are the
+     * same, don't proceed, as this should not happen. Note that we're using the second time frame because
+     * there are reports that mention this information may be wrong on the first frame.
      */
-    int num_slices = 0;
-    for (ifile = 0; ifile < gi_ptr->num_files; ifile++) {
-        if (fi_ptr[ifile].tpos_id == -1) {
-            return;
-        }
-        else if (fi_ptr[ifile].tpos_id == 1) {
-            if (fi_ptr[ifile].trigger_time == -1) {
-                return;
-            }
-            num_slices++;
-        }
-    }
-
-    /* Set up the array for sorting trigger times. If two trigger times are the
-     * same, don't proceed, as this should not happen
-     */
-    sort_array = malloc(num_slices * sizeof(*sort_array));
+    sort_array = malloc(gi_ptr->max_size[SLICE] * sizeof(*sort_array));
     CHKMEM(sort_array);
 
-    int i = 0, j;
+    int i = 0, j, use_trigger_time = 0;
     for (ifile = 0; ifile < gi_ptr->num_files; ifile++) {
-        if (fi_ptr[ifile].tpos_id == 1) {
+        if (fi_ptr[ifile].index[TIME] == 2) {
             sort_array[i].original_index = i;
-            sort_array[i].value = fi_ptr[ifile].trigger_time;
+            if (fi_ptr[ifile].RTIA_timer != -1) {
+                sort_array[i].value = fi_ptr[ifile].RTIA_timer;
+            }
+            else {
+                use_trigger_time = 1;
+                break;
+            }
             sort_array[i].width = fi_ptr[ifile].slice_location;
             for (j = 0; j < i; j++) {
                 if (fabs(sort_array[j].value - sort_array[i].value) < 0.0001) {
-                    return;
+                    use_trigger_time = 1;
+                    break;
                 }
             }
             i++;
         }
+        if (use_trigger_time == 1) {
+            break;
+        }
+    }
+
+    if (use_trigger_time == 1) {
+        i = 0;
+        for (ifile = 0; ifile < gi_ptr->num_files; ifile++) {
+            if (fi_ptr[ifile].index[TIME] == 2) {
+                sort_array[i].original_index = i;
+                if (fi_ptr[ifile].trigger_time != -1) {
+                    sort_array[i].value = fi_ptr[ifile].trigger_time;
+                }
+                else {
+                    return;
+                }
+                sort_array[i].width = fi_ptr[ifile].slice_location;
+                for (j = 0; j < i; j++) {
+                    if (fabs(sort_array[j].value - sort_array[i].value) < 0.0001) {
+                        return;
+                    }
+                }
+                i++;
+            }
+        }
+    }
+
+    if (i != gi_ptr->max_size[SLICE]) {
+    /* Something went wrong, more or less slices than expected for second time frame. */
+        return;
     }
 
     /* Sort the trigger times. */
-    qsort((void *) sort_array, (size_t) num_slices, sizeof(*sort_array),
+    qsort((void *) sort_array, (size_t) gi_ptr->max_size[SLICE], sizeof(*sort_array),
               dimension_sort_function);
 
     /* Create the slice location array, from array sorted by trigger time. */
-    for (i=0; i < num_slices; i++) {
+    for (i=0; i < gi_ptr->max_size[SLICE]; i++) {
         sort_array[i].original_index = i;
         sort_array[i].value = sort_array[i].width;
     }
 
     /* Sort the slice locations, with sorted indices providing slice order. */
-    qsort((void *) sort_array, (size_t) num_slices, sizeof(*sort_array),
+    qsort((void *) sort_array, (size_t) gi_ptr->max_size[SLICE], sizeof(*sort_array),
               dimension_sort_function);
 
     /* Now compare slice order with possible schemes and assign if match */
-    int sliceorder [num_slices];
-    int ascending [num_slices];
-    int descending [num_slices];
-    int interleaved [num_slices];
-    int interleaved_descending [num_slices];
-    int odd = 0, even = 1 + ((num_slices - 1) / 2);
+    int sliceorder [gi_ptr->max_size[SLICE]];
+    int ascending [gi_ptr->max_size[SLICE]];
+    int descending [gi_ptr->max_size[SLICE]];
+    int interleaved [gi_ptr->max_size[SLICE]];
+    int interleaved_descending [gi_ptr->max_size[SLICE]];
+    int interleaved_ascending_skip_4 [gi_ptr->max_size[SLICE]];
+    int interleaved_descending_skip_4 [gi_ptr->max_size[SLICE]];
+    int odd = 0, even = 1 + ((gi_ptr->max_size[SLICE] - 1) / 2);
 
-    for (i=0; i < num_slices; i++) {
+    int r, s, k = 0, q = even, p = odd, skip = 4, inc = (gi_ptr->max_size[SLICE] + skip -1) / skip;
+    r = even + inc - (gi_ptr->max_size[SLICE] % 2);
+    s = odd + inc;
+
+    for (i=0; i < gi_ptr->max_size[SLICE]; i++) {
         sliceorder[i] = sort_array[i].original_index;
         ascending[i] = i;
-        descending[i] = num_slices - i - 1;
+        descending[i] = gi_ptr->max_size[SLICE] - i - 1;
+        k++;
         if (i % 2) {
             interleaved[i] = even;
-            interleaved_descending[num_slices-i-1] = even;
+            interleaved_descending[gi_ptr->max_size[SLICE]-i-1] = even;
+            if (k == skip) {
+                interleaved_ascending_skip_4[i] = r;
+                interleaved_descending_skip_4[gi_ptr->max_size[SLICE]-i-1] = r;
+                r++;
+            }
+            else {
+                interleaved_ascending_skip_4[i] = q;
+                interleaved_descending_skip_4[gi_ptr->max_size[SLICE]-i-1] = q;
+                q++;
+            }
             even++;
         }
         else {
             interleaved[i] = odd;
-            interleaved_descending[num_slices-i-1] = odd;
+            interleaved_descending[gi_ptr->max_size[SLICE]-i-1] = odd;
+            if (k == (skip-1)) {
+                interleaved_ascending_skip_4[i] = s;
+                interleaved_descending_skip_4[gi_ptr->max_size[SLICE]-i-1] = s;
+                s++;
+            }
+            else {
+                interleaved_ascending_skip_4[i] = p;
+                interleaved_descending_skip_4[gi_ptr->max_size[SLICE]-i-1] = p;
+                p++;
+            }
             odd++;
+        }
+        if (k == skip) {
+            k = 0;
         }
     }
 
-    /* Free the temporary array we used. */
+    /* Free the temporary array we used to sort the coordinate axis.
+    */
     free(sort_array);
 
     if (memcmp(sliceorder, ascending, sizeof(sliceorder)) == 0) {
@@ -2113,9 +2318,13 @@ add_gems_slice_order(File_Info *fi_ptr, General_Info *gi_ptr)
     else if (memcmp(sliceorder, interleaved_descending, sizeof(sliceorder)) == 0) {
         strncpy(gi_ptr->acq.slice_order, "interleaved_descending", STRING_T_LEN);
     }
-
+    else if (memcmp(sliceorder, interleaved_ascending_skip_4, sizeof(sliceorder)) == 0) {
+        strncpy(gi_ptr->acq.slice_order, "interleaved_ascending_skip_4", STRING_T_LEN);
+    }
+    else if (memcmp(sliceorder, interleaved_descending_skip_4, sizeof(sliceorder)) == 0) {
+        strncpy(gi_ptr->acq.slice_order, "interleaved_descending_skip_4", STRING_T_LEN);
+    }
 }
-
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : copy_spi_to_acr()
    @INPUT      : group_list - read a standard DICOM file
@@ -2134,7 +2343,7 @@ Acr_Group
 copy_spi_to_acr(Acr_Group group_list)
 {
     int itemp;
-    double dtemp;
+    double dtemp, bval;
     Acr_String stemp;
     Acr_Element element;
 
@@ -2142,7 +2351,7 @@ copy_spi_to_acr(Acr_Group group_list)
     if (!strcmp(stemp, "SIEMENS MR HEADER ")) {
       stemp = acr_find_string(group_list, SPI_Image_header_type, "");
       if (!strcmp(stemp, "IMAGE NUM 4 ")) {
-        if (G.Debug) {
+        if (G.Debug >= HI_LOGGING) {
           printf("Incorporating Siemens private information.\n");
         }
         /* If we have this header, things like b-values are easy, because
@@ -2150,8 +2359,12 @@ copy_spi_to_acr(Acr_Group group_list)
          */
         itemp = acr_find_int(group_list, SPI_Diffusion_b_value, -1);
         if (itemp > 0) {
+          bval = (double)itemp;
           acr_insert_numeric(&group_list, EXT_Diffusion_b_value,
-                             (double)itemp);
+                             bval);
+          if (!acr_find_group_element(group_list, ACR_Diffusion_b_value)) {
+              acr_insert_double(&group_list, ACR_Diffusion_b_value, 1, &bval);
+          }
         }
 
         element = acr_find_group_element(group_list, SPI_Diffusion_gradient_direction);
@@ -2214,7 +2427,7 @@ add_shimadzu_info(Acr_Group group_list)
    ---------------------------------------------------------------------------- */
 
 Acr_Group
-read_numa4_dicom(const char *filename, int max_group, int num_files)
+read_numa4_dicom(const char *filename, int max_group)
 {
     Acr_Group group_list;
     Acr_String str_ptr;
@@ -2224,7 +2437,7 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
         return NULL;
     }
 
-    if (G.n_distinct_coordinates != 0) {
+    if (G.n_distinct_coordinates != 0 && G.n_slices_nominal != 0) {
       int ns = acr_find_int(group_list, ACR_Number_of_slices, -1);
       int nt = acr_find_int(group_list, ACR_Number_of_temporal_positions, -1);
       int ni = acr_find_int(group_list, ACR_Images_in_acquisition, -1);
@@ -2233,7 +2446,7 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
       if (ns < 0 && nt < 0 && ni > G.n_distinct_coordinates) {
         acr_insert_short(&group_list, ACR_Number_of_slices,
                          G.n_distinct_coordinates);
-        if (ne <= 1 && ni == num_files) {
+        if (ne <= 1) {
           acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
                            ni / G.n_distinct_coordinates);
         }
@@ -2247,19 +2460,13 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
     str_ptr = acr_find_string(group_list, ACR_Manufacturer, "");
     if (strstr(str_ptr, "SIEMENS") != NULL ||
         strstr(str_ptr, "Siemens") != NULL) {
-      /* At the moment we have no need of the manufacturer-specific
-       * information with Siemens PET, and there are minor bugs that
-       * cause bad behavior if the proprietary data is parsed.
-       */
-      char *modality_str = acr_find_string(group_list, ACR_Modality, "");
-      if (strcmp(modality_str, ACR_MODALITY_PT) != 0) {
+
         group_list = add_siemens_info(group_list);
 
         /* Now copy proprietary fields into the correct places in the 
          * standard groups.
          */
         group_list = copy_spi_to_acr(group_list);
-      }
     }
     else if (strstr(str_ptr, "Philips") != NULL) {
         group_list = add_philips_info(group_list);
@@ -2363,6 +2570,213 @@ search_list(int value, const int *list_ptr, int list_length, int start_index)
     return -1;                  /* Search failed. */
 }
 
+static void
+fix_dimensions(File_Info *fi_ptr, General_Info *gi_ptr)
+{
+    Mri_Index imri;
+    int found, duplicate, unique, count, expected;
+    int duplicated = 1;
+    int i, j, k;
+
+    /* A consequence of allowing the time dimension to grow is that sometimes the
+       second file in a series will not be range-checked because max_size hasn't
+       grown above one yet, creating a second index that shouldn't be. Even worse,
+       sometimes the first index will actually not be 1 and be something else,
+       creating a third index that shouldn't be. Removing the max_size[TIME] > 1
+       condition on the range check doesn't work in cases where the fix above is
+       needed, therefore this following fix is needed. It will also ensure that
+       you never end up with a time series that has a different number of slices
+       per time frame, which should never happen unless there is a problem */
+    if (gi_ptr->max_size[TIME] > 1 && gi_ptr->cur_size[TIME] > 1 &&
+        !((G.file_type == N4DCM) && (gi_ptr->num_slices_in_file > 1)) && gi_ptr->num_files > 1) {
+        int count [gi_ptr->max_size[TIME]];
+        int inconsistent = 0;
+        int sum_counts = 0;
+        for (i = 0; i < gi_ptr->max_size[TIME]; i++) {
+            count[i] = 0;
+            for (j = 0; j < gi_ptr->num_files; j++) {
+                if (fi_ptr[j].index[TIME] == gi_ptr->indices[TIME][i]) {
+                    count[i]++;
+                }
+            }
+            sum_counts += count[i];
+            if (i > 0 && count[i] != count[i-1]) {
+                /* Ignore the inconsistency if specified and if
+                   the timeframe is empty */
+                if (!(G.ignore_empty_time && count[i] == 0)){
+                    inconsistent = 1;
+                }
+            }
+            if ((i < gi_ptr->max_size[TIME] / 2 && count[i] != 2 * G.n_distinct_coordinates) ||
+                (i > gi_ptr->max_size[TIME] / 2 && count[i] != 0)) {
+                duplicated = 0;
+            }
+            if (!duplicated && i> 0 && count[i] == 0) {
+                printf("WARNING: Empty time frame %d; this can point to missing dicom files\n", i);
+            }
+        }
+        /* If we found double the number of files than expected
+           we are likely looking at a scan storing two images per temporal position.
+           This may happen for ASL scans, from e.g. Philips.
+           In those cases, honor dcm2mnc's sorting of the files, as the order
+           is likely dictated by something like InstanceNumber.
+           The offset here was needed because InstanceNumber ordered slices and frames
+           as such: frame1_slice1, frame2_slice1, frame1_slice2, frame2_slice2, etc. */
+        if (duplicated) {
+            int offset [gi_ptr->cur_size[TIME]];
+            double coords [gi_ptr->cur_size[TIME]];
+            double widths [gi_ptr->cur_size[TIME]];
+            for (i = 0; i < gi_ptr->cur_size[TIME]; i++) {
+                offset[i] = 0;
+                coords[i] = gi_ptr->coordinates[TIME][i];
+                widths[i] = gi_ptr->widths[TIME][i];
+            }
+            for (j = 0; j < gi_ptr->num_files; j++) {
+                int tmp_index = fi_ptr[j].index[TIME];
+                for (i = 0; i < gi_ptr->cur_size[TIME]; i++) {
+                    if (fi_ptr[j].index[TIME] == gi_ptr->indices[TIME][i]) {
+                        tmp_index = fi_ptr[j].index[TIME] * 2 - 1 + offset[i];
+                        offset[i] = 1 - offset[i];
+                    }
+                }
+                fi_ptr[j].index[TIME] = tmp_index;
+            }
+            gi_ptr->cur_size[TIME] = gi_ptr->max_size[TIME];
+            for (i = 0; i < gi_ptr->cur_size[TIME]; i++) {
+                gi_ptr->indices[TIME][i] = i + 1;
+                gi_ptr->coordinates[TIME][i] = coords[i/2];
+                gi_ptr->widths[TIME][i] = widths[i/2];
+            }
+        }
+        else if (inconsistent > 0){
+            /* We can assume the volume has no time dimension if
+               the total of slices across all timepoints equals
+               the expected n. of slices and the n. of distinct coordinates */
+            if ( gi_ptr->cur_size[SLICE] ==  sum_counts && G.n_distinct_coordinates == sum_counts){
+                if(G.Debug) printf("Volume has no time dimension.\n");
+            }else{
+                printf("WARNING: Inconsistent number of slices per time frame, removing time dimension; this can point to missing dicom files\n");
+            }
+            gi_ptr->cur_size[TIME] = 1;
+            gi_ptr->max_size[TIME] = 1;
+            gi_ptr->indices[TIME][0] = 1;
+            for (j = 0; j < gi_ptr->num_files; j++) {
+                fi_ptr[j].index[TIME] = 1;
+            }
+        }
+    }
+    else {
+        duplicated = 0;
+    }
+
+    /* Hopefully temporary fix to bad index assignment for 4D PET volumes,
+       sometimes for the slice coordinate, sometimes for the time coordinate  */
+    if (gi_ptr->max_size[SLICE] > 1 && gi_ptr->max_size[TIME] > 1) {
+        for (imri = 0; imri < MRI_NDIMS; imri++) {
+            if (!duplicated && !(gi_ptr->found_philips_MRLabels == 1 && imri == TIME) && gi_ptr->cur_size[imri] > 1 && !((G.file_type == N4DCM)
+                && (imri == TIME) && (gi_ptr->num_slices_in_file > 1)) ) {
+                duplicate = 0;
+                unique = 1;
+                for (i = 0; i < gi_ptr->max_size[imri] - 1; i++) {
+                    for (j = i + 1; j < gi_ptr->max_size[imri]; j++) {
+                        if (gi_ptr->coordinates[imri][i] == gi_ptr->coordinates[imri][j]) {
+                            duplicate = 1;
+                        }
+                        /* Sometimes get_coordinate_info will use the Acquisition time
+                         * for frame time, and this sometimes can be slightly off by 1
+                         * (and hopefully not by more than one)
+                         * Do not determine the coordinate is not unique just yet if so
+                        */
+                        else if (gi_ptr->coordinates[imri][j] - gi_ptr->coordinates[imri][i] != 1) {
+                            unique = 0;
+                        }
+                    }
+                }
+                /* If we found a duplicate in this context, the fix is needed,
+                   unless all files have the same coordinate */
+                if (duplicate == 1 && unique == 0) {
+                    k = 0;
+                    for (i = 0; i < gi_ptr->num_files; i++) {
+                        found = 0;
+                        for (j = 0; j < k; j++) {
+                            if (fi_ptr[i].coordinate[imri] == gi_ptr->coordinates[imri][j]) {
+                                fi_ptr[i].index[imri] = j+1;
+                                found = 1;
+                                break;
+                            }
+                        }
+                        if (found == 0) {
+                            k++;
+                            gi_ptr->indices[imri][k-1] = k;
+                            gi_ptr->coordinates[imri][k-1] = fi_ptr[i].coordinate[imri];
+                            fi_ptr[i].index[imri] = k;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* Attempt to fix time indices for multi echo fMRI before looking for inconsistencies */
+    if (gi_ptr->max_size[TIME] > 1 && gi_ptr->cur_size[TIME] > 1 &&
+        !((G.file_type == N4DCM) && (gi_ptr->num_slices_in_file > 1)) && gi_ptr->num_files > 1
+        && gi_ptr->fix_multi_echo_fMRI > 0) {
+            int time_index = 0;
+                for (j = 0; j < gi_ptr->num_files; j++) {
+                    time_index++;
+                    fi_ptr[j].index[TIME] = time_index;
+                    if (time_index == gi_ptr->cur_size[TIME]){
+                        time_index = 0;
+                     }
+                }
+    }
+}
+
+static int find_philips_MRLabels(const char *file_list[], int num_files)
+{
+    Acr_Group group_list;     /* List of ACR/NEMA groups & elements */
+    int max_group;              /* Maximum group number to read */
+    int ifile;                  /* File index */
+
+    int combine_images = 0;
+    int i, j;
+    max_group = ACR_IMAGE_GID - 1;
+    int label = 0; int control = 0;
+
+    for (ifile = 0; ifile < num_files; ifile++) {
+
+        if (G.file_type == N4DCM) {
+            group_list = read_numa4_dicom(file_list[ifile], max_group);
+        }
+        else if (G.file_type == IMA) {
+            group_list = siemens_to_dicom(file_list[ifile], max_group);
+        }
+
+        if (group_list == NULL) {
+            fprintf(stderr, "Error parsing file '%s' on 1st pass.\n",
+                    file_list[ifile]);
+            exit(-1);
+        }
+
+        if (strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "Philips") == NULL) {
+            return combine_images;
+        }
+
+        if (strstr(acr_find_string(group_list, PMS_MRImageLabelType, ""), "CONTROL") != NULL) {
+            control++;
+        }
+        else if (strstr(acr_find_string(group_list, PMS_MRImageLabelType, ""), "LABEL") != NULL) {
+            label++;
+        }
+     }
+
+    if (label == control && (label+control == num_files) ) {
+        combine_images = 1;
+    }
+
+    return combine_images;
+}
+
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : sort_dimensions
    @INPUT      : gi_ptr
@@ -2437,9 +2851,9 @@ sort_dimensions(General_Info *gi_ptr)
          * Also need to check for slice ordering, MOSAIC images are
          * always sorted from bottom to top whether the sequence was
          * ascending or descending */
-        reverse_array = (sort_array[0].original_index > 
-                         sort_array[nvalues-1].original_index) || 
-                         (!strcmp(gi_ptr->acq.slice_order,"descending")&& !strcmp(Mri_Names[imri], "Slice"));
+        reverse_array = ((sort_array[0].original_index >
+                         sort_array[nvalues-1].original_index) ||
+                         (!strcmp(gi_ptr->acq.slice_order,"descending"))) && !strcmp(Mri_Names[imri], "Slice");
 
         /* Copy the information back into the appropriate arrays */
         for (i=0; i < nvalues; i++) {
@@ -2533,7 +2947,10 @@ sort_dimensions(General_Info *gi_ptr)
                  * or negative, because of reversal (fcmp does not handle this)
                  */
                 if (!fcmp(dbl_tmp1, dbl_tmp2, fabs((dbl_tmp1 / 1000.0)))) {
-                    printf("WARNING: Coordinate spacing (%g) differs from DICOM slice spacing (%g)\n", dbl_tmp2, dbl_tmp1);
+                     if ( (!fcmp(dbl_tmp1, -dbl_tmp2, fabs(dbl_tmp1 / 1000.0)) && !G.prefer_coords) ||
+                          G.Debug >= HI_LOGGING ) {
+                        printf("WARNING: Coordinate spacing (%g) differs from DICOM slice spacing (%g)\n", dbl_tmp2, dbl_tmp1);
+                    }
                     if (!G.prefer_coords) {
                         printf(" (perhaps you should consider the -usecoordinates option)\n");
                     }
@@ -2558,6 +2975,15 @@ sort_dimensions(General_Info *gi_ptr)
             }
         } /* If slice dimension */
     } /* for all mri dimensions */
+    /* Provide a warning message if the lattice is irregular */
+    if (gi_ptr->cur_size[SLICE] > 1 && gi_ptr->num_files > 1 &&
+        gi_ptr->cur_size[TIME]*gi_ptr->cur_size[SLICE] != gi_ptr->num_files &&
+        strstr(gi_ptr->image_type_string, "MOSAIC") == NULL) {
+        printf("WARNING: Lattice size does not match the number of dicom files; lattice is either irregular or incomplete, or there are missing or irrelevant dicom files\n");
+        if(gi_ptr->num_files % gi_ptr->cur_size[SLICE] == 0) {
+            printf("WARNING: Lattice is likely to have been wrongly collapsed along one dimension\n");
+        }
+    }
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -2594,49 +3020,66 @@ dimension_sort_function(const void *v1, const void *v2)
         return 0;
 }
 
-/* Find a particular entry in the ASCCONV section of the Siemens
- * proprietary data. This is an ASCII dump of some prototocol
- * information that is not normally found elsewhere.
- */
 int
 prot_find_string(Acr_Element elem_ptr, const char *name_str, char *value)
 {
-  static const char header[] = "### ASCCONV BEGIN ";
-  char *cur_ptr = elem_ptr->data_pointer;
-  char *end_ptr = cur_ptr + elem_ptr->data_length - sizeof(header);
+    static const char prot_head[] = "### ASCCONV BEGIN ";
+    long cur_offset,tmp_offset_last, tmp_offset_first;
+    long max_offset;
+    char *field_ptr;
+    int  ix1, ix2, ASCCONV_tags = 0;
 
-  /* Scan through the element looking for the header.
-   */
-  for ( ; cur_ptr < end_ptr; cur_ptr++) {
-    if (*cur_ptr == '#' && !strncmp(header, cur_ptr, sizeof(header) - 1)) {
-      /* Found the header, so look for the specific string. We could
-       * speed this up if we parsed the whole thing in one go!
-       */
-      char *field_ptr = strstr(cur_ptr, name_str);
-      if (field_ptr != NULL) {
-        char *sp, *tp;
-        sscanf(field_ptr, "%*s %*s %s", value);
-        /* Remove any double-quote characters from the value. */
-        for (sp = tp = value; *sp != '\0'; sp++) {
-          if (*sp != '"') {
-            *tp++ = *sp;
-          }
+    max_offset = elem_ptr->data_length - sizeof(prot_head);
+    tmp_offset_last = max_offset;
+
+    // Scan through the element containing the protocol, to find the 
+    // ASCII dump of the MrProt structure.
+    //
+    /*For some reason, some dicom files have 2 "ASCCONV BEGIN" tags, this screws up the search.
+     Keep the second one we find for now, don't know if this will always work for these dual-ASCCONV
+     files. IRL*/
+    
+    for (cur_offset = 0; cur_offset < max_offset; cur_offset++) {
+        if (!memcmp(elem_ptr->data_pointer + cur_offset,
+                    prot_head, sizeof(prot_head) - 1)) {
+            tmp_offset_last = cur_offset;
+            ASCCONV_tags++;
+            if (ASCCONV_tags < 2) {
+                tmp_offset_first = cur_offset;
+            }
         }
-        return (1);
-      }
-      else {
-        /* For compatability with the previous version of the function,
-         * return an explicit zero. This is needed partly because
-         * the code is so inconsistent about how/if it handles the results
-         * of this function.
-         */
-        strcpy(value, "0");
-        return (0);
-      }
     }
-  }
-  *value = 0;
-  return (0);
+
+    cur_offset = tmp_offset_last; /*set it to the last occurence of "ASCCONV BEGIN"*/   
+    
+    /* bail if we didn't find the protocol
+     */
+    if (cur_offset == max_offset) {
+        *value = 0;
+        return (0);
+    }
+
+    field_ptr = strstr(elem_ptr->data_pointer + cur_offset, name_str);
+
+    /* fallback to use the first occurence of ASCCONV tag if the last occurence cannot be used
+    */
+    if (field_ptr == NULL && cur_offset != tmp_offset_first) {
+        field_ptr = strstr(elem_ptr->data_pointer + tmp_offset_first, name_str);
+    }
+
+    if (field_ptr != NULL) {
+        sscanf(field_ptr, "%*s %*s %s", value);
+        ix1 = 0;
+        for (ix2 = 0; value[ix2] != '\0'; ix2++) {
+            if (value[ix2] != '"') {
+                value[ix1++] = value[ix2];
+            }
+        }
+    }
+    else {
+        strcpy(value, "0");
+    }
+    return (1);
 }
 
 static char *
@@ -2762,15 +3205,27 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
     double dircos[VOL_NDIMS][WORLD_NDIMS];
     Acr_String str_tmp, str_tmp2;
     int old = 1;
+    char *header_str=NULL;
 
     if (G.Debug >= HI_LOGGING) {
         printf("mosaic_init(%lx, %lx, %d)\n",
                (unsigned long) group_list, (unsigned long) mi_ptr,
                load_image);
     }
-
+    header_str = acr_find_string(group_list, SPI_Private_creator_0029, "");
     str_tmp = acr_find_string(group_list, EXT_Slice_inverted, "0");
     mi_ptr->slice_inverted = strtol(str_tmp, NULL, 0) > 0;
+    Acr_Element protocol = acr_find_group_element(group_list, SPI_Protocol);
+    Acr_String str_ptr = acr_find_string(group_list, ACR_Manufacturer, "");
+    if ( (strstr(str_ptr, "SIEMENS") != NULL ||
+        strstr(str_ptr, "Siemens") != NULL ) && protocol == NULL && strncmp(header_str, "SIEMENS CSA HEADER", 18) ) {
+            /* Since we have no reliable way to know if a flip is needed,
+            assume values range from negative to positive and only flip if
+            the slice location value is positive */
+            if ((double)acr_find_double(group_list, ACR_Slice_location, 0.0) > 0.0) {
+                mi_ptr->slice_inverted = 1;
+            }
+    }
     if (mi_ptr->slice_inverted) {
       if (G.Debug) {
         printf("Inverting mosaic slice ordering.\n");
@@ -2884,38 +3339,13 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
      */
     dicom_read_pixel_size(group_list, pixel_spacing);
 
-    /* Get step between slices
-     */
-    separation = acr_find_double(group_list, ACR_Slice_thickness, 0.0);
-    if (separation == 0.0) {
-        separation = acr_find_double(group_list, ACR_Spacing_between_slices, 
-                                     1.0);
-    }
+    separation = get_slice_separation(group_list);
 
-    /* get image normal vector
-     * (need to compute based on dicom field, which gives
-     *  unit vectors for row and column direction)
-     * TODO: This code (and other code in this function) could probably
-     * be broken out and made redundant with other code in the converter.
-     */
     if (dicom_read_orientation(group_list, RowColVec)) {
-        memcpy(dircos[VCOLUMN], RowColVec, sizeof(*RowColVec) * WORLD_NDIMS);
-        memcpy(dircos[VROW], &RowColVec[3], sizeof(*RowColVec) * WORLD_NDIMS);
-
-        /* compute slice normal as cross product of row/column unit vectors
-         * (should check for unit length?)
-         */
-        mi_ptr->normal[XCOORD] = 
-            dircos[VCOLUMN][YCOORD] * dircos[VROW][ZCOORD] -
-            dircos[VCOLUMN][ZCOORD] * dircos[VROW][YCOORD];
-   
-        mi_ptr->normal[YCOORD] = 
-            dircos[VCOLUMN][ZCOORD] * dircos[VROW][XCOORD] -
-            dircos[VCOLUMN][XCOORD] * dircos[VROW][ZCOORD];
-   
-        mi_ptr->normal[ZCOORD] = 
-            dircos[VCOLUMN][XCOORD] * dircos[VROW][YCOORD] -
-            dircos[VCOLUMN][YCOORD] * dircos[VROW][XCOORD];
+        calculate_dircos(RowColVec, dircos, 0);
+        mi_ptr->normal[XCOORD] = dircos[VSLICE][XCOORD];
+        mi_ptr->normal[YCOORD] = dircos[VSLICE][YCOORD];
+        mi_ptr->normal[ZCOORD] = dircos[VSLICE][ZCOORD];
     }
 
     /* compute slice-to-slice step vector
@@ -3305,40 +3735,17 @@ multiframe_init(Acr_Group group_list, Multiframe_Info *mfi_ptr, int load_image)
      */
     mfi_ptr->frame_count = acr_find_int(group_list, ACR_Number_of_frames, 1);
 
-    /* Get spacing between slices
-     */
-    spacing = acr_find_double(group_list, ACR_Slice_thickness, 0.0);
-    if (spacing == 0.0) {
-        spacing = acr_find_double(group_list, ACR_Spacing_between_slices, 1.0);
-    }
+    spacing = get_slice_separation(group_list);
 
     /* get image normal vector
      * (need to compute based on dicom field, which gives
      *  unit vectors for row and column direction)
-     * TODO: This code (and other code in this function) could probably
-     * be broken out and made redundant with other code in the converter.
      */
     if (dicom_read_orientation(group_list, RowColVec)) {
-        memcpy(dircos[VCOLUMN], RowColVec, sizeof(*RowColVec) * WORLD_NDIMS);
-        memcpy(dircos[VROW], &RowColVec[3], sizeof(*RowColVec) * WORLD_NDIMS);
-
-        convert_dicom_coordinate(dircos[VROW]);
-        convert_dicom_coordinate(dircos[VCOLUMN]);
-
-        /* compute slice normal as cross product of row/column unit vectors
-         * (should check for unit length?)
-         */
-        mfi_ptr->normal[XCOORD] = 
-            dircos[VCOLUMN][YCOORD] * dircos[VROW][ZCOORD] -
-            dircos[VCOLUMN][ZCOORD] * dircos[VROW][YCOORD];
-   
-        mfi_ptr->normal[YCOORD] = 
-            dircos[VCOLUMN][ZCOORD] * dircos[VROW][XCOORD] -
-            dircos[VCOLUMN][XCOORD] * dircos[VROW][ZCOORD];
-   
-        mfi_ptr->normal[ZCOORD] = 
-            dircos[VCOLUMN][XCOORD] * dircos[VROW][YCOORD] -
-            dircos[VCOLUMN][YCOORD] * dircos[VROW][XCOORD];
+        calculate_dircos(RowColVec, dircos, 1);
+        mfi_ptr->normal[XCOORD] = dircos[VSLICE][XCOORD];
+        mfi_ptr->normal[YCOORD] = dircos[VSLICE][YCOORD];
+        mfi_ptr->normal[ZCOORD] = dircos[VSLICE][ZCOORD];
     }
 
     /* If the normal is unreliable, use a default value.
@@ -3497,6 +3904,7 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
             time_index = indices[2];
             acr_insert_numeric(&group_list, ACR_Temporal_position_identifier,
                                (double) time_index);
+            G.bogus_temporal_id = 0;
         }
     }
     else {
@@ -3512,7 +3920,6 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
            iframe, slice_index, time_index, result,
            position[0], position[1], position[2]);
 #endif
-    convert_dicom_coordinate(position);
 
     if (result != DICOM_POSITION_LOCAL) {
         /* If either no position was found for this frame number, or if
@@ -3526,6 +3933,12 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
             position[idim] = mfi_ptr->position[idim] + 
                 (double) iframe * mfi_ptr->step[idim];
         }
+        /* Convert to non-dicom convention
+         * since we convert from non-dicom to dicom convention
+         * when reading ACR_Image_position_patient in
+         * get_coordinate_info()
+         */
+        convert_dicom_coordinate(position);
     }
 
     snprintf(string, sizeof(string), "%.15g\\%.15g\\%.15g", 
@@ -3570,4 +3983,3 @@ multiframe_cleanup(Multiframe_Info *mfi_ptr)
       }
     }
 }
-
