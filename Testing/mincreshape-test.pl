@@ -46,6 +46,12 @@ if ($h1[1] != 125)
     $errors++;
     print "Test 1 failed histogram check.\n";
 }
+my @s1=`$mincinfo_bin -attvalue xspace:spacing -attvalue yspace:spacing -attvalue zspace:spacing mincreshape-t1.mnc`;
+if (grep {$_ ne "regular__\n"} @s1) {
+    $errors++;
+    print "Test 1 failed sampling check.\n";
+}
+
 
 # Case 2 - Now test the case where the fill data is out of range.
 
@@ -57,6 +63,12 @@ if ($h2[1] != 64 || $h2[0] != 61)
     $errors++;
     print "Test 2 failed histogram check.\n";
 }
+my @s2=`$mincinfo_bin -attvalue xspace:spacing -attvalue yspace:spacing -attvalue zspace:spacing mincreshape-t2.mnc`;
+if (grep {$_ ne "regular__\n"} @s2) {
+    $errors++;
+    print "Test 2 failed sampling check.\n";
+}
+
 
 # Case 3 - Now test the case where the fill data is out of range.
 
@@ -67,6 +79,11 @@ if ($h3[1] != 64 || $h3[2] != 61)
 {
     $errors++;
     print "Test 3 failed histogram check.\n";
+}
+my @s3=`$mincinfo_bin -attvalue xspace:spacing -attvalue yspace:spacing -attvalue zspace:spacing mincreshape-t3.mnc`;
+if (grep {$_ ne "regular__\n"} @s3) {
+    $errors++;
+    print "Test 3 failed sampling check.\n";
 }
 
 # Case 4 - Verify the operation of some simple manipulations
@@ -107,6 +124,12 @@ if ($h4[0] != 25 || $h4[1] != 25 || $h4[2] != 25 ||
     print "Test 4 failed histogram check.\n";
 }
 
+my @s4=`$mincinfo_bin -attvalue xspace:spacing -attvalue yspace:spacing -attvalue zspace:spacing mincreshape-t4.mnc`;
+if (grep {$_ ne "regular__\n"} @s4) {
+    $errors++;
+    print "Test 4 failed sampling check.\n";
+}
+
 # Case 5 - Now test a harder case where the fill data is out of range.
 
 system("$mincreshape_bin -clobber -quiet -unsigned -byte test-rnd.mnc mincreshape-t5a.mnc");
@@ -124,6 +147,12 @@ if ($h5[0] != 20 || $h5[1] != 20 || $h5[2] != 20 ||
     }
 }
 
+my @s5=`$mincinfo_bin -attvalue xspace:spacing -attvalue yspace:spacing -attvalue zspace:spacing mincreshape-t5.mnc`;
+if (grep {$_ ne "regular__\n"} @s5) {
+    $errors++;
+    print "Test 5 failed sampling check.\n";
+}
+
 # Case 6 - See if we can properly expand the slice dimension without
 # doing anything crazy.
 
@@ -133,6 +162,12 @@ if ($r1 != 400)
 {
     $errors++;
     print "Test 6 failed sum check: $r1\n";
+}
+
+my @s6=`$mincinfo_bin -attvalue xspace:spacing -attvalue yspace:spacing -attvalue zspace:spacing mincreshape-t6.mnc`;
+if (grep {$_ ne "regular__\n"} @s6) {
+    $errors++;
+    print "Test 6 failed sampling check.\n";
 }
 
 print "OK.\n" if $errors == 0;
