@@ -562,6 +562,8 @@ void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
       dimid = ncvarid(in_vol->file->mincid, dimname);
       if (dimid == MI_ERROR) continue;
 
+      if (in_vol->file->world_axes[idim_in] == NO_AXIS) continue;
+
       /* Get attributes from variget_file_infoable */
       (void) miattget1(in_vol->file->mincid, dimid, MIstep, 
                        NC_DOUBLE, &separations[in_vol->file->world_axes[idim_in]]);
