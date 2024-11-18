@@ -1474,9 +1474,9 @@ static void create_output_file(char *filename, int cflags,
          set_ncopts(0);
          idim = 0;
          do {
-            (void) sprintf(string, "%s%d", dimname, idim);
+            (void) snprintf(string, MAX_NC_NAME-1, "%s%d", dimname, idim);
             idim++;
-         } while (ncdimid(out_file->mincid, string) != MI_ERROR);
+         } while (ncdimid(out_file->mincid, string) != MI_ERROR );
          set_ncopts(NC_VERBOSE | NC_FATAL);
          (void) ncdimrename(out_file->mincid, out_dims[out_index], string);
          free(string);
