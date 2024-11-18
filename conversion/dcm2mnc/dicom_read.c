@@ -896,13 +896,14 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
            * be unspecified and can be guessed only by the number of
            * distinct locations discovered.
            */
-          if (imri != SLICE && gi_ptr->max_size[imri] <= 1) {
-            if (/* G.Debug && */ fi_ptr->index[imri] > 1) {
+          if (imri != SLICE && gi_ptr->max_size[imri] <= fi_ptr->index[imri]) {
+            if (/* G.Debug && */ fi_ptr->index[imri] > 1 ) {
               printf("Warning: merging extra indices on %s axis: ",
                      Mri_Names[imri]);
               printf("  %d %d\n", gi_ptr->max_size[imri],
                      fi_ptr->index[imri]);
-            }
+              //VF: HACK: extend max size ?
+            } //else
             continue;
           }
 
@@ -1824,7 +1825,7 @@ get_coordinate_info(Acr_Group group_list,
             found_dircos[VSLICE] &&
             found_dircos[VROW] &&
             found_dircos[VCOLUMN]) {
-            starts[ivolume] =
+            starts[ivolume] = 
                 coordinate[XCOORD] * dircos[ivolume][XCOORD] +
                 coordinate[YCOORD] * dircos[ivolume][YCOORD] +
                 coordinate[ZCOORD] * dircos[ivolume][ZCOORD];
@@ -2286,7 +2287,7 @@ get_standard_pet_info(Acr_Group group_list, Acr_Element sequence,
       string_t date_string;
       get_string_field(date_string, group_list, ACR_Acquisition_date);
       strncpy(time_string, acr_get_element_string(element), STRING_T_LEN);
-      sprintf(pet_ptr->injection_time, "%s%s", 
+      snprintf(pet_ptr->injection_time,STRING_T_LEN, "%s%s", 
               date_string, time_string);
     }
   }
@@ -2998,6 +2999,8 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     di_ptr->rec_rows = acr_find_int(group_list, ACR_Rows, IDEFAULT);
     di_ptr->rec_cols = acr_find_int(group_list, ACR_Columns, IDEFAULT);
 
+    /* VF: determine if this is a mosaic image */
+
     di_ptr->num_mosaic_rows = acr_find_int(group_list, EXT_Mosaic_rows,
                                            IDEFAULT);
     di_ptr->num_mosaic_cols = acr_find_int(group_list, EXT_Mosaic_columns,
@@ -3005,9 +3008,13 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     di_ptr->num_slices_in_file = acr_find_int(group_list, EXT_Slices_in_file,
                                               IDEFAULT);
 
+    /* chieck if this is multislice image */
+    if(di_ptr->num_slices_in_file==IDEFAULT)
+      di_ptr->num_slices_in_file = acr_find_int(group_list, ACR_Number_of_frames,
+                                              IDEFAULT);
+
     di_ptr->tpos_id = acr_find_int(group_list, ACR_Temporal_position_identifier,
                                    IDEFAULT);
-
     /* sequence, protocol names (useful for debugging):
      */
 

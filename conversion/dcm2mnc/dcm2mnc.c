@@ -676,6 +676,10 @@ dcm_sort_function(const void *entry1, const void *entry2)
     int series1 = (*file_info_list1)->acq_id;
     int series2 = (*file_info_list2)->acq_id;
 
+    // echo index
+    int echo1   = (*file_info_list1)->echo_number;
+    int echo2   = (*file_info_list1)->echo_number;
+
     // frame index
     int frame1 = (*file_info_list1)->dyn_scan_number;
     int frame2 = (*file_info_list2)->dyn_scan_number;
@@ -702,6 +706,8 @@ dcm_sort_function(const void *entry1, const void *entry2)
     }
     else if (type1 < type2) return -1;
     else if (type1 > type2) return 1;
+    else if (echo1 < echo2) return -1;
+    else if (echo1 > echo2) return 1;
     else if (frame1 < frame2) return -1;
     else if (frame1 > frame2) return 1;
     else if (image1 < image2) return -1;
@@ -825,10 +831,10 @@ use_the_files(int num_files,
                 cur_echo_number = di_ptr[ifile]->echo_number;
                 cur_dyn_scan_number = di_ptr[ifile]->dyn_scan_number;
 
-                strcpy(cur_patient_name, di_ptr[ifile]->patient_name);
-                strcpy(cur_patient_id, di_ptr[ifile]->patient_id);
-                strcpy(cur_sequence_name, di_ptr[ifile]->sequence_name);
-                strcpy(cur_protocol_name, di_ptr[ifile]->protocol_name);
+                strncpy(cur_patient_name,  di_ptr[ifile]->patient_name,sizeof(cur_patient_name)-1);
+                strncpy(cur_patient_id,    di_ptr[ifile]->patient_id,sizeof(cur_patient_id)-1);
+                strncpy(cur_sequence_name, di_ptr[ifile]->sequence_name,sizeof(cur_sequence_name)-1);
+                strncpy(cur_protocol_name, di_ptr[ifile]->protocol_name,sizeof(cur_protocol_name)-1);
 
                 used_file[ifile] = TRUE;
             }
@@ -844,8 +850,8 @@ use_the_files(int num_files,
                      (di_ptr[ifile]->dyn_scan_number == cur_dyn_scan_number ||
                       !G.splitDynScan) &&
                      !strcmp(cur_protocol_name, di_ptr[ifile]->protocol_name) &&
-                     !strcmp(cur_patient_name, di_ptr[ifile]->patient_name) &&
-                     !strcmp(cur_patient_id, di_ptr[ifile]->patient_id)) {
+                     !strcmp(cur_patient_name,  di_ptr[ifile]->patient_name) &&
+                     !strcmp(cur_patient_id,    di_ptr[ifile]->patient_id)) {
 
                 used_file[ifile] = TRUE;
             }
@@ -879,8 +885,13 @@ use_the_files(int num_files,
                    cur_patient_name,
                    di_ptr[acq_file_index[0]]->protocol_name,
                    acq_num_files);
-            for (ifile = 0; ifile < acq_num_files; ifile++) {
-                printf("     %s\n", di_ptr[acq_file_index[ifile]]->file_name);
+            
+            if(acq_num_files>100) {
+                printf("Have to process %d files\n", acq_num_files);
+            } else {
+                for (ifile = 0; ifile < acq_num_files; ifile++) {
+                    printf("     %s\n", di_ptr[acq_file_index[ifile]]->file_name);
+                }
             }
             if (G.List) {
                 continue;
@@ -916,6 +927,7 @@ use_the_files(int num_files,
         G.n_distinct_coordinates = 0;
         if (trust_coord) {
 #define N_HASH 1013
+
           struct coord_set {
             struct coord_set *link;
             double coord[WORLD_NDIMS];

@@ -319,9 +319,9 @@ dicom_to_minc(int num_files,
               const char *file_prefix, 
               const char **output_file_name)
 {
-    Acr_Group group_list;     /* List of ACR/NEMA groups & elements */
+    Acr_Group group_list;       /* List of ACR/NEMA groups & elements */
     File_Info *fi_ptr;          /* Array of per-file information */
-    General_Info gi;     /* General (common) DICOM file information */
+    General_Info gi;            /* General (common) DICOM file information */
     int max_group;              /* Maximum group number to read */
     Image_Data image;           /* Actual image data */
     int icvid;                  /* MINC Image Conversion Variable */
@@ -2290,7 +2290,7 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
    ---------------------------------------------------------------------------- */
 
 static void
-free_info(General_Info *gi_ptr, File_Info *fi_ptr, int num_files)
+free_info(General_Info *gi_ptr, File_Info *fi_ptr, int g)
 {
     Mri_Index imri;
 
@@ -2757,7 +2757,7 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
     Acr_Element element;
     int i;
     double pixel_spacing[2];
-    Acr_Double separation;
+    Acr_Double separation, slice_thickness,slice_spacing;
     double RowColVec[6];
     double dircos[VOL_NDIMS][WORLD_NDIMS];
     Acr_String str_tmp, str_tmp2;
@@ -2886,11 +2886,46 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
 
     /* Get step between slices
      */
-    separation = acr_find_double(group_list, ACR_Slice_thickness, 0.0);
-    if (separation == 0.0) {
-        separation = acr_find_double(group_list, ACR_Spacing_between_slices, 
-                                     1.0);
+    slice_thickness = acr_find_double(group_list, ACR_Slice_thickness, 0.0);
+    slice_spacing = acr_find_double(group_list, ACR_Spacing_between_slices, 0.0);
+
+    /* logic from  dicom_read.c:1724 */
+    if (slice_thickness == 0.0) {
+        /* No slice thickness value found. */
+        if (slice_spacing == 0.0) {
+            if (G.Debug >= HI_LOGGING) {
+                printf("Using default slice thickness of 1.0\n");
+            }
+            separation = 1.0;
+        }
+        else {
+            if (G.Debug >= HI_LOGGING) {
+                printf("Using (0018,0088) for slice thickness\n");
+            }
+            separation = slice_spacing;
+        }
     }
+    else if (slice_spacing == 0.0) {
+        /* No slice spacing value found. */
+        if (G.Debug >= HI_LOGGING) {
+            printf("Using (0018,0050) for slice thickness\n");
+        }
+        separation = slice_thickness;
+    }
+    else {
+        /* Both fields are set.  I choose the slice spacing rather
+         * than the slice thickness in this case. However, I believe
+         * there is some evidence that this can cause problems in rare
+         * cases.
+         */
+        if (G.Debug && !NEARLY_EQUAL(slice_thickness, slice_spacing)) {
+            printf("WARNING: slice thickness conflict: ");
+            printf("old = %.10f, new = %.10f\n",
+                   slice_thickness, slice_spacing);
+        }
+        separation = slice_spacing;
+    }
+
 
     /* get image normal vector
      * (need to compute based on dicom field, which gives
@@ -2901,6 +2936,10 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
     if (dicom_read_orientation(group_list, RowColVec)) {
         memcpy(dircos[VCOLUMN], RowColVec, sizeof(*RowColVec) * WORLD_NDIMS);
         memcpy(dircos[VROW], &RowColVec[3], sizeof(*RowColVec) * WORLD_NDIMS);
+
+        /*VF: make it consistent with multiframe */
+        convert_dicom_coordinate(dircos[VROW]);
+        convert_dicom_coordinate(dircos[VCOLUMN]); 
 
         /* compute slice normal as cross product of row/column unit vectors
          * (should check for unit length?)
@@ -3194,7 +3233,7 @@ mosaic_insert_subframe(Acr_Group group_list, Mosaic_Info *mi_ptr,
             (double) islice * mi_ptr->step[ZCOORD];
     }*/
 
-    snprintf(string, sizeof(string), "%.15g\\%.15g\\%.15g", 
+    snprintf(string, sizeof(string)-1, "%.15g\\%.15g\\%.15g", 
             position[XCOORD], position[YCOORD], position[ZCOORD]);
 
     acr_insert_string(&group_list, ACR_Image_position_patient, string);
@@ -3283,7 +3322,7 @@ multiframe_init(Acr_Group group_list, Multiframe_Info *mfi_ptr, int load_image)
     void *data_ptr;
     Acr_Element element;
     int i;
-    Acr_Double spacing;
+    Acr_Double spacing,slice_thickness,slice_spacing;
     double RowColVec[6];
     double dircos[VOL_NDIMS][WORLD_NDIMS];
     int rows;
@@ -3307,9 +3346,46 @@ multiframe_init(Acr_Group group_list, Multiframe_Info *mfi_ptr, int load_image)
 
     /* Get spacing between slices
      */
-    spacing = acr_find_double(group_list, ACR_Slice_thickness, 0.0);
-    if (spacing == 0.0) {
-        spacing = acr_find_double(group_list, ACR_Spacing_between_slices, 1.0);
+    /* Get step between slices
+     */
+    slice_thickness = acr_find_double(group_list, ACR_Slice_thickness, 0.0);
+    slice_spacing = acr_find_double(group_list, ACR_Spacing_between_slices, 0.0);
+
+    /* logic from  dicom_read.c:1724 */
+    if (slice_thickness == 0.0) {
+        /* No slice thickness value found. */
+        if (slice_spacing == 0.0) {
+            if (G.Debug >= HI_LOGGING) {
+                printf("Using default slice thickness of 1.0\n");
+            }
+            spacing = 1.0;
+        }
+        else {
+            if (G.Debug >= HI_LOGGING) {
+                printf("Using (0018,0088) for slice thickness\n");
+            }
+            spacing = slice_spacing;
+        }
+    }
+    else if (slice_spacing == 0.0) {
+        /* No slice spacing value found. */
+        if (G.Debug >= HI_LOGGING) {
+            printf("Using (0018,0050) for slice thickness\n");
+        }
+        spacing = slice_thickness;
+    }
+    else {
+        /* Both fields are set.  I choose the slice spacing rather
+         * than the slice thickness in this case. However, I believe
+         * there is some evidence that this can cause problems in rare
+         * cases.
+         */
+        if (G.Debug && !NEARLY_EQUAL(slice_thickness, slice_spacing)) {
+            printf("WARNING: slice thickness conflict: ");
+            printf("old = %.10f, new = %.10f\n",
+                   slice_thickness, slice_spacing);
+        }
+        spacing = slice_spacing;
     }
 
     /* get image normal vector

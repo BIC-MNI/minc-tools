@@ -448,9 +448,9 @@ create_minc_file(const char *minc_file,
 
             /* Create file name */
 
-            strfminc(file_name, sizeof(file_name), fn_fmt_ptr, general_info);
-            strcat(full_path, file_name);
-            strcat(full_path, ".mnc");
+            strfminc(file_name, sizeof(file_name)-1, fn_fmt_ptr, general_info);
+            strncat(full_path, file_name,sizeof(full_path)-1);
+            strncat(full_path, ".mnc",sizeof(full_path)-1);
             filename = full_path;
 
             if (!duplicate_file_name(full_path)) {

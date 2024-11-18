@@ -28,3 +28,5 @@ GLOBAL_ELEMENT(EXT_MrProt_dump                        , 0x0023, 0x0006, LO);
 GLOBAL_ELEMENT(EXT_Diffusion_b_value                  , 0x0023, 0x0007, LO);
 
 
+/*VF: from dcm2niix*/
+GLOBAL_ELEMENT(EXT_NumberOfImagesInGridUIH            , 0x0065, 0x1050, DS);
