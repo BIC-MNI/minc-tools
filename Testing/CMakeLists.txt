@@ -1,16 +1,16 @@
 # Fix tools tests to avoid modifications to source directory (bert).
 # 
 # Get path to minctools binaries.
-GET_PROPERTY(mincstats_bin TARGET mincstats PROPERTY LOCATION)
-GET_PROPERTY(mincinfo_bin TARGET mincinfo PROPERTY LOCATION)
-GET_PROPERTY(mincextract_bin TARGET mincextract PROPERTY LOCATION)
-GET_PROPERTY(mincaverage_bin TARGET mincaverage PROPERTY LOCATION)
-GET_PROPERTY(mincresample_bin TARGET mincresample PROPERTY LOCATION)
-GET_PROPERTY(minccalc_bin TARGET minccalc PROPERTY LOCATION)
-GET_PROPERTY(mincreshape_bin TARGET mincreshape PROPERTY LOCATION)
-GET_PROPERTY(mincmorph_bin TARGET mincmorph PROPERTY LOCATION)
-GET_PROPERTY(minccmp_bin TARGET minccmp PROPERTY LOCATION)
-GET_PROPERTY(minclookup_bin TARGET minclookup PROPERTY LOCATION)
+#GET_PROPERTY(mincstats_bin TARGET mincstats PROPERTY LOCATION)
+#GET_PROPERTY(mincinfo_bin TARGET mincinfo PROPERTY LOCATION)
+#GET_PROPERTY(mincextract_bin TARGET mincextract PROPERTY LOCATION)
+#GET_PROPERTY(mincaverage_bin TARGET mincaverage PROPERTY LOCATION)
+#GET_PROPERTY(mincresample_bin TARGET mincresample PROPERTY LOCATION)
+#GET_PROPERTY(minccalc_bin TARGET minccalc PROPERTY LOCATION)
+#GET_PROPERTY(mincreshape_bin TARGET mincreshape PROPERTY LOCATION)
+#GET_PROPERTY(mincmorph_bin TARGET mincmorph PROPERTY LOCATION)
+#GET_PROPERTY(minccmp_bin TARGET minccmp PROPERTY LOCATION)
+#GET_PROPERTY(minclookup_bin TARGET minclookup PROPERTY LOCATION)
 
 SET(mincdiff_bin ${CMAKE_CURRENT_SOURCE_DIR}/../progs/mincdiff/mincdiff)
 
