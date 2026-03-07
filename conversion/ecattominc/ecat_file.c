@@ -735,8 +735,8 @@ static int ecat_get_value(Ecat_file *file,
    case ecat_char:
       (void) memcpy(string, &header[offset], length);
       string[length] = '\0';
-      if (ivalue != NULL) *ivalue = atoi(svalue);
-      if (fvalue != NULL) *fvalue = atof(svalue);
+      if (ivalue != NULL) *ivalue = atoi(string);
+      if (fvalue != NULL) *fvalue = atof(string);
       if (svalue != NULL) (void) strcpy(svalue, string);
       break;
    default:
