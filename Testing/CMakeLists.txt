@@ -1,18 +1,4 @@
 # Fix tools tests to avoid modifications to source directory (bert).
-# 
-# Get path to minctools binaries.
-#GET_PROPERTY(mincstats_bin TARGET mincstats PROPERTY LOCATION)
-#GET_PROPERTY(mincinfo_bin TARGET mincinfo PROPERTY LOCATION)
-#GET_PROPERTY(mincextract_bin TARGET mincextract PROPERTY LOCATION)
-#GET_PROPERTY(mincaverage_bin TARGET mincaverage PROPERTY LOCATION)
-#GET_PROPERTY(mincresample_bin TARGET mincresample PROPERTY LOCATION)
-#GET_PROPERTY(minccalc_bin TARGET minccalc PROPERTY LOCATION)
-#GET_PROPERTY(mincreshape_bin TARGET mincreshape PROPERTY LOCATION)
-#GET_PROPERTY(mincmorph_bin TARGET mincmorph PROPERTY LOCATION)
-#GET_PROPERTY(minccmp_bin TARGET minccmp PROPERTY LOCATION)
-#GET_PROPERTY(minclookup_bin TARGET minclookup PROPERTY LOCATION)
-
-SET(mincdiff_bin ${CMAKE_CURRENT_SOURCE_DIR}/../progs/mincdiff/mincdiff)
 
 # Copy files used by minccalc-test and other tests.
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/test-zero.mnc" "${CMAKE_CURRENT_BINARY_DIR}/test-zero.mnc" COPYONLY)
@@ -49,18 +35,6 @@ IF(MINC_TEST_ENVIRONMENT)
 ELSE()
     SET(MINCTOOLS_TEST_ENVIRONMENT "")
 ENDIF()
-
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCAVERAGE_BIN=${mincaverage_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCSTATS_BIN=${mincstats_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCINFO_BIN=${mincinfo_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCRESAMPLE_BIN=${mincresample_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCCALC_BIN=${minccalc_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCRESHAPE_BIN=${mincreshape_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCMORPH_BIN=${mincmorph_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCCMP_BIN=${minccmp_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCDIFF_BIN=${mincdiff_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCLOOKUP_BIN=${minclookup_bin}")
-LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT "MINCEXTRACT_BIN=${mincextract_bin}")
 
 SET(MINCTOOLS_TEST_ENVIRONMENT1 ${MINCTOOLS_TEST_ENVIRONMENT})
 SET(MINCTOOLS_TEST_ENVIRONMENT2 ${MINCTOOLS_TEST_ENVIRONMENT})
@@ -104,8 +78,6 @@ ADD_TEST12(minccalc-labels-test ${CMAKE_CURRENT_SOURCE_DIR}/minccalc-labels-test
 ADD_TEST12(minclookup-labels-test ${CMAKE_CURRENT_SOURCE_DIR}/minclookup-labels-test.sh)
 
 ADD_TEST12(mincresample-test ${CMAKE_CURRENT_SOURCE_DIR}/mincresample-test.sh)
-
-# Get path to mincaverage binary.
 
 ADD_TEST12(mincreshape-test ${CMAKE_CURRENT_SOURCE_DIR}/mincreshape-test.pl)
 
