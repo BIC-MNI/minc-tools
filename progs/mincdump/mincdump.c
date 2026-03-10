@@ -478,17 +478,17 @@ do_ncdump(char *path, struct fspec* specp)
 		/* get _FillValue attribute */
                 old_nc_opts =get_ncopts();
                 set_ncopts(0);
-                nc_status = ncattinq(ncid,varid,_FillValue,&att.type,&att.len);
+                nc_status = ncattinq(ncid,varid,NC_FillValue,&att.type,&att.len);
                 set_ncopts(old_nc_opts);
 		if(nc_status == NC_NOERR &&
 		   att.type == var.type && att.len == 1) {
 		    if(var.type == NC_CHAR) {
 			char fillc;
-			ncattget(ncid, varid, _FillValue, &fillc );
+			ncattget(ncid, varid, NC_FillValue, &fillc );
 			var.fillval = fillc;
 		    } 
                     else {
-			ncattget(ncid, varid, _FillValue, &var.fillval);
+			ncattget(ncid, varid, NC_FillValue, &var.fillval);
 		    }
 		} else {
 		    switch (var.type) {
