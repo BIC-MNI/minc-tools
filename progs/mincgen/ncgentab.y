@@ -7,6 +7,9 @@
 /* yacc source for "ncgen", a netCDL parser and netCDF generator */
 
 %{
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include        <string.h>
 #include	<stdlib.h>
 #include	<minc.h>

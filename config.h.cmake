@@ -50,6 +50,13 @@
 #cmakedefine HAVE_STRINGS_H 1 
 #cmakedefine HAVE_STRING_H 1 
 
+/* NC_FillValue compatibility: older NetCDF versions defined NC_FillValue,
+   newer versions only define _FillValue */
+#cmakedefine HAVE_NC_FILLVALUE 1
+#ifndef HAVE_NC_FILLVALUE
+#define NC_FillValue _FillValue
+#endif
+
 #cmakedefine OPENJPEG_FOUND 1
 #cmakedefine OPENJPEG1_FOUND 1
 #cmakedefine OPENJPEG2_FOUND 1
