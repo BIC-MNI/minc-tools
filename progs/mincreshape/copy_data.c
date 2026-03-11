@@ -153,8 +153,8 @@ int copy_data(Reshape_info *reshape_info)
 {
    int idim, odim, out_ndims;
    long block_begin[MAX_VAR_DIMS], block_end[MAX_VAR_DIMS];
-   long block_count[MAX_VAR_DIMS];
-   long block_cur_start[MAX_VAR_DIMS], block_cur_count[MAX_VAR_DIMS];
+   long block_count[MAX_VAR_DIMS] = {0};
+   long block_cur_start[MAX_VAR_DIMS] = {0}, block_cur_count[MAX_VAR_DIMS] = {0};
    long chunk_begin[MAX_VAR_DIMS], chunk_end[MAX_VAR_DIMS];
    long chunk_count[MAX_VAR_DIMS];
    long chunk_cur_start[MAX_VAR_DIMS], chunk_cur_count[MAX_VAR_DIMS];
@@ -500,12 +500,15 @@ static void get_block_min_and_max(Reshape_info *reshape_info,
    int iloop;
    long num_min_values, num_max_values, ivalue;
    int inmincid, inimgid, varid, icvid;
-   long minmax_start[MAX_VAR_DIMS], minmax_count[MAX_VAR_DIMS];
+   long minmax_start[MAX_VAR_DIMS] = {0}, minmax_count[MAX_VAR_DIMS] = {0};
    long input_block_start[MAX_VAR_DIMS], input_block_count[MAX_VAR_DIMS];
    double *extreme;
    long num_values;
    char *varname;
    double sign, default_extreme;
+   int minmax_ndims;
+   int minmax_dimids[MAX_VAR_DIMS];
+   long minmax_dimsizes[MAX_VAR_DIMS];
 
    /* Get input minc id, image id and icv id*/
    inmincid = reshape_info->inmincid;
@@ -566,10 +569,19 @@ static void get_block_min_and_max(Reshape_info *reshape_info,
           * the input data, and the library magically makes this work. 
           * But we can't do the same for the image-min and image-max
           * variables, we need to enforce the true file sizes here.
+          *
+          * Note: we must iterate over the min/max variable's own
+          * dimensions (minmax_ndims), not input_ndims, since
+          * mitranslate_coords only populates minmax_count for the
+          * dimensions of the min/max variable.
           */
-         for (ivalue = 0; ivalue < reshape_info->input_ndims; ivalue++) {
-            if (reshape_info->original_size[ivalue] < minmax_count[ivalue]) {
-               minmax_count[ivalue] = reshape_info->original_size[ivalue];
+         (void) ncvarinq(inmincid, varid, NULL, NULL,
+                         &minmax_ndims, minmax_dimids, NULL);
+         for (ivalue = 0; ivalue < minmax_ndims; ivalue++) {
+            (void) ncdiminq(inmincid, minmax_dimids[ivalue], NULL,
+                            &minmax_dimsizes[ivalue]);
+            if (minmax_dimsizes[ivalue] < minmax_count[ivalue]) {
+               minmax_count[ivalue] = minmax_dimsizes[ivalue];
             }
          }
          if (num_values > minmax_count[0]) {
