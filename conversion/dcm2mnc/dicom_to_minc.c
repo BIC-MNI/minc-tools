@@ -555,6 +555,7 @@ dicom_to_minc(int num_files,
         if (!fi_ptr[ifile].valid) {
             printf("WARNING: file %s was marked invalid\n", 
                    file_list[ifile]);
+            iimage++;
             continue;
         }
      
@@ -577,6 +578,7 @@ dicom_to_minc(int num_files,
                 fprintf(stderr, "WARNING: parsing file '%s' during 2nd pass.\n",
                         file_list[ifile]);
                 fi_ptr[ifile].valid = FALSE;
+                iimage++;
                 continue;
             }
         }
