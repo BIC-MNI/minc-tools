@@ -52,6 +52,11 @@ Save file in NIfTI-1 single-file format (.nii)
 .TP
 .BI -analyze
 Save file in Analyze 7.5 compatible format
+.TP
+.BI -compress
+Write gzip-compressed output. When combined with \fB-nii\fR (or when the output
+filename ends in \fB.nii.gz\fR), produces a single compressed file with the
+\fB.nii.gz\fR suffix.
 .SH "Output voxel format"
 .TP 
 .BI -float

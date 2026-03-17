@@ -112,6 +112,7 @@ main(int argc, char **argv)
     static int nifti_filetype;
     static int nifti_datatype;
     static int nifti_signed = 1;
+    static int nifti_compress = 0;  /* Gzip compress output (default: off) */
 
     /* MINC stuff */
     int mnc_fd;                 /* MINC file descriptor */
@@ -180,6 +181,10 @@ main(int argc, char **argv)
         {"-analyze", ARGV_CONSTANT, (char *)NIFTI_FTYPE_ANALYZE,
          (char *)&nifti_filetype,
          "Write an Analyze two-file format file (.img and .hdr)"},
+        {NULL, ARGV_HELP, NULL, NULL,
+         "Output compression"},
+        {"-compress", ARGV_CONSTANT, (char *)1, (char *)&nifti_compress,
+         "Write gzip-compressed output (.nii.gz)"},
         {NULL, ARGV_HELP, NULL, NULL,
          "Other options"},
         {"-quiet", ARGV_CONSTANT, (char *)0,
@@ -276,11 +281,33 @@ main(int argc, char **argv)
                 }
                 *str_ptr = '\0';
             }
+            else if (!strcmp(str_ptr, ".gz")) {
+                /* Could be .nii.gz — check the portion before .gz */
+                *str_ptr = '\0';
+                char *prev_ptr = strrchr(out_str, '.');
+                if (prev_ptr != NULL && !strcmp(prev_ptr, ".nii")) {
+                    if (nifti_filetype < 0) {
+                        nifti_filetype = NIFTI_FTYPE_NIFTI1_1;
+                    }
+                    nifti_compress = 1;
+                    *prev_ptr = '\0';   /* strip .nii, leaving bare stem in out_str */
+                } else {
+                    *str_ptr = '.';     /* restore .gz — unrecognised extension, leave as-is */
+                }
+            }
         }
     }
     else {
         fprintf(stderr, "Filename argument required\n");
         return usage();
+    }
+
+    /* When compression is requested, pass a .nii.gz filename to
+     * nifti_set_filenames() so that nifti_is_gzfile() returns 1 and
+     * znzlib gzip I/O is enabled automatically. out_str holds a bare
+     * stem at this point (any recognised extension was already stripped). */
+    if (nifti_compress) {
+        strncat(out_str, ".nii.gz", sizeof(out_str) - strlen(out_str) - 1);
     }
 
     /* Open the MINC file.  It needs to exist.
