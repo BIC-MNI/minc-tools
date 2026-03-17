@@ -534,9 +534,9 @@ VIO_Volume  group_kernel(Kernel * K, VIO_Volume vol, double bg)
    SET_ARRAY_SIZE(counts, 0, group_idx, 500);
    counts[0] = 0;
 
-   for(z = -k1->pre_pad[2]; z < sizes[0] - k1->post_pad[2]; z++){
-      for(y = -k1->pre_pad[1]; y < sizes[1] - k1->post_pad[1]; y++){
-         for(x = -k1->pre_pad[0]; x < sizes[2] - k1->post_pad[0]; x++){
+   for(z = 0; z < sizes[0]; z++){
+      for(y = 0; y < sizes[1]; y++){
+         for(x = 0; x < sizes[2]; x++){
 
             if(get_volume_voxel_value(tmp_vol, z, y, x, 0, 0) != bg){
 
@@ -545,10 +545,21 @@ VIO_Volume  group_kernel(Kernel * K, VIO_Volume vol, double bg)
                min_label = INT_MAX;
 
                for(c = 0; c < (unsigned) k1->nelems; c++){
+                  int nz = z + (int)k1->K[c][2];
+                  int ny = y + (int)k1->K[c][1];
+                  int nx = x + (int)k1->K[c][0];
+
+                  /* skip out-of-bounds neighbors (treat as background) */
+                  if(nz < 0 || nz >= sizes[0] ||
+                     ny < 0 || ny >= sizes[1] ||
+                     nx < 0 || nx >= sizes[2]){
+                     continue;
+                  }
+
                   value = (unsigned int)get_volume_voxel_value(vol,
-                                                               z + k1->K[c][2],
-                                                               y + k1->K[c][1],
-                                                               x + k1->K[c][0],
+                                                               nz,
+                                                               ny,
+                                                               nx,
                                                                0 + k1->K[c][3],
                                                                0 + k1->K[c][4]);
                   if(value != 0){
