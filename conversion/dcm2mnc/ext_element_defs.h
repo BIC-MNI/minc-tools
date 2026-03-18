@@ -43,3 +43,8 @@ GLOBAL_ELEMENT(EXT_Slice_inverted             , 0x0023, 0x000A, LO);
 
 /* Slice orientation: 1 -> SAGITTAL, 2 -> CORONAL, 0 -> TRANSVERSE */
 GLOBAL_ELEMENT(EXT_Slice_orientation          , 0x0023, 0x000B, LO);
+
+/* Non-zero if mosaic position correction should be skipped (e.g. UIH):
+ * UIH provides per-slice IPP directly, not the Numaris 4 mosaic-center IPP.
+ */
+GLOBAL_ELEMENT(EXT_No_mosaic_correction       , 0x0023, 0x000C, LO);
