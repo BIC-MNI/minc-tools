@@ -2186,7 +2186,99 @@ copy_spi_to_acr(Acr_Group group_list)
     return (group_list);
 }
 
-Acr_Group 
+/* ----------------------------- MNI Header -----------------------------------
+   @NAME       : add_uih_info
+   @INPUT      : group_list
+   @OUTPUT     : (none)
+   @RETURNS    : Updated group_list
+   @DESCRIPTION: Set up mosaic parameters for UIH (United Imaging Healthcare)
+                 DICOM files. UIH stores mosaic slice count in (0065,1050) and
+                 per-slice data (including image position) in (0065,1051) SQ.
+   @METHOD     :
+   @GLOBALS    : G
+   @CALLS      : flatten_sequences
+   @CREATED    : 2024 (Vladimir Fonov)
+   @MODIFIED   :
+   ---------------------------------------------------------------------------- */
+
+static Acr_Group
+add_uih_info(Acr_Group group_list)
+{
+    DEFINE_ELEMENT(static, UIH_slices_in_mosaic, 0x0065, 0x1050, DS);
+    DEFINE_ELEMENT(static, UIH_slice_data_seq,   0x0065, 0x1051, SQ);
+
+    int n_slices, nRow, nCol, sub_rows, sub_cols;
+    int big_rows, big_cols;
+    double spacing;
+    Acr_Element sq_element, item;
+
+    /* Read the number of slices in the mosaic */
+    n_slices = acr_find_int(group_list, UIH_slices_in_mosaic, 0);
+    if (n_slices <= 0) {
+        return group_list;  /* Not a UIH mosaic */
+    }
+
+    /* Get the full mosaic image dimensions */
+    big_cols = acr_find_int(group_list, ACR_Columns, 0);
+    big_rows = acr_find_int(group_list, ACR_Rows, 0);
+    if (big_cols <= 0 || big_rows <= 0) {
+        return group_list;
+    }
+
+    /* Compute mosaic grid (same logic as dcm2niix UIH handling) */
+    nCol = (int)ceil(sqrt((double)n_slices));
+    nRow = (int)ceil((double)n_slices / (double)nCol);
+    sub_cols = big_cols / nCol;
+    sub_rows = big_rows / nRow;
+
+    /* Set EXT mosaic tags used by mosaic_init() and mosaic_insert_subframe() */
+    acr_insert_numeric(&group_list, EXT_Slices_in_file, (double)n_slices);
+    acr_insert_short(&group_list, EXT_Sub_image_rows,    (Acr_Short)sub_rows);
+    acr_insert_short(&group_list, EXT_Sub_image_columns, (Acr_Short)sub_cols);
+
+    /* UIH puts (0028,0008) = number of DWI volumes, but get_axis_lengths()
+     * uses ACR_Number_of_frames for the SLICE dimension before checking
+     * ACR_Images_in_acquisition.  Override with the true mosaic slice count
+     * so max_size[SLICE] = n_slices (not the DWI volume count).
+     */
+    acr_insert_short(&group_list, ACR_Number_of_slices, (Acr_Short)n_slices);
+
+    /* Flatten (0065,1051) SQ to promote first slice's (0020,0032) IPP to top
+     * level so dicom_read_position() can find it.
+     */
+    sq_element = acr_find_group_element(group_list, UIH_slice_data_seq);
+    if (sq_element != NULL && acr_element_is_sequence(sq_element)) {
+        item = (Acr_Element) acr_get_element_data(sq_element);
+        if (item != NULL) {
+            group_list = flatten_sequences(item, group_list);
+        }
+    }
+
+    /* Tell mosaic_init() not to apply the Numaris 4 position correction.
+     * UIH provides the actual per-slice corner IPP, not mosaic-center IPP.
+     */
+    acr_insert_numeric(&group_list, EXT_No_mosaic_correction, 1.0);
+
+    /* Set slice count so get_axis_lengths() returns n_slices per mosaic */
+    acr_insert_long(&group_list, ACR_Images_in_acquisition, (Acr_Long)n_slices);
+
+    /* Use inter-slice spacing as thickness for correct z step */
+    spacing = acr_find_double(group_list, ACR_Spacing_between_slices, 0.0);
+    if (spacing > 0.0) {
+        acr_insert_numeric(&group_list, ACR_Slice_thickness, spacing);
+    }
+
+    /* Use image number as temporal index (DWI volume) and pin slice index
+     * to 1 so all mosaic files map to the same "slice" dimension slot.
+     */
+    acr_insert_numeric(&group_list, SPI_Current_slice_number, 1.0);
+    acr_insert_numeric(&group_list, ACR_Temporal_position_identifier,
+                       (double) acr_find_int(group_list, ACR_Image, 1));
+
+    return group_list;
+}
+
+Acr_Group
 add_shimadzu_info(Acr_Group group_list)
 {
     Acr_String str_ptr;
@@ -2270,6 +2362,9 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
     }
     else if (strstr(str_ptr, "shimadzu") != NULL) {
         group_list = add_shimadzu_info(group_list);
+    }
+    else if (strstr(str_ptr, "UIH") != NULL) {
+        group_list = add_uih_info(group_list);
     }
     return (group_list);
 }
@@ -2437,9 +2532,31 @@ sort_dimensions(General_Info *gi_ptr)
          * Also need to check for slice ordering, MOSAIC images are
          * always sorted from bottom to top whether the sequence was
          * ascending or descending */
-        reverse_array = (sort_array[0].original_index > 
-                         sort_array[nvalues-1].original_index) || 
-                         (!strcmp(gi_ptr->acq.slice_order,"descending")&& !strcmp(Mri_Names[imri], "Slice"));
+        /* For Enhanced DICOM multiframe, frames are assigned sequential
+         * original_index values (0..N-1) matching file order, which is
+         * often anatomically descending. After qsort the coordinates are
+         * in correct anatomical order — do not reverse for this case.
+         */
+        if (imri == SLICE && gi_ptr->subimage_type == SUBIMAGE_TYPE_MULTIFRAME) {
+            reverse_array = 0;
+        } else if (imri == SLICE &&
+                   gi_ptr->subimage_type == SUBIMAGE_TYPE_MOSAIC) {
+            /* Siemens mosaic: sub-images are always laid out in the mosaic
+             * grid in ascending order of their slice coordinate (computed
+             * via mosaic_insert_subframe from a step vector in DICOM LPS
+             * space).  For the Z-axis (axial), LPS z == MINC z, so the
+             * ascending MINC z order matches dcm2niix canonical ordering —
+             * no reversal.  For X/Y-axis slices (sagittal/coronal), the
+             * LPS-to-MINC coordinate flip (x_MINC = -x_LPS) means the
+             * sub-image positions increase in the direction OPPOSITE to
+             * dcm2niix canonical; reverse to correct this.
+             */
+            reverse_array = (gi_ptr->slice_world != ZCOORD);
+        } else {
+            reverse_array = (sort_array[0].original_index >
+                             sort_array[nvalues-1].original_index) ||
+                             (!strcmp(gi_ptr->acq.slice_order,"descending") && !strcmp(Mri_Names[imri], "Slice"));
+        }
 
         /* Copy the information back into the appropriate arrays */
         for (i=0; i < nvalues; i++) {
@@ -2948,6 +3065,15 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
                );
     }
 
+    /* UIH mosaics provide the actual per-slice corner IPP directly in
+     * (0065,1051) SQ — no Numaris 4 mosaic-center correction is needed.
+     */
+    if (acr_find_int(group_list, EXT_No_mosaic_correction, 0)) {
+        if (G.Debug) {
+            printf("Skipping mosaic position correction (UIH mosaic).\n");
+        }
+    }
+    else {
     old = old_mosaic_ordering(group_list);
 
     if (old) { /*old behavior*/
@@ -2957,21 +3083,21 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
       if (mi_ptr->mosaic_seq != MOSAIC_SEQ_INTERLEAVED) {
         if (is_numaris3(group_list)) {
             for (i = 0; i < WORLD_NDIMS; i++) {
-                mi_ptr->position[i] -= 
+                mi_ptr->position[i] -=
                     (double) (mi_ptr->sub_images-1) * mi_ptr->step[i];
-            } 
+            }
         }
         else {
             /* Numaris 4 mosaic correction:
-             * - position given is edge of huge slice constructed as if 
+             * - position given is edge of huge slice constructed as if
              *   real slice was at center of mosaic
              * - mi_ptr->big[0,1] are number of columns and rows of mosaic
              * - mi_ptr->size[0,1] are number of columns and rows of sub-image
              */
             if (G.Debug >= HI_LOGGING) {
-                printf(" big = %d,%d, size=%d,%d spacing %f,%f\n", 
-                       mi_ptr->big[0], mi_ptr->big[1], 
-                       mi_ptr->size[0], mi_ptr->size[1], 
+                printf(" big = %d,%d, size=%d,%d spacing %f,%f\n",
+                       mi_ptr->big[0], mi_ptr->big[1],
+                       mi_ptr->size[0], mi_ptr->size[1],
                        pixel_spacing[0], pixel_spacing[1]);
             }
             for (i = 0; i < WORLD_NDIMS; i++) {
@@ -2981,10 +3107,10 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
                   mi_ptr->position[i] += (double)
                     ((dircos[VCOLUMN][i] * mi_ptr->big[0] * pixel_spacing[0]/2.0) +
                      (dircos[VROW][i] * mi_ptr->big[1] * pixel_spacing[1]/2));
-                
+
                  /* Move from center to corner of slice
                   */
-                  mi_ptr->position[i] -= 
+                  mi_ptr->position[i] -=
                     ((dircos[VCOLUMN][i] * mi_ptr->size[0] * pixel_spacing[0]/2.0) +
                      (dircos[VROW][i] * mi_ptr->size[1] * pixel_spacing[1]/2.0));
             }
@@ -3003,14 +3129,15 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
                   mi_ptr->position[i] += (double)
                     ((dircos[VCOLUMN][i] * mi_ptr->big[0] * pixel_spacing[0]/2.0) +
                      (dircos[VROW][i] * mi_ptr->big[1] * pixel_spacing[1]/2));
-                
+
                  /* Move from center to corner of slice
                   */
-                  mi_ptr->position[i] -= 
+                  mi_ptr->position[i] -=
                     ((dircos[VCOLUMN][i] * mi_ptr->size[0] * pixel_spacing[0]/2.0) +
                      (dircos[VROW][i] * mi_ptr->size[1] * pixel_spacing[1]/2.0));
        }
     }
+    } /* end !EXT_No_mosaic_correction */
     
     if (G.Debug >= HI_LOGGING) {
         printf(" corrected position %.3f %.3f %.3f\n",
@@ -3516,19 +3643,27 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
 
     if (result != DICOM_POSITION_LOCAL) {
         /* If either no position was found for this frame number, or if
-         * only a global position was found, we need to update the 
+         * only a global position was found, we need to update the
          * position for this particular frame number.
-         * 
+         *
          * If a local position is found, as in some multiframe files,
          * this step is unnecessary and possibly wrong.
          */
         for (idim = 0; idim < WORLD_NDIMS; idim++) {
-            position[idim] = mfi_ptr->position[idim] + 
+            position[idim] = mfi_ptr->position[idim] +
                 (double) iframe * mfi_ptr->step[idim];
         }
     }
 
-    snprintf(string, sizeof(string), "%.15g\\%.15g\\%.15g", 
+    /* convert_dicom_coordinate() was called above (line 3524) converting
+     * from DICOM LPS to MINC RAS.  get_coordinate_info() will call
+     * convert_dicom_coordinate() again on ACR_Image_position_patient,
+     * so we convert back to DICOM LPS here to avoid double-conversion.
+     * (convert_dicom_coordinate is its own inverse for X and Y.)
+     */
+    convert_dicom_coordinate(position);
+
+    snprintf(string, sizeof(string), "%.15g\\%.15g\\%.15g",
             position[XCOORD], position[YCOORD], position[ZCOORD]);
 
     acr_insert_string(&group_list, ACR_Image_position_patient, string);
