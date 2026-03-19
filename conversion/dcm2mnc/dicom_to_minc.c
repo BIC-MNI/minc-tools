@@ -3633,6 +3633,28 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
                          (double) iframe + 1);
     }
 
+    /* Enhanced DICOM: promote EffectiveEchoTime (0018,9082) from
+     * MR Echo Sequence in per-frame functional groups to standard
+     * ACR_Echo_time and ACR_Echo_number tags. This ensures
+     * get_file_info() picks up the correct echo coordinate.
+     */
+    {
+        Acr_Element ete = acr_recurse_for_element(group_list, iframe,
+                                                   ACR_Perframe_func_groups_seq,
+                                                   ACR_Effective_echo_time);
+        if (ete == NULL) {
+            ete = acr_recurse_for_element(group_list, iframe,
+                                           ACR_Shared_func_groups_seq,
+                                           ACR_Effective_echo_time);
+        }
+        if (ete != NULL) {
+            double echo_time_ms = acr_get_element_numeric(ete);
+            acr_insert_numeric(&group_list, ACR_Echo_time, echo_time_ms);
+            acr_insert_numeric(&group_list, ACR_Echo_number,
+                               (double)(int)round(echo_time_ms * 100));
+        }
+    }
+
     result = dicom_read_position(group_list, iframe, position);
 #if 0
     printf("%d %d %d %d %f %f %f\n",
