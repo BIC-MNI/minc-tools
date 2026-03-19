@@ -2915,6 +2915,26 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
                                        ACR_Echo_number,
                                        IDEFAULT);
 
+    /* Enhanced DICOM fallback: if ACR_Echo_number is absent, derive from
+     * EffectiveEchoTime (0018,9082) in MR Echo Sequence per-frame data.
+     * Files with different echo times will get different echo_number values,
+     * causing splitEcho to separate them.
+     */
+    if (di_ptr->echo_number == IDEFAULT) {
+        Acr_Element ete = acr_recurse_for_element(group_list, 0,
+                                                   ACR_Perframe_func_groups_seq,
+                                                   ACR_Effective_echo_time);
+        if (ete == NULL) {
+            ete = acr_recurse_for_element(group_list, 0,
+                                           ACR_Shared_func_groups_seq,
+                                           ACR_Effective_echo_time);
+        }
+        if (ete != NULL) {
+            double echo_time_ms = acr_get_element_numeric(ete);
+            di_ptr->echo_number = (int)round(echo_time_ms * 100);
+        }
+    }
+
     di_ptr->num_dyn_scans = acr_find_int(group_list,
                                          ACR_Acquisitions_in_series,
                                          IDEFAULT);
