@@ -76,6 +76,7 @@ GLOBAL_ELEMENT(ACR_Manufacturer_model    , 0x0008, 0x1090, LO);
 /* See C.8.12.3.1.6 for full list of possible values, but for DTI
  * images this field _should_ equal "DIFFUSION"
  */
+GLOBAL_ELEMENT(ACR_Complex_image_component, 0x0008, 0x9208, CS);
 GLOBAL_ELEMENT(ACR_Acquisition_contrast  , 0x0008, 0x9209, CS);
 
 GLOBAL_ELEMENT(ACR_Patient_name          , 0x0010, 0x0010, PN);
