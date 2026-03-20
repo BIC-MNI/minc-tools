@@ -1107,8 +1107,90 @@ get_identification_info(Acr_Group group_list,
     }
     if (rec_num != NULL)
         *rec_num = 0;
-    if (image_type != NULL)
+    if (image_type != NULL) {
         *image_type = acr_find_int(group_list, GEMS_Image_type, -1);
+
+        /* Phase / magnitude image detection for non-GE scanners.
+         *
+         * MR acquisitions that use gradient-recalled echo (GRE)
+         * sequences — including multi-echo GRE (MEGRE), magnetisation
+         * transfer (MTsat: MTon, MToff, T1w), multi-echo fMRI, and
+         * certain DWI b=0 reference scans — produce both magnitude
+         * and phase images from the same raw k-space data.
+         *
+         * GE scanners expose the image component via the private tag
+         * GEMS_Image_type (0043,102f), which is already handled above.
+         * All other vendors (Siemens, Philips, UIH, …) encode the
+         * information through two standard DICOM mechanisms:
+         *
+         * 1. ComplexImageComponent (0008,9208) — Enhanced (multi-frame)
+         *    DICOM only.  Found inside per-frame or shared functional
+         *    group sequences.  Defined values: MAGNITUDE, PHASE,
+         *    REAL, IMAGINARY.  Present on Siemens Healthineers
+         *    Enhanced DICOM exports (e.g. XA-line scanners).
+         *
+         * 2. Image Type (0008,0008) — Classic (per-file) DICOM.
+         *    A backslash-delimited Code String whose 3rd element
+         *    indicates the image component:
+         *      "ORIGINAL\PRIMARY\M\ND"        → magnitude
+         *      "ORIGINAL\PRIMARY\P\ND"        → phase
+         *      "ORIGINAL\PRIMARY\M\ND\MOSAIC" → magnitude (Siemens mosaic)
+         *      "ORIGINAL\PRIMARY\P\ND\MOSAIC" → phase     (Siemens mosaic)
+         *    Some sequences use long-form variants ("MAGNITUDE",
+         *    "PHASE") or additional suffixes (ASPIRE, SWI, B0).
+         *    DWI-only images (e.g. "ORIGINAL\PRIMARY\DIFFUSION\NONE
+         *    \MB\ND") carry no M/P indicator and remain unclassified
+         *    (image_type stays −1).
+         *
+         * The numeric mapping follows the GE convention:
+         *   0 = magnitude, 1 = phase, 2 = real, 3 = imaginary.
+         *
+         * The existing file-grouping logic in dcm2mnc.c (~line 841)
+         * already compares image_type when deciding whether two DICOM
+         * files belong to the same output volume, so correctly
+         * populating this field is sufficient to split magnitude and
+         * phase data into separate MINC volumes.
+         */
+        if (*image_type == -1) {
+            /* Try ComplexImageComponent from per-frame/shared groups */
+            Acr_Element cic = acr_recurse_for_element(group_list, 0,
+                                    ACR_Perframe_func_groups_seq,
+                                    ACR_Complex_image_component);
+            if (cic == NULL) {
+                cic = acr_recurse_for_element(group_list, 0,
+                                    ACR_Shared_func_groups_seq,
+                                    ACR_Complex_image_component);
+            }
+            if (cic != NULL) {
+                char *cic_str = acr_get_element_string(cic);
+                if (strncmp(cic_str, "MAGNITUDE", 9) == 0) *image_type = 0;
+                else if (strncmp(cic_str, "PHASE", 5) == 0) *image_type = 1;
+                else if (strncmp(cic_str, "REAL", 4) == 0) *image_type = 2;
+                else if (strncmp(cic_str, "IMAGINARY", 9) == 0) *image_type = 3;
+            }
+        }
+        if (*image_type == -1) {
+            /* Try standard Image Type string (0008,0008).
+             * DICOM CS values use backslash as separator, e.g.
+             * "ORIGINAL\PRIMARY\P\ND" or "ORIGINAL\PRIMARY\PHASE"
+             */
+            char *itype_str = acr_find_string(group_list, ACR_Image_type, "");
+            if (strstr(itype_str, "PHASE") != NULL ||
+                strstr(itype_str, "\\P\\") != NULL ||
+                strstr(itype_str, "_P_") != NULL) {
+                *image_type = 1;  /* phase */
+            } else if (strstr(itype_str, "MAGNITUDE") != NULL ||
+                       strstr(itype_str, "\\M\\") != NULL ||
+                       strstr(itype_str, "_M_") != NULL) {
+                *image_type = 0;  /* magnitude */
+            } else if (strstr(itype_str, "REAL") != NULL ||
+                       strstr(itype_str, "_R_") != NULL) {
+                *image_type = 2;  /* real */
+            } else if (strstr(itype_str, "IMAGINARY") != NULL) {
+                *image_type = 3;  /* imaginary */
+            }
+        }
+    }
 }
 
 /* ----------------------------- MNI Header -----------------------------------

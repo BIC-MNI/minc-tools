@@ -3655,6 +3655,43 @@ multiframe_insert_subframe(Acr_Group group_list, Multiframe_Info *mfi_ptr,
         }
     }
 
+    /* Enhanced DICOM: promote ComplexImageComponent (0008,9208) from
+     * per-frame functional groups to the top-level GEMS_Image_type tag.
+     *
+     * In Enhanced (multi-frame) DICOM, the magnitude/phase indicator
+     * for each frame lives inside MRImageFrameTypeSequence within
+     * either the Per-frame Functional Groups Sequence (5200,9230) or
+     * the Shared Functional Groups Sequence (5200,9229).  We look up
+     * the value for the current frame (iframe) and promote it to the
+     * flat group list as GEMS_Image_type so that the downstream
+     * get_identification_info() → file-grouping logic can split
+     * magnitude and phase frames into separate output volumes.
+     *
+     * Numeric mapping (matches GE GEMS_Image_type convention):
+     *   MAGNITUDE → 0, PHASE → 1, REAL → 2, IMAGINARY → 3.
+     */
+    {
+        Acr_Element cic = acr_recurse_for_element(group_list, iframe,
+                                                   ACR_Perframe_func_groups_seq,
+                                                   ACR_Complex_image_component);
+        if (cic == NULL) {
+            cic = acr_recurse_for_element(group_list, iframe,
+                                           ACR_Shared_func_groups_seq,
+                                           ACR_Complex_image_component);
+        }
+        if (cic != NULL) {
+            char *cic_str = acr_get_element_string(cic);
+            int itype = -1;
+            if (strncmp(cic_str, "MAGNITUDE", 9) == 0) itype = 0;
+            else if (strncmp(cic_str, "PHASE", 5) == 0) itype = 1;
+            else if (strncmp(cic_str, "REAL", 4) == 0) itype = 2;
+            else if (strncmp(cic_str, "IMAGINARY", 9) == 0) itype = 3;
+            if (itype >= 0) {
+                acr_insert_numeric(&group_list, GEMS_Image_type, (double)itype);
+            }
+        }
+    }
+
     result = dicom_read_position(group_list, iframe, position);
 #if 0
     printf("%d %d %d %d %f %f %f\n",
