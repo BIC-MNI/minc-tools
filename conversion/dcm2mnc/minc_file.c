@@ -225,6 +225,15 @@ strfminc(char *str_ptr, int str_max, const char *fmt_ptr,
                     scan_prefix[imri],
                     gi_ptr->default_index[imri]);
         }
+        else if (imri == ECHO && gi_ptr->default_index[ECHO] > 0) {
+            /* Always include echo number if present, even if dimension size
+             * equals max_size. This handles multi-echo Enhanced DICOM where
+             * EchoTrainLength is absent but echo numbers exist.
+             */
+            sprintf(scan_label[imri], "%s%d", 
+                    scan_prefix[imri],
+                    gi_ptr->default_index[imri]);
+        }
         else {
             strcpy(scan_label[imri], "");
         }
