@@ -127,6 +127,7 @@ GLOBAL_ELEMENT(ACR_Diffusion_gradient_direction_seq, 0x0018, 0x9076, SQ);
 GLOBAL_ELEMENT(ACR_Diffusion_b_value     , 0x0018, 0x9087, FD);
 GLOBAL_ELEMENT(ACR_Diffusion_gradient_orientation, 0x0018, 0x9089, FD);
 GLOBAL_ELEMENT(ACR_MR_Diffusion_seq      , 0x0018, 0x9117, SQ);
+GLOBAL_ELEMENT(ACR_MR_Echo_sequence        , 0x0018, 0x9114, SQ);
 GLOBAL_ELEMENT(ACR_Effective_echo_time     , 0x0018, 0x9082, FD);
 GLOBAL_ELEMENT(ACR_Diffusion_anisotropy_type, 0x0018, 0x9147, CS);
 
