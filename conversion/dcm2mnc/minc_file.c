@@ -225,12 +225,15 @@ strfminc(char *str_ptr, int str_max, const char *fmt_ptr,
                     scan_prefix[imri],
                     gi_ptr->default_index[imri]);
         }
-        else if (imri == ECHO && gi_ptr->default_index[ECHO] > 0) {
-            /* Always include echo number if present, even if dimension size
-             * equals max_size. This handles multi-echo Enhanced DICOM where
-             * EchoTrainLength is absent but echo numbers exist.
+        else if (imri == ECHO
+                 && gi_ptr->default_index[ECHO] > 0
+                 && (G.n_echo_groups > 1 || G.user_fname_format)) {
+            /* Include echo number only when:
+             *   - Multiple echo groups exist (needed to distinguish output files), OR
+             *   - User explicitly passed -fname (they want echo info in the name)
+             * This avoids spurious _e<N> suffixes on single-echo series.
              */
-            sprintf(scan_label[imri], "%s%d", 
+            sprintf(scan_label[imri], "%s%d",
                     scan_prefix[imri],
                     gi_ptr->default_index[imri]);
         }
@@ -300,6 +303,23 @@ strfminc(char *str_ptr, int str_max, const char *fmt_ptr,
                 break;
             case 'c':
                 tmp_ptr = scan_label[CHEM_SHIFT];
+                break;
+            case 'i':
+                /* Image component suffix — emit only when series has multiple
+                 * image-type groups (mag+phase coexist), to avoid spurious
+                 * suffixes on magnitude-only or unclassified series. */
+                if (G.n_image_type_groups > 1) {
+                    switch (G.cur_image_type_val) {
+                    case 0:  tmp_ptr = "_mag";  break;
+                    case 1:  tmp_ptr = "_ph";   break;
+                    case 2:  tmp_ptr = "_real"; break;
+                    case 3:  tmp_ptr = "_imag"; break;
+                    default: tmp_ptr = "";      break;
+                    }
+                }
+                else {
+                    tmp_ptr = "";
+                }
                 break;
             case 'm':
                 if (!strcmp(gi_ptr->study.modality, MI_MRI)) {
@@ -427,7 +447,7 @@ create_minc_file(const char *minc_file,
             G.dirname_format = "%N_%D_%T";
         }
         if (G.filename_format == NULL) {
-            G.filename_format = "%N_%D_%T_%A%s%e%t%p%c%m";
+            G.filename_format = "%N_%D_%T_%A%s%e%t%p%c%i%m";
         }
 
         fn_fmt_ptr = G.filename_format;
