@@ -16,6 +16,10 @@ IF(OPENJPEG_FOUND)
   INCLUDE_DIRECTORIES(${OPENJPEG_INCLUDE_DIR})
 ENDIF(OPENJPEG_FOUND)
 
+IF(LibArchive_FOUND)
+  INCLUDE_DIRECTORIES(${LibArchive_INCLUDE_DIRS})
+ENDIF(LibArchive_FOUND)
+
 
 # conversion progs (and libraries)
 INCLUDE_DIRECTORIES(Acr_nema)
@@ -39,7 +43,8 @@ ADD_EXECUTABLE(dcm2mnc
    dcm2mnc/minc_file.c
    dcm2mnc/progress.c
    dcm2mnc/jpg_0xc3.c
-   dcm2mnc/string_to_filename.c)
+   dcm2mnc/string_to_filename.c
+   dcm2mnc/archive_support.c)
    
 TARGET_LINK_LIBRARIES(dcm2mnc acr_nema)
   
@@ -53,6 +58,11 @@ IF(OPENJPEG_FOUND)
   TARGET_LINK_LIBRARIES(dcm2mnc ${OPENJPEG_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
   # ${CMAKE_THREAD_LIBS_INIT}
 ENDIF(OPENJPEG_FOUND)
+
+IF(LibArchive_FOUND)
+  TARGET_COMPILE_DEFINITIONS(dcm2mnc PRIVATE HAVE_LIBARCHIVE)
+  TARGET_LINK_LIBRARIES(dcm2mnc ${LibArchive_LIBRARIES})
+ENDIF(LibArchive_FOUND)
 
 ADD_EXECUTABLE(ecattominc
    ecattominc/ecattominc.c
