@@ -968,7 +968,7 @@ use_the_files(int num_files,
             }
           }
 
-          printf("INFO: Number of distinct coordinates: %d\n", n_elements );
+          if (G.Debug) printf("INFO: Number of distinct coordinates: %d\n", n_elements );
           if ( ( n_slices_nominal % n_elements == 0 &&
                  n_slices_nominal > n_elements ) || n_slices_nominal < 0) {
             G.n_distinct_coordinates = n_elements;
@@ -1025,58 +1025,54 @@ use_the_files(int num_files,
             }
         }
 
-        if (G.min_acq_num == G.max_acq_num) {
-          printf("WARNING: Acquisition number is not informative.\n");
-        }
-        else {
-          int ix = acq_file_index[0];
-          if (G.max_acq_num == di_ptr[ix]->num_dyn_scans) {
-            /* Acquisition number is per scan (e.g. time).
-             */
-            printf("WARNING: Acquisition number is per scan.\n");
-          }
-          else if (G.max_acq_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
-            printf("WARNING: Acquisition number is global.\n");
+        if (G.Debug) {
+          if (G.min_acq_num == G.max_acq_num) {
+            printf("WARNING: Acquisition number is not informative.\n");
           }
           else {
-            printf("WARNING: Acquisition number is a mystery.\n");
+            int ix = acq_file_index[0];
+            if (G.max_acq_num == di_ptr[ix]->num_dyn_scans) {
+              printf("WARNING: Acquisition number is per scan.\n");
+            }
+            else if (G.max_acq_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
+              printf("WARNING: Acquisition number is global.\n");
+            }
+            else {
+              printf("WARNING: Acquisition number is a mystery.\n");
+            }
           }
-              
-        }
 
-        if (G.min_img_num == G.max_img_num) {
-          /* Acquisition number is uninformative.
-           */
-          printf("WARNING: Image number is not informative.\n");
-        }
-        else {
-          int ix = acq_file_index[0];
-
-          if (G.max_img_num == di_ptr[ix]->num_slices_nominal) {
-            printf("WARNING: Image number is per slice.\n");
-          }
-          else if (G.max_img_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
-            printf("WARNING: Image number is global.\n");
+          if (G.min_img_num == G.max_img_num) {
+            printf("WARNING: Image number is not informative.\n");
           }
           else {
-            printf("WARNING: Image number is a mystery.\n");
+            int ix = acq_file_index[0];
+            if (G.max_img_num == di_ptr[ix]->num_slices_nominal) {
+              printf("WARNING: Image number is per slice.\n");
+            }
+            else if (G.max_img_num == di_ptr[ix]->num_slices_nominal * di_ptr[ix]->num_dyn_scans) {
+              printf("WARNING: Image number is global.\n");
+            }
+            else {
+              printf("WARNING: Image number is a mystery.\n");
+            }
           }
-        }
 
-        if (G.min_acq_num < 0 || G.min_acq_num > 1) {
-          printf("WARNING: Minimum acquisition number is %d\n", G.min_acq_num);
-        }
+          if (G.min_acq_num < 0 || G.min_acq_num > 1) {
+            printf("WARNING: Minimum acquisition number is %d\n", G.min_acq_num);
+          }
 
-        if (G.min_img_num < 0 || G.min_img_num > 1) {
-          printf("WARNING: Minimum image number is %d\n", G.min_img_num);
-        }
+          if (G.min_img_num < 0 || G.min_img_num > 1) {
+            printf("WARNING: Minimum image number is %d\n", G.min_img_num);
+          }
 
-        if (G.min_tpos_id == G.max_tpos_id || G.min_tpos_id > 1)
-          printf("WARNING: Temporal position identifier is useless.\n");
-        
-        printf("INFO: Acquisition number ranges from %d to %d\n", G.min_acq_num, G.max_acq_num);
-        printf("INFO: Image number ranges from %d to %d\n", G.min_img_num, G.max_img_num);
-        printf("INFO: Temporal position id ranges from %d to %d.\n", G.min_tpos_id, G.max_tpos_id);
+          if (G.min_tpos_id == G.max_tpos_id || G.min_tpos_id > 1)
+            printf("WARNING: Temporal position identifier is useless.\n");
+
+          printf("INFO: Acquisition number ranges from %d to %d\n", G.min_acq_num, G.max_acq_num);
+          printf("INFO: Image number ranges from %d to %d\n", G.min_img_num, G.max_img_num);
+          printf("INFO: Temporal position id ranges from %d to %d.\n", G.min_tpos_id, G.max_tpos_id);
+        }
 
         /* Count distinct echo groups for this series so strfminc() knows whether
          * to include the echo suffix in output filenames. */

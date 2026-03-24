@@ -856,7 +856,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
           gi_ptr->coordinates[imri][0] = fi_ptr->coordinate[imri];
           gi_ptr->widths[imri][0] = fi_ptr->width[imri];
 
-          printf("First %s at %d,%f,%f\n", Mri_Names[imri],
+          if (G.Debug) printf("First %s at %d,%f,%f\n", Mri_Names[imri],
                  fi_ptr->index[imri],
                  fi_ptr->coordinate[imri],
                  fi_ptr->width[imri]);
