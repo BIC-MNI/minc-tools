@@ -543,9 +543,15 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
 
       }
       else {
+        /* For ECHO, use 0 as the absent sentinel so that size_isset stays 0
+         * (unknown) when ACR_Echo_train_length is not present — e.g. Enhanced
+         * DICOM where echo info lives only in per-frame functional groups.
+         * Marking the size as unknown lets the dimension grow dynamically.
+         */
+        int echo_default = (imri == ECHO) ? 0 : def_val;
         gi_ptr->max_size[imri] = acr_find_int(group_list,
                                               mri_total_list[imri],
-                                              def_val);
+                                              echo_default);
       }
     }
     else {
@@ -644,6 +650,25 @@ get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_In
             gi_ptr->max_size[TIME] > 1) {
           tmp_index = ((tmp_index - 1) % gi_ptr->max_size[SLICE]) + 1;
         }
+      }
+
+      /* For ECHO: if ACR_Echo_number is absent (Enhanced DICOM stores it only
+       * inside per-frame functional groups), derive a unique index from
+       * EffectiveEchoTime (0018,9082) — same fallback as parse_dicom_groups().
+       */
+      if (imri == ECHO && tmp_index < 0) {
+          Acr_Element ete = acr_recurse_for_element(group_list, 0,
+                                                    ACR_Perframe_func_groups_seq,
+                                                    ACR_Effective_echo_time);
+          if (ete == NULL) {
+              ete = acr_recurse_for_element(group_list, 0,
+                                            ACR_Shared_func_groups_seq,
+                                            ACR_Effective_echo_time);
+          }
+          if (ete != NULL) {
+              double echo_time_ms = acr_get_element_numeric(ete);
+              tmp_index = (int)round(echo_time_ms * 100);
+          }
       }
 
       /* Use alternative index fields for time, if needed.
@@ -891,12 +916,12 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
         for (imri = 0; imri < MRI_NDIMS; imri++) {
           /* If a dimension is known to have a maximum size of one
            * or less, we do NOT allow it to grow in any way.  An
-           * exception is made for the slice and time dimensions,
-           * however, since it appears that it is common for them to
-           * be unspecified and can be guessed only by the number of
-           * distinct locations discovered.
+           * exception is made for the slice dimension, and also for
+           * any dimension whose size was not explicitly found in the
+           * DICOM header (size_isset == 0) — those must be guessed
+           * from the distinct index values discovered.
            */
-          if (imri != SLICE && gi_ptr->max_size[imri] <= 1) {
+          if (imri != SLICE && gi_ptr->max_size[imri] <= 1 && gi_ptr->size_isset[imri]) {
             if (/* G.Debug && */ fi_ptr->index[imri] > 1) {
               printf("Warning: merging extra indices on %s axis: ",
                      Mri_Names[imri]);
@@ -1928,6 +1953,22 @@ get_coordinate_info(Acr_Group group_list,
     fi_ptr->coordinate[ECHO] =
         (double)acr_find_double(group_list, ACR_Echo_time, 0.0) / MS_PER_SECOND;
 
+    /* If EchoTime (0018,0081) absent (Enhanced DICOM), fall back to
+     * EffectiveEchoTime (0018,9082) from per-frame functional groups.
+     */
+    if (fi_ptr->coordinate[ECHO] == 0.0) {
+        Acr_Element ete = acr_recurse_for_element(group_list, 0,
+                                                  ACR_Perframe_func_groups_seq,
+                                                  ACR_Effective_echo_time);
+        if (ete == NULL) {
+            ete = acr_recurse_for_element(group_list, 0,
+                                          ACR_Shared_func_groups_seq,
+                                          ACR_Effective_echo_time);
+        }
+        if (ete != NULL) {
+            fi_ptr->coordinate[ECHO] = acr_get_element_numeric(ete) / MS_PER_SECOND;
+        }
+    }
 
     /* Get the dimension width for time, if available.  The units are in
      * milliseconds in DICOM, whereas we use seconds in MINC.
