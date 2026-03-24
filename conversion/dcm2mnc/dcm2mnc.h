@@ -274,6 +274,10 @@ struct globals {
     int ignore_leading_dot;     /* If TRUE, ignore files with leading '.' */
     int file_format;            /* Preferred MINC file format (1 or 2). */
     int n_distinct_coordinates; /* Total number of distinct coordinates. */
+    int n_echo_groups;          /* Distinct echo groups for current series (set per-acquisition) */
+    int n_image_type_groups;    /* Distinct image-type groups for current series (0=mag,1=ph,…) */
+    int cur_image_type_val;     /* image_type value for the current series being written */
+    int user_fname_format;      /* TRUE if user passed -fname explicitly */
 };
 
 /* Values for options flags */

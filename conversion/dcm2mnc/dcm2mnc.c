@@ -312,6 +312,11 @@ main(int argc, char *argv[])
         usage();
     }
 
+    /* G.filename_format is non-NULL only if -fname was passed on command line
+     * (it starts as NULL and is set to the built-in default inside
+     * initialize_minc_file() only if still NULL at that point). */
+    G.user_fname_format = (G.filename_format != NULL) ? TRUE : FALSE;
+
     if (argc < 2) {
         usage();
     }
@@ -1073,9 +1078,49 @@ use_the_files(int num_files,
         printf("INFO: Image number ranges from %d to %d\n", G.min_img_num, G.max_img_num);
         printf("INFO: Temporal position id ranges from %d to %d.\n", G.min_tpos_id, G.max_tpos_id);
 
+        /* Count distinct echo groups for this series so strfminc() knows whether
+         * to include the echo suffix in output filenames. */
+        {
+            int echo_vals[64];
+            int n_distinct = 0;
+            int ef;
+            for (ef = 0; ef < num_files && G.splitEcho; ef++) {
+                int echo, found = 0, ie;
+                if (di_ptr[ef]->study_id    != cur_study_id)   continue;
+                if (di_ptr[ef]->acq_id      != cur_acq_id)     continue;
+                if (di_ptr[ef]->image_type  != cur_image_type) continue;
+                echo = di_ptr[ef]->echo_number;
+                for (ie = 0; ie < n_distinct; ie++)
+                    if (echo_vals[ie] == echo) { found = 1; break; }
+                if (!found && n_distinct < 64)
+                    echo_vals[n_distinct++] = echo;
+            }
+            G.n_echo_groups = (n_distinct > 0) ? n_distinct : 1;
+        }
+
+        /* Count distinct image-type groups for this series so strfminc() knows
+         * whether to emit a magnitude/phase suffix in the output filename. */
+        {
+            int itype_vals[8];
+            int n_distinct = 0;
+            int ef;
+            for (ef = 0; ef < num_files; ef++) {
+                int itype, found = 0, iv;
+                if (di_ptr[ef]->study_id != cur_study_id) continue;
+                if (di_ptr[ef]->acq_id   != cur_acq_id)   continue;
+                itype = di_ptr[ef]->image_type;
+                for (iv = 0; iv < n_distinct; iv++)
+                    if (itype_vals[iv] == itype) { found = 1; break; }
+                if (!found && n_distinct < 8)
+                    itype_vals[n_distinct++] = itype;
+            }
+            G.n_image_type_groups = (n_distinct > 1) ? n_distinct : 1;
+            G.cur_image_type_val  = cur_image_type;
+        }
+
         /* Create minc file
          */
-        exit_status = dicom_to_minc(acq_num_files, 
+        exit_status = dicom_to_minc(acq_num_files,
                                     acq_file_list, 
                                     NULL,
                                     G.clobber, 
