@@ -151,6 +151,21 @@
 #endif
 #include <ParseArgv.h>
 
+#ifdef HAVE_LIBARCHIVE
+#include "archive_support.h"
+#define MAX_ARCHIVE_TMPDIRS 16
+static char *g_archive_tmpdirs[MAX_ARCHIVE_TMPDIRS];
+static int   g_n_archive_tmpdirs = 0;
+
+static void cleanup_all_archive_tmpdirs(void)
+{
+    int i;
+    for (i = 0; i < g_n_archive_tmpdirs; i++)
+        cleanup_tmpdir(g_archive_tmpdirs[i]);
+    g_n_archive_tmpdirs = 0;
+}
+#endif /* HAVE_LIBARCHIVE */
+
 /* Function Prototypes */
 static int dcm_sort_function(const void *entry1, const void *entry2);
 static int use_the_files(int num_files, 
@@ -291,6 +306,10 @@ main(int argc, char *argv[])
     int length;
     int exit_status;
 
+#ifdef HAVE_LIBARCHIVE
+    atexit(cleanup_all_archive_tmpdirs);
+#endif
+
     G.mosaic_seq = MOSAIC_SEQ_UNKNOWN; /* Assume ascending by default. */
     G.splitDynScan = FALSE;     /* Don't split dynamic scans by default */
     G.splitEcho = TRUE;         /* Do split by echo by default */
@@ -356,6 +375,23 @@ main(int argc, char *argv[])
      */
     num_files = 0;
     for (ifile = 0 ; ifile < num_file_args; ifile++) {
+#ifdef HAVE_LIBARCHIVE
+        if (is_archive_file(argv[ifile + 1])) {
+            char *tmpdir = NULL;
+            if (extract_archive_to_tmpdir(argv[ifile + 1], &tmpdir) != 0) {
+                fprintf(stderr, "ERROR: Failed to extract archive %s\n",
+                        argv[ifile + 1]);
+                exit(EXIT_FAILURE);
+            }
+            stat(tmpdir, &st);
+            num_files = collect_files(tmpdir, &file_list, num_files, st);
+            if (g_n_archive_tmpdirs < MAX_ARCHIVE_TMPDIRS)
+                g_archive_tmpdirs[g_n_archive_tmpdirs++] = tmpdir;
+            else
+                free(tmpdir); /* safety: shouldn't happen */
+            continue;
+        }
+#endif /* HAVE_LIBARCHIVE */
 #if HAVE_DIRENT_H
         if (stat(argv[ifile + 1], &st) == 0 && S_ISDIR(st.st_mode)) {
             num_files = collect_files(argv[ifile + 1], &file_list, num_files, st);
