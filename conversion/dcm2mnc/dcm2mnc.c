@@ -153,6 +153,7 @@
 
 #ifdef HAVE_LIBARCHIVE
 #include "archive_support.h"
+#include <signal.h>
 #define MAX_ARCHIVE_TMPDIRS 16
 static char *g_archive_tmpdirs[MAX_ARCHIVE_TMPDIRS];
 static int   g_n_archive_tmpdirs = 0;
@@ -160,9 +161,24 @@ static int   g_n_archive_tmpdirs = 0;
 static void cleanup_all_archive_tmpdirs(void)
 {
     int i;
-    for (i = 0; i < g_n_archive_tmpdirs; i++)
-        cleanup_tmpdir(g_archive_tmpdirs[i]);
-    g_n_archive_tmpdirs = 0;
+    int n = g_n_archive_tmpdirs;
+    g_n_archive_tmpdirs = 0;   /* zero first — makes re-entry a no-op */
+    fflush(stdout);
+    for (i = 0; i < n; i++) {
+        if (g_archive_tmpdirs[i]) {
+            fprintf(stderr, "Cleaning up temporary directory: %s\n",
+                    g_archive_tmpdirs[i]);
+            cleanup_tmpdir(g_archive_tmpdirs[i]);
+            g_archive_tmpdirs[i] = NULL;
+        }
+    }
+}
+
+static void archive_signal_handler(int signum)
+{
+    cleanup_all_archive_tmpdirs();
+    signal(signum, SIG_DFL);
+    raise(signum);
 }
 #endif /* HAVE_LIBARCHIVE */
 
@@ -308,6 +324,9 @@ main(int argc, char *argv[])
 
 #ifdef HAVE_LIBARCHIVE
     atexit(cleanup_all_archive_tmpdirs);
+    signal(SIGINT,  archive_signal_handler);
+    signal(SIGTERM, archive_signal_handler);
+    signal(SIGHUP,  archive_signal_handler);
 #endif
 
     G.mosaic_seq = MOSAIC_SEQ_UNKNOWN; /* Assume ascending by default. */
