@@ -19,7 +19,7 @@ double   real;
 ident_t  ident;
 }
 
-%token      NAN
+%token      TOKEN_NAN
 %token      IN TO IDENT REAL AVG PROD SUM LET NEG LEN MAX MIN IMAX IMIN
 %token      ISNAN SQRT ABS EXP LOG SIN COS TAN ASIN ACOS ATAN CLAMP SEGMENT
 %token      LT LE GT GE EQ NE NOT AND OR
@@ -441,7 +441,7 @@ expr   :   '(' expr ')'
         $$->type = NODETYPE_REAL;
         $$->real = $1; }
       
-   |   NAN
+   |   TOKEN_NAN
       { $$ = new_scalar_node(0);
         $$->pos = -1;
         $$->type = NODETYPE_REAL;
