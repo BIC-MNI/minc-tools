@@ -484,8 +484,7 @@ vector   :   expr
 node_t root;
 
 void
-yyerror(msg)
-   const char *msg;
+yyerror(const char *msg)
 {
    extern int lexpos;
 
