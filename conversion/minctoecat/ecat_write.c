@@ -54,7 +54,7 @@ int mat_close(FILE *fptr);
 
 MatrixFile     *matrix_create(const char *fname, Main_header * proto_mhptr) {
   MatrixFile     *mptr = NULL;
-  FILE           *fptr, *mat_create();
+  FILE           *fptr;
   
   matrix_errno = MAT_OK;
   matrix_errtxt[0] = '\0';
@@ -124,7 +124,7 @@ FILE *mat_create(const char  *fname,Main_header *mhead) {
 }
 
 FILE *mat_open( const char *fname, char *fmode) {
-  FILE *fopen(), *fptr;
+  FILE *fptr;
   
   matrix_errno = MAT_OK;
   matrix_errtxt[0] = '\0';
