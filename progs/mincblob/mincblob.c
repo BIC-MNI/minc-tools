@@ -46,7 +46,7 @@
 typedef enum { NO_OP, TRACE, DETERMINANT, TRANSLATION, MAGNITUDE } op;
 
 /* function prototypes */
-double   fdiv(double num, double denom);
+double   safe_div(double num, double denom);
 double   farccos(double a0, double b0, double c0, double a1, double b1, double c1);
 double   cindex(double a0, double b0, double c0, double a1, double b1, double c1);
 double   feuc(double a, double b, double c);
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
    return (EXIT_SUCCESS);
    }
 
-double fdiv(double num, double denom)
+double safe_div(double num, double denom)
 {
    if(fabs(denom) < 0.0005){
       return 0.0;
@@ -346,7 +346,7 @@ double feuc(double a, double b, double c)
 double farccos(double a0, double b0, double c0, double a1, double b1, double c1)
 {
    return
-      acos(fdiv((a0 * a1) + (b0 * b1) + (c0 * c1), feuc(a0, b0, c0) * feuc(a1, b1, c1)));
+      acos(safe_div((a0 * a1) + (b0 * b1) + (c0 * c1), feuc(a0, b0, c0) * feuc(a1, b1, c1)));
    }
 
 double cindex(double a0, double b0, double c0, double a1, double b1, double c1)
