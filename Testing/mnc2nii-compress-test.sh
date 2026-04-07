@@ -12,6 +12,10 @@
 
 INPUT=test-one.mnc
 
+# Clean up any leftovers from previous runs
+rm -f compress_flag_out.nii compress_flag_out.nii.gz \
+      explicit_gz_out.nii.gz uncompressed_out.nii roundtrip.mnc
+
 fail() {
     echo "FAIL: $*"
     exit 1
