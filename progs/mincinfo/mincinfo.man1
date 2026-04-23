@@ -84,6 +84,41 @@ Specifies a string to print out if an error occurs. This will cause
 the program to exit with normal status. The default is to print an
 appropriate error message and exit with an error status.
 .TP
+\fB\-ls\fR
+Print a compact one-row-per-file summary in aligned column format. The
+filename is always the first column; additional columns are controlled
+by \fB\-F\fR. When no \fB\-F\fR is given, the default columns are
+\fIdims\fR, \fIsize\fR, \fIsteps\fR, \fIprotocol\fR and \fIseries\fR.
+.TP
+\fB\-csv\fR
+Same summary as \fB\-ls\fR in CSV format suitable for import into
+spreadsheets or scripting. Column headers use the full
+\fIvariable:attribute\fR form.
+.TP
+\fB\-json\fR
+Same summary as \fB\-ls\fR as a JSON array. Each element contains
+\fIfilename\fR, \fIndims\fR, \fIdimensions\fR (array of objects with
+\fIname\fR, \fIlength\fR and \fIstep\fR), \fIsize\fR, \fIsteps\fR and
+\fIattributes\fR (object of requested attribute values).
+.TP
+\fB\-F\fR \fIcolumns\fR, \fB\-format\fR \fIcolumns\fR
+Comma-separated list of columns for \fB\-ls\fR, \fB\-csv\fR and
+\fB\-json\fR (the filename column is always added automatically).
+.br
+Built-in columns: \fIdims\fR (e.g. 3D), \fIsize\fR (e.g. 256x256x160),
+\fIsteps\fR (e.g. 1x1x1).
+.br
+Shorthands: \fIprotocol\fR (= acquisition:protocol), \fIseries\fR
+(= acquisition:series_description).
+.br
+Any \fIvariable:attribute\fR pair is also accepted
+(e.g. \fIpatient:age\fR, \fIxspace:step\fR).
+Unknown tokens that do not follow the \fIvariable:attribute\fR pattern
+are reported as errors.
+.br
+The environment variable \fBMINCINFO_LS_FORMAT\fR provides the same
+default and is overridden by \fB\-F\fR.
+.TP
 \fB\-help\fR
 Print summary of command-line options and abort.
 .TP
@@ -116,6 +151,28 @@ mincinfo file.mnc -error 1 \\
 Print out the names of the dimensions subscripting the image variable.
 .IP
      mincinfo file.mnc -vardims image
+.PP
+Print a compact table of multiple files with default columns.
+.IP
+mincinfo -ls *.mnc
+.PP
+Output the same summary as CSV (suitable for spreadsheets).
+.IP
+mincinfo -csv *.mnc > summary.csv
+.PP
+Output as JSON for scripting.
+.IP
+mincinfo -json *.mnc | python3 -m json.tool
+.PP
+Select specific columns, including an arbitrary attribute.
+.IP
+mincinfo -ls -F dims,size,steps,patient:age *.mnc
+.PP
+Use an environment variable to set a persistent default format.
+.IP
+export MINCINFO_LS_FORMAT=dims,size,acquisition:protocol
+.br
+mincinfo -ls *.mnc
 
 .SH AUTHOR
 Peter Neelin

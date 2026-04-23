@@ -196,6 +196,109 @@ if ($#arr != 5 || $arr[0] ne "Testing" || $arr[0] ne $arr[3])
     $errors++;
 }
 
+print "Case 14 - test the -ls option (multiple files, abbreviated headers).\n";
+
+my $r1 = `$mincinfo_bin -ls test-zero.mnc test-rnd.mnc`;
+my @arr = split(/^/m, $r1);
+chomp(@arr);
+# Expect: header line, dash line, two data rows (one per file)
+# size and steps are now per-dimension columns (z, y, x / dz, dy, dx)
+if ($#arr < 3
+    || $arr[0] !~ /\bfile\b/ || $arr[0] !~ /\bdims\b/ || $arr[0] !~ /\bprotocol\b/
+    || $arr[0] =~ /acquisition:protocol/
+    || $arr[0] !~ /\bz\b/ || $arr[0] !~ /\bx\b/
+    || $arr[0] !~ /\bdz\b/ || $arr[0] !~ /\bdx\b/
+    || $arr[0] =~ /\bsize\b/ || $arr[0] =~ /\bsteps\b/
+    || $arr[2] !~ /3D/ || $arr[2] !~ /\b5\b/
+    || $arr[3] !~ /3D/)
+{
+    print "Case 14 failed, incorrect -ls output.\n";
+    for (my $i = 0; $i <= $#arr; $i++) { print "  |$arr[$i]|\n"; }
+    $errors++;
+}
+
+print "Case 15 - test the -csv option (full attribute names in header).\n";
+
+my $r1 = `$mincinfo_bin -csv test-zero.mnc test-rnd.mnc`;
+my @arr = split(/^/m, $r1);
+chomp(@arr);
+if ($#arr < 2
+    || $arr[0] !~ /^file,dims,zspace,yspace,xspace,zspace_step,yspace_step,xspace_step,study:field_value,acquisition:protocol,acquisition:series_description/
+    || $arr[1] !~ /^test-zero\.mnc,3D,5,5,5,1,1,1/
+    || $arr[2] !~ /^test-rnd\.mnc,3D/)
+{
+    print "Case 15 failed, incorrect -csv output.\n";
+    for (my $i = 0; $i <= $#arr; $i++) { print "  |$arr[$i]|\n"; }
+    $errors++;
+}
+
+print "Case 16 - test the -json option.\n";
+
+my $r1 = `$mincinfo_bin -json test-zero.mnc test-rnd.mnc`;
+if ($r1 !~ /^\s*\[/ || $r1 !~ /\]\s*$/
+    || $r1 !~ /"filename"/ || $r1 !~ /"ndims"\s*:\s*3/
+    || $r1 !~ /"dimensions"/ || $r1 !~ /"attributes"/)
+{
+    print "Case 16 failed, incorrect -json output.\n";
+    print $r1;
+    $errors++;
+}
+
+print "Case 17 - test -F custom format.\n";
+
+my $r1 = `$mincinfo_bin -ls -F dims,size test-zero.mnc`;
+my @arr = split(/^/m, $r1);
+chomp(@arr);
+if ($#arr < 2
+    || $arr[0] !~ /\bfile\b/ || $arr[0] !~ /\bdims\b/
+    || $arr[0] !~ /\bz\b/ || $arr[0] !~ /\bx\b/
+    || $arr[0] =~ /\bdz\b/ || $arr[0] =~ /protocol/
+    || $arr[2] !~ /3D/)
+{
+    print "Case 17 failed, incorrect custom -F output.\n";
+    for (my $i = 0; $i <= $#arr; $i++) { print "  |$arr[$i]|\n"; }
+    $errors++;
+}
+
+print "Case 18 - test field strength normalization (3T scan).\n";
+
+use File::Basename;
+my $modify_bin = "";
+if ($ENV{'MINC_MODIFY_HEADER_BIN'}) {
+    $modify_bin = $ENV{'MINC_MODIFY_HEADER_BIN'};
+} else {
+    my $sibling = dirname($mincinfo_bin) . "/minc_modify_header";
+    if (-x $sibling) {
+        $modify_bin = $sibling;
+    } else {
+        $modify_bin = `which minc_modify_header`;
+        chomp($modify_bin);
+    }
+}
+
+my $test_field_mnc = "test-field3T.mnc";
+`cp test-zero.mnc $test_field_mnc`;
+`$modify_bin -dinsert study:field_value=3 $test_field_mnc`;
+
+my $r1 = `$mincinfo_bin -ls $test_field_mnc`;
+my @arr = split(/^/m, $r1);
+chomp(@arr);
+if ($#arr < 2 || $arr[2] !~ /\b3T\b/) {
+    print "Case 18 failed, expected '3T' in -ls field column.\n";
+    for (my $i = 0; $i <= $#arr; $i++) { print "  |$arr[$i]|\n"; }
+    $errors++;
+}
+# CSV must preserve the raw numeric value, not the normalised "3T"
+my $r2 = `$mincinfo_bin -csv -F field $test_field_mnc`;
+my @arr2 = split(/^/m, $r2);
+chomp(@arr2);
+if ($#arr2 < 1 || $arr2[1] !~ /,3$/) {
+    print "Case 18 failed, CSV should show raw numeric value.\n";
+    for (my $i = 0; $i <= $#arr2; $i++) { print "  |$arr2[$i]|\n"; }
+    $errors++;
+}
+unlink $test_field_mnc;
+
 print "OK.\n" if $errors == 0;
 print
 exit $errors > 0;
