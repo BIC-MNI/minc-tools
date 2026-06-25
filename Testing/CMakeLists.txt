@@ -176,3 +176,51 @@ if(MT_BUILD_DCM2MNC_TESTS)
   endforeach()
 
 endif() # MT_BUILD_DCM2MNC_TESTS
+
+# ------------ dcm2mnc tests on LOCAL (non-redistributable) DICOM data --------
+#
+# Some regression cases rely on DICOM exports that cannot be downloaded by CI
+# (e.g. clinical data). Point MT_DCM2MNC_LOCAL_DATA at a directory holding such
+# data and these tests run against the committed manifests in
+# dcm2mnc_expected/local/ (the data itself is never committed). When the
+# variable is empty or the path does not exist, no tests are registered.
+#
+# The manifests are produced by dcm2mnc_expected/local/regenerate-local.sh and
+# pin dcm2mnc's output geometry + statistics, exactly like the downloaded set.
+# Unlike the downloaded tests these need no internet, only the local data path.
+
+set(MT_DCM2MNC_LOCAL_DATA "" CACHE PATH
+    "Path to local (non-downloadable) DICOM data root for extra dcm2mnc regression tests")
+
+if(MT_DCM2MNC_LOCAL_DATA AND EXISTS "${MT_DCM2MNC_LOCAL_DATA}")
+
+  set(_ldcm2mnc   $<TARGET_FILE:dcm2mnc>)
+  set(_lmincinfo  $<TARGET_FILE:mincinfo>)
+  set(_lmincstats $<TARGET_FILE:mincstats>)
+  set(_lcmp       ${CMAKE_CURRENT_SOURCE_DIR}/dcm2mnc-compare-test.sh)
+  set(_lexpdir    ${CMAKE_CURRENT_SOURCE_DIR}/dcm2mnc_expected/local)
+  set(_loutbase   ${CMAKE_CURRENT_BINARY_DIR}/dcm2mnc_local_out)
+
+  if(EXISTS ${_lexpdir}/local.list)
+    file(STRINGS ${_lexpdir}/local.list _dcm2mnc_local_series)
+    foreach(_row ${_dcm2mnc_local_series})
+      if(_row MATCHES "^#" OR _row STREQUAL "")
+        continue()
+      endif()
+      # row = name|relpath (relpath is under MT_DCM2MNC_LOCAL_DATA)
+      string(REPLACE "|" ";" _parts "${_row}")
+      list(GET _parts 0 _name)
+      list(GET _parts 1 _rel)
+      if(EXISTS "${MT_DCM2MNC_LOCAL_DATA}/${_rel}")
+        add_test(NAME dcm2mnc-local-${_name}
+          COMMAND ${_lcmp} ${_ldcm2mnc} ${_lmincinfo} ${_lmincstats}
+            ${_loutbase}/${_name}
+            "${MT_DCM2MNC_LOCAL_DATA}/${_rel}"
+            ${_lexpdir}/${_name}.manifest)
+        set_tests_properties(dcm2mnc-local-${_name} PROPERTIES
+          ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "dcm2mnc;dcm2mnc-local")
+      endif()
+    endforeach()
+  endif()
+
+endif() # MT_DCM2MNC_LOCAL_DATA
