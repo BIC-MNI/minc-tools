@@ -526,9 +526,14 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
                                  def_val);
         }
 
-        if (def_val < 0) {
+        if (def_val <= 0) {
           /* As our last resort, we try to determine this by seeing how many
-             files we have, and dividing by the number of slices.
+             files we have, and dividing by the number of slices. A value of 0
+             here is treated like "absent" (negative): some scanners set count
+             fields such as CardiacNumberOfImages (0018,1090) to 0 on
+             non-gated series, and accepting that 0 would both suppress this
+             geometry-based estimate and mark the dimension size "unknown",
+             letting it grow spuriously from the per-file fallback index.
           */
           if (gi_ptr->max_size[SLICE] > 1) {
             int num_per_file = get_subimage_count(group_list);
@@ -922,7 +927,7 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
            * from the distinct index values discovered.
            */
           if (imri != SLICE && gi_ptr->max_size[imri] <= 1 && gi_ptr->size_isset[imri]) {
-            if (/* G.Debug && */ fi_ptr->index[imri] > 1) {
+            if (G.Debug && fi_ptr->index[imri] > 1) {
               printf("Warning: merging extra indices on %s axis: ",
                      Mri_Names[imri]);
               printf("  %d %d\n", gi_ptr->max_size[imri],

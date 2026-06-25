@@ -2322,12 +2322,42 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
       int ni = acr_find_int(group_list, ACR_Images_in_acquisition, -1);
       int ne = acr_find_int(group_list, ACR_Echo_train_length, -1);
 
-      if (ns < 0 && nt < 0 && ni > G.n_distinct_coordinates) {
-        acr_insert_short(&group_list, ACR_Number_of_slices,
-                         G.n_distinct_coordinates);
-        if (ne <= 1 && ni == num_files) {
-          acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
-                           ni / G.n_distinct_coordinates);
+      if (ns < 0 && nt < 0) {
+        if (ni > G.n_distinct_coordinates) {
+          /* Explicit image count exceeds the number of distinct spatial
+           * coordinates: the extra images are a time (or other) dimension.
+           * Derive the slice count from the geometry.
+           */
+          acr_insert_short(&group_list, ACR_Number_of_slices,
+                           G.n_distinct_coordinates);
+          if (ne <= 1 && ni == num_files) {
+            acr_insert_short(&group_list, ACR_Number_of_temporal_positions,
+                             ni / G.n_distinct_coordinates);
+          }
+        }
+        else if (ni < 0 &&
+                 num_files > 1 &&
+                 num_files == G.n_distinct_coordinates) {
+          /* No Images-in-Acquisition field at all (e.g. GE 3D Cube, which
+           * also omits Number-of-slices and Temporal-position fields). When
+           * every one of several files sits at a distinct spatial coordinate
+           * the series is a single 3D spatial stack with no time/echo
+           * dimension. Without a slice count the per-file slice and time
+           * indices both fall back to Instance Number, which mis-splits the
+           * stack into slices x time; inject the slice count derived from the
+           * geometry so the whole stack is kept on the spatial (slice) axis.
+           *
+           * Guards:
+           *   num_files > 1            - a single file is one mosaic/multi-
+           *                              frame/2D image whose sub-image count
+           *                              is resolved later, not a stack.
+           *   num_files == n_distinct  - every file is at a distinct position
+           *                              (rather than a looser divisibility
+           *                              test): if positions repeat there is a
+           *                              genuine non-spatial dimension to keep.
+           */
+          acr_insert_short(&group_list, ACR_Number_of_slices,
+                           G.n_distinct_coordinates);
         }
       }
     }
