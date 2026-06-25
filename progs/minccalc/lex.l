@@ -36,7 +36,7 @@ to             setpos(); return TO;
 if             setpos(); return IF;
 else           setpos(); return ELSE;
 for            setpos(); return FOR;
-NaN            setpos(); return NAN;
+NaN            setpos(); return TOKEN_NAN;
 \<             setpos(); return LT;
 \<=            setpos(); return LE;
 \>             setpos(); return GT;
