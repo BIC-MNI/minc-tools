@@ -220,6 +220,7 @@ typedef struct {
     int num_slices_in_file;
     string_t sequence_name;
     string_t protocol_name;
+    string_t series_description;
     string_t patient_name;
     string_t patient_id;
     double slice_location;

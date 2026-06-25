@@ -3161,6 +3161,8 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
 
     get_string_field(di_ptr->sequence_name, group_list, ACR_Sequence_name);
     get_string_field(di_ptr->protocol_name, group_list, ACR_Protocol_name);
+    get_string_field(di_ptr->series_description, group_list,
+                     ACR_Series_description);
     get_string_field(di_ptr->patient_name, group_list, ACR_Patient_name);
     fix_patient_name(di_ptr->patient_name);
     get_string_field(di_ptr->patient_id, group_list, ACR_Patient_identification);

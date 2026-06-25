@@ -934,10 +934,15 @@ use_the_files(int num_files,
         /* Print out the file names if we are debugging.
          */
         if (G.Debug || G.List) {
-            printf("\nSeries %4d %20s %20s (%4d files):\n",
+            char *cur_series_desc =
+                di_ptr[acq_file_index[0]]->series_description;
+            printf("\nSeries %4d %20s %20s%s%s%s (%4d files):\n",
                    cur_acq_id,
                    cur_patient_name,
                    di_ptr[acq_file_index[0]]->protocol_name,
+                   (cur_series_desc[0] != '\0') ? " [" : "",
+                   cur_series_desc,
+                   (cur_series_desc[0] != '\0') ? "]" : "",
                    acq_num_files);
             for (ifile = 0; ifile < acq_num_files; ifile++) {
                 printf("     %s\n", di_ptr[acq_file_index[ifile]]->file_name);
