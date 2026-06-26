@@ -62,9 +62,9 @@ exp_nmnc=1
 declare -a R_UID R_DIM R_VOX R_COM R_MEAN R_STD
 blk=-1
 while read -r key rest; do
+  case "$key" in ''|\#*) continue ;; esac   # skip blanks/comments before trimming
   rest=$(echo "$rest" | xargs)        # collapse alignment whitespace
   case "$key" in
-    ''|\#*)  continue ;;
     series)  : ;;   # self-describing relpath, consumed by CMake only
     n_mnc)   exp_nmnc="$rest" ;;
     tol_vox) tol_vox="$rest" ;;
