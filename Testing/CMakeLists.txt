@@ -182,13 +182,14 @@ endif() # MT_BUILD_DCM2MNC_TESTS
 # Some regression cases rely on DICOM exports that cannot be downloaded by CI
 # (e.g. clinical data). Point MT_DCM2MNC_LOCAL_DATA at a directory holding such
 # data; these tests then run against manifests stored WITH that data, under
-# ${MT_DCM2MNC_LOCAL_DATA}/dcm2mnc_manifests/. Nothing local is committed to the
-# repo -- the manifests are derived from, and only meaningful with, the private
-# data. When the variable is empty or the path does not exist, no tests are
-# registered.
+# ${MT_DCM2MNC_LOCAL_DATA}/dcm2mnc_manifests/. Nothing local lives in this repo:
+# the only knob here is the MT_DCM2MNC_LOCAL_DATA path. The manifests, and the
+# generator that produces them, travel with the dataset (they are derived from,
+# and only meaningful with, the private data). When the variable is empty or the
+# path does not exist, no tests are registered.
 #
-# The manifests are produced by dcm2mnc_expected/regenerate-local.sh (same
-# dcm2niix ground-truth pipeline as the downloaded set). Each manifest is
+# The manifests are produced by a regenerate-local.sh kept at the data root
+# (same dcm2niix ground-truth pipeline as the downloaded set). Each manifest is
 # self-describing: a "series" line gives its path relative to the data root, so
 # tests are discovered by globbing the manifest dir -- there is no index file.
 # Unlike the downloaded tests these need no internet, only the local data path.
@@ -210,7 +211,7 @@ if(MT_DCM2MNC_LOCAL_DATA AND EXISTS "${MT_DCM2MNC_LOCAL_DATA}")
   # time, so regenerating manifests needs a re-configure, like the downloaded set.)
   file(GLOB _local_manifests "${_lmandir}/*.manifest")
   foreach(_man ${_local_manifests})
-    get_filename_component(_name ${_man} NAME_WE)
+    get_filename_component(_name ${_man} NAME_WLE)
     file(STRINGS ${_man} _sline REGEX "^series[ \t]+")
     if(NOT _sline)
       continue()
