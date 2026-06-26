@@ -181,12 +181,16 @@ endif() # MT_BUILD_DCM2MNC_TESTS
 #
 # Some regression cases rely on DICOM exports that cannot be downloaded by CI
 # (e.g. clinical data). Point MT_DCM2MNC_LOCAL_DATA at a directory holding such
-# data and these tests run against the committed manifests in
-# dcm2mnc_expected/local/ (the data itself is never committed). When the
-# variable is empty or the path does not exist, no tests are registered.
+# data; these tests then run against manifests stored WITH that data, under
+# ${MT_DCM2MNC_LOCAL_DATA}/dcm2mnc_manifests/. Nothing local is committed to the
+# repo -- the manifests are derived from, and only meaningful with, the private
+# data. When the variable is empty or the path does not exist, no tests are
+# registered.
 #
-# The manifests are produced by dcm2mnc_expected/local/regenerate-local.sh and
-# pin dcm2mnc's output geometry + statistics, exactly like the downloaded set.
+# The manifests are produced by dcm2mnc_expected/regenerate-local.sh (same
+# dcm2niix ground-truth pipeline as the downloaded set). Each manifest is
+# self-describing: a "series" line gives its path relative to the data root, so
+# tests are discovered by globbing the manifest dir -- there is no index file.
 # Unlike the downloaded tests these need no internet, only the local data path.
 
 set(MT_DCM2MNC_LOCAL_DATA "" CACHE PATH
@@ -198,29 +202,31 @@ if(MT_DCM2MNC_LOCAL_DATA AND EXISTS "${MT_DCM2MNC_LOCAL_DATA}")
   set(_lmincinfo  $<TARGET_FILE:mincinfo>)
   set(_lmincstats $<TARGET_FILE:mincstats>)
   set(_lcmp       ${CMAKE_CURRENT_SOURCE_DIR}/dcm2mnc-compare-test.sh)
-  set(_lexpdir    ${CMAKE_CURRENT_SOURCE_DIR}/dcm2mnc_expected/local)
+  set(_lmandir    "${MT_DCM2MNC_LOCAL_DATA}/dcm2mnc_manifests")
   set(_loutbase   ${CMAKE_CURRENT_BINARY_DIR}/dcm2mnc_local_out)
 
-  if(EXISTS ${_lexpdir}/local.list)
-    file(STRINGS ${_lexpdir}/local.list _dcm2mnc_local_series)
-    foreach(_row ${_dcm2mnc_local_series})
-      if(_row MATCHES "^#" OR _row STREQUAL "")
-        continue()
-      endif()
-      # row = name|relpath (relpath is under MT_DCM2MNC_LOCAL_DATA)
-      string(REPLACE "|" ";" _parts "${_row}")
-      list(GET _parts 0 _name)
-      list(GET _parts 1 _rel)
-      if(EXISTS "${MT_DCM2MNC_LOCAL_DATA}/${_rel}")
-        add_test(NAME dcm2mnc-local-${_name}
-          COMMAND ${_lcmp} ${_ldcm2mnc} ${_lmincinfo} ${_lmincstats}
-            ${_loutbase}/${_name}
-            "${MT_DCM2MNC_LOCAL_DATA}/${_rel}"
-            ${_lexpdir}/${_name}.manifest)
-        set_tests_properties(dcm2mnc-local-${_name} PROPERTIES
-          ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "dcm2mnc;dcm2mnc-local")
-      endif()
-    endforeach()
-  endif()
+  # Discover tests by globbing the manifests stored with the data. Each manifest
+  # carries its series relpath in a "series" line. (file(GLOB) runs at configure
+  # time, so regenerating manifests needs a re-configure, like the downloaded set.)
+  file(GLOB _local_manifests "${_lmandir}/*.manifest")
+  foreach(_man ${_local_manifests})
+    get_filename_component(_name ${_man} NAME_WE)
+    file(STRINGS ${_man} _sline REGEX "^series[ \t]+")
+    if(NOT _sline)
+      continue()
+    endif()
+    list(GET _sline 0 _sline0)
+    string(REGEX REPLACE "^series[ \t]+" "" _rel "${_sline0}")
+    string(STRIP "${_rel}" _rel)
+    if(EXISTS "${MT_DCM2MNC_LOCAL_DATA}/${_rel}")
+      add_test(NAME dcm2mnc-local-${_name}
+        COMMAND ${_lcmp} ${_ldcm2mnc} ${_lmincinfo} ${_lmincstats}
+          ${_loutbase}/${_name}
+          "${MT_DCM2MNC_LOCAL_DATA}/${_rel}"
+          ${_man})
+      set_tests_properties(dcm2mnc-local-${_name} PROPERTIES
+        ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "dcm2mnc;dcm2mnc-local")
+    endif()
+  endforeach()
 
 endif() # MT_DCM2MNC_LOCAL_DATA

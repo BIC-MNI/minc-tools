@@ -65,6 +65,7 @@ while read -r key rest; do
   rest=$(echo "$rest" | xargs)        # collapse alignment whitespace
   case "$key" in
     ''|\#*)  continue ;;
+    series)  : ;;   # self-describing relpath, consumed by CMake only
     n_mnc)   exp_nmnc="$rest" ;;
     tol_vox) tol_vox="$rest" ;;
     tol_com) tol_com="$rest" ;;
