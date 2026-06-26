@@ -5,6 +5,8 @@ dcm_qa_Orientation_ax_axdesc35|dcm_qa|In/Orientation/ax/axdesc35
 dcm_qa_Orientation_ax_axdesc36|dcm_qa|In/Orientation/ax/axdesc36
 dcm_qa_Orientation_ax_axint35|dcm_qa|In/Orientation/ax/axint35
 dcm_qa_Orientation_ax_axint36|dcm_qa|In/Orientation/ax/axint36
+dcm_qa_Orientation_axmb_AxAsc36mb2a|dcm_qa|In/Orientation/axmb/AxAsc36mb2a
+dcm_qa_Orientation_axmb_AxInt36mb|dcm_qa|In/Orientation/axmb/AxInt36mb
 dcm_qa_Orientation_cor_corasc35|dcm_qa|In/Orientation/cor/corasc35
 dcm_qa_Orientation_cor_corasc36|dcm_qa|In/Orientation/cor/corasc36
 dcm_qa_Orientation_cor_cordesc35|dcm_qa|In/Orientation/cor/cordesc35
