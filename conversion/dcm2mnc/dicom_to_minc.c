@@ -952,6 +952,17 @@ parse_siemens_proto2(Acr_Group group_list, Acr_Element element)
                 }
                 acr_insert_numeric(&group_list, EXT_Slice_orientation,
                                    orientation);
+
+                /* Preserve the full signed normal: row x column gives the
+                 * slice axis but not which way the slices stack. The CSA
+                 * SliceNormalVector carries the correct sign (e.g. sagittal
+                 * mosaics whose cross product points the opposite way). */
+                {
+                    string_t nstr;
+                    snprintf(nstr, sizeof(nstr), "%.15g\\%.15g\\%.15g",
+                             tmp[0], tmp[1], tmp[2]);
+                    acr_insert_string(&group_list, EXT_Slice_normal, nstr);
+                }
             }
         }
         else if (G.Debug >= HI_LOGGING) {
@@ -1848,7 +1859,13 @@ add_philips_info(Acr_Group group_list)
         }
         PMS_SET_CREATOR(PMS_Slice_Number_MR, &creator_id);
         slice_index = acr_find_int(group_list, PMS_Slice_Number_MR, -1);
-        if (slice_index < 0) {
+        /* A non-positive value is not a usable 1-based slice index. This happens
+         * when the Philips private creator cannot be resolved (e.g. anonymized
+         * files) and the field reads back as a constant 0 -- inserting it as the
+         * slice number would collapse every file onto slice 0. Treat it as
+         * "not found" so the standard Image Number (0020,0013) is used instead.
+         */
+        if (slice_index <= 0) {
             if (G.Debug)
                 printf("WARNING: Can't find Philips slice index\n");
         }
@@ -2359,6 +2376,21 @@ read_numa4_dicom(const char *filename, int max_group, int num_files)
           acr_insert_short(&group_list, ACR_Number_of_slices,
                            G.n_distinct_coordinates);
         }
+      }
+      else if (nt < 0 &&
+               ns > G.n_distinct_coordinates &&
+               (ns % G.n_distinct_coordinates) == 0 &&
+               num_files == ns) {
+        /* A declared Number-of-slices (0054,0081) that equals the TOTAL image
+         * count of the series and is an exact multiple of the distinct spatial
+         * positions. Some scanners (e.g. UIH 4D EPI) put the whole-series image
+         * count here instead of the per-volume slice count, which otherwise
+         * stacks every timepoint onto the slice axis. Trust the geometry: keep
+         * the true slice count; the surplus is a time dimension, derived
+         * downstream from (files / slices).
+         */
+        acr_insert_short(&group_list, ACR_Number_of_slices,
+                         G.n_distinct_coordinates);
       }
     }
 
@@ -3031,12 +3063,14 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
      */
     dicom_read_pixel_size(group_list, pixel_spacing);
 
-    /* Get step between slices
+    /* Get step between slices. Use the centre-to-centre spacing
+     * (SpacingBetweenSlices) -- SliceThickness omits any inter-slice gap and
+     * would under-step the mosaic stack (e.g. 3.0 mm thickness vs 3.6 mm
+     * spacing places the slices too close together).
      */
-    separation = acr_find_double(group_list, ACR_Slice_thickness, 0.0);
+    separation = acr_find_double(group_list, ACR_Spacing_between_slices, 0.0);
     if (separation == 0.0) {
-        separation = acr_find_double(group_list, ACR_Spacing_between_slices, 
-                                     1.0);
+        separation = acr_find_double(group_list, ACR_Slice_thickness, 1.0);
     }
 
     /* get image normal vector
@@ -3060,9 +3094,31 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
             dircos[VCOLUMN][ZCOORD] * dircos[VROW][XCOORD] -
             dircos[VCOLUMN][XCOORD] * dircos[VROW][ZCOORD];
    
-        mi_ptr->normal[ZCOORD] = 
+        mi_ptr->normal[ZCOORD] =
             dircos[VCOLUMN][XCOORD] * dircos[VROW][YCOORD] -
             dircos[VCOLUMN][YCOORD] * dircos[VROW][XCOORD];
+    }
+
+    /* row x column fixes the slice axis but not which way the slices stack.
+     * When the signed CSA SliceNormalVector is available, make the stacking
+     * direction agree with it (sagittal mosaics in particular stack opposite
+     * to the cross product, which placed slice 0 at the wrong end). Only the
+     * sign is touched, so axial/coronal mosaics -- whose cross product already
+     * agrees with the CSA normal -- are unaffected. */
+    {
+        char *nstr = acr_find_string(group_list, EXT_Slice_normal, "");
+        double nv[3];
+        if (*nstr != '\0' &&
+            sscanf(nstr, "%lf\\%lf\\%lf", &nv[0], &nv[1], &nv[2]) == 3) {
+            double dot = nv[XCOORD] * mi_ptr->normal[XCOORD] +
+                         nv[YCOORD] * mi_ptr->normal[YCOORD] +
+                         nv[ZCOORD] * mi_ptr->normal[ZCOORD];
+            if (dot < 0.0) {
+                mi_ptr->normal[XCOORD] = -mi_ptr->normal[XCOORD];
+                mi_ptr->normal[YCOORD] = -mi_ptr->normal[YCOORD];
+                mi_ptr->normal[ZCOORD] = -mi_ptr->normal[ZCOORD];
+            }
+        }
     }
 
     /* compute slice-to-slice step vector
@@ -3222,6 +3278,28 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
                         derived_spacing[0], derived_spacing[1]);
                 acr_insert_string(&group_list, ACR_Pixel_size, str_buf);
             }
+        }
+    }
+
+    /* If the pixel data is still encapsulated/compressed (e.g. JPEG 2000), the
+     * bytes are not a raw rows x cols x slices mosaic. De-mosaicing them would
+     * read far past the buffer -- previously a segfault that left a truncated,
+     * unreadable MINC behind. Detect it here (during both the parse pass and the
+     * image pass, before the output file is created) and refuse cleanly rather
+     * than crash or emit a corrupt file. Decoding compressed mosaics requires
+     * wiring the OPENJPEG/JPEG decoder into this path -- see plan. */
+    {
+        Acr_Element pix = acr_find_group_element(group_list, ACR_Pixel_data);
+        long mosaic_bytes = (long) mi_ptr->big[0] * mi_ptr->big[1] *
+                            mi_ptr->pixel_size;
+        if (pix != NULL &&
+            (acr_element_is_sequence(pix) ||
+             acr_get_element_length(pix) < mosaic_bytes)) {
+            fprintf(stderr,
+                    "ERROR: compressed/encapsulated mosaic pixel data is not "
+                    "supported (decompression must precede de-mosaicing); "
+                    "skipping series to avoid producing a corrupt file.\n");
+            exit(EXIT_FAILURE);
         }
     }
 

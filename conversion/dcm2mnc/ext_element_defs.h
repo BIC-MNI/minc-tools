@@ -48,3 +48,7 @@ GLOBAL_ELEMENT(EXT_Slice_orientation          , 0x0023, 0x000B, LO);
  * UIH provides per-slice IPP directly, not the Numaris 4 mosaic-center IPP.
  */
 GLOBAL_ELEMENT(EXT_No_mosaic_correction       , 0x0023, 0x000C, LO);
+
+/* Siemens CSA SliceNormalVector (DICOM/LPS), "x\y\z". Disambiguates the sign
+ * of the mosaic slice-stacking direction, which row x column alone cannot. */
+GLOBAL_ELEMENT(EXT_Slice_normal               , 0x0023, 0x000D, LO);
