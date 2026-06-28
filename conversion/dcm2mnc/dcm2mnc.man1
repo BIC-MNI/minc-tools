@@ -193,6 +193,11 @@ The optional scan information includes the echo number ('e<n>'), slice
 number ('sl<n>'), time series position ('d<n>'), phase number ('p<n>'),
 or chemical shift ('cs<n>').
 
+The optional image-component suffix distinguishes the components of a
+complex acquisition, and consists of one of the strings "_mag", "_ph",
+"_real", or "_imag".  It is added only when more than one image-type
+group is present.
+
 The optional modality information consists of either the string "_pet"
 or "_mri".  No suffix is added for unrecognized modalities.
 
@@ -218,12 +223,13 @@ single alphabetic character, as follows:
     %t - Optional dynamic scan number
     %p - Optional phase number
     %c - Optional chemical shift number
+    %i - Optional image-component suffix
     %m - Optional modality
 
 The default file name convention is therefore given by the format
 string:
 
-%N_%D_%T_%A%s%e%t%p%c%m
+%N_%D_%T_%A%s%e%t%p%c%i%m
 
 and the default directory name is given by the format string:
 

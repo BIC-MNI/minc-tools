@@ -267,13 +267,13 @@ ArgvInfo argTable[] = {
      ARGV_STRING,
      (char *)1,
      (char *)&G.filename_format,
-     "Set format for output file name."},
+     "Set format for output file name (see % codes below)."},
 
     {"-dname",
      ARGV_STRING,
      (char *)1,
      (char *)&G.dirname_format,
-     "Set format for output directory name."},
+     "Set format for output directory name (see % codes below)."},
 
     {"-usecoordinates",
      ARGV_CONSTANT,
@@ -783,6 +783,30 @@ usage(void)
     fprintf(stderr,"Files are named according to the following convention:\n\n");
     fprintf(stderr,"  Directory: lastname_firstname_yyyymmdd_hhmmss/\n");
     fprintf(stderr,"  Files:     lastname_firstname_yyyymmdd_hhmmss_series_modality.mnc\n\n");
+
+    fprintf(stderr,"Output file naming (-fname) and directory naming (-dname):\n");
+    fprintf(stderr,"  The argument to each is a template string in which a '%%'\n");
+    fprintf(stderr,"  followed by one of the codes below is replaced by DICOM\n");
+    fprintf(stderr,"  information.  Any other character (including a '%%' followed\n");
+    fprintf(stderr,"  by an unrecognized character) is copied through literally.\n");
+    fprintf(stderr,"  Codes marked 'optional' expand to an empty string when they\n");
+    fprintf(stderr,"  do not apply.\n\n");
+    fprintf(stderr,"  Defaults:  -fname \"%%N_%%D_%%T_%%A%%s%%e%%t%%p%%c%%i%%m\"\n");
+    fprintf(stderr,"             -dname \"%%N_%%D_%%T\"\n");
+    fprintf(stderr,"  (give -dname an empty string to avoid creating a subdirectory)\n\n");
+    fprintf(stderr,"  %%N  Patient name (or 'no_name' if absent)\n");
+    fprintf(stderr,"  %%D  Date of scan\n");
+    fprintf(stderr,"  %%T  Time of scan (digits only)\n");
+    fprintf(stderr,"  %%S  Study ID (typically 'yyyymmdd.hhmmss')\n");
+    fprintf(stderr,"  %%P  Protocol name\n");
+    fprintf(stderr,"  %%A  Acquisition or series ID\n");
+    fprintf(stderr,"  %%s  Optional slice label ('sl<n>')\n");
+    fprintf(stderr,"  %%e  Optional echo number ('e<n>')\n");
+    fprintf(stderr,"  %%t  Optional dynamic-scan number ('d<n>')\n");
+    fprintf(stderr,"  %%p  Optional phase number ('p<n>')\n");
+    fprintf(stderr,"  %%c  Optional chemical-shift number ('cs<n>')\n");
+    fprintf(stderr,"  %%i  Optional image-component suffix ('_mag','_ph','_real','_imag')\n");
+    fprintf(stderr,"  %%m  Optional modality suffix ('_mri','_pet')\n\n");
 
     exit(EXIT_FAILURE);
 }
