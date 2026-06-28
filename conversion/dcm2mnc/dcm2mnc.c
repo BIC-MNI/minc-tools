@@ -1029,8 +1029,19 @@ use_the_files(int num_files,
           }
 
           if (G.Debug) printf("INFO: Number of distinct coordinates: %d\n", n_elements );
+          /* Trust the geometry-derived count when it cleanly divides the
+           * nominal image count (true 4D), when the nominal count is absent
+           * (n_slices_nominal < 0), OR when every file sits at its own distinct
+           * position with more than one slice (acq_num_files == n_elements):
+           * that is an unambiguous pure 3D stack, so the declared image count
+           * (e.g. GE Images_in_acquisition) may over-/under-count (excluded
+           * localizers) and must not be allowed to manufacture a time split.
+           * Mosaics (acq_num_files == 1 or n_elements == 1) and genuine 4D
+           * (acq_num_files = slices * T != n_elements) are excluded.
+           */
           if ( ( n_slices_nominal % n_elements == 0 &&
-                 n_slices_nominal > n_elements ) || n_slices_nominal < 0) {
+                 n_slices_nominal > n_elements ) || n_slices_nominal < 0 ||
+               ( acq_num_files == n_elements && n_elements > 1 ) ) {
             G.n_distinct_coordinates = n_elements;
           }
         }

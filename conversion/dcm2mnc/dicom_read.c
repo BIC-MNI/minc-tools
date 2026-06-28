@@ -475,6 +475,21 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
         if (def_val == 0 && G.n_distinct_coordinates > 0) {
           def_val = G.n_distinct_coordinates;
         }
+        /* Pure 3D stack: more than one file, every file at its own distinct
+         * spatial position (num_files == n_distinct_coordinates). The declared
+         * slice/image count (e.g. GE Images_in_acquisition) can over- or
+         * under-count when localizers were excluded; geometry is authoritative
+         * here. The num_files > 1 guard excludes single-file mosaics and
+         * multiframe images (where slices come from sub-frames, not files);
+         * the inequality guard makes this a no-op whenever the declared count
+         * already agrees, so currently-correct stacks are untouched.
+         */
+        if (G.n_distinct_coordinates > 0 &&
+            gi_ptr->num_files > 1 &&
+            gi_ptr->num_files == G.n_distinct_coordinates &&
+            def_val != G.n_distinct_coordinates) {
+          def_val = G.n_distinct_coordinates;
+        }
         gi_ptr->max_size[imri] = def_val;
       }
       else if (imri == TIME) {
