@@ -150,6 +150,7 @@
 #include <dirent.h>
 #endif
 #include <ParseArgv.h>
+#include <regex.h>
 
 #ifdef HAVE_LIBARCHIVE
 #include "archive_support.h"
@@ -199,6 +200,10 @@ static int check_file_type_consistency(int num_files, char **file_list);
 
 
 struct globals G;
+
+/* Compiled form of -select_descr (set up in main() after ParseArgv). */
+static regex_t descr_re;
+static int     have_descr_re = 0;
 
 #define VERSION_STRING PACKAGE_VERSION " built " __DATE__ " " __TIME__
 
@@ -302,6 +307,18 @@ ArgvInfo argTable[] = {
     {"-1", ARGV_CONSTANT, (char *) 1, (char *) &G.file_format,
      "Force MINC 1.0 (NetCDF) format files."},
 
+    {"-select_series",
+     ARGV_STRING,
+     (char *) 1,
+     (char *) &G.select_series,
+     "Convert only these DICOM series numbers (comma list and/or a-b ranges, e.g. 16,18,40016 or 16-19)."},
+
+    {"-select_descr",
+     ARGV_STRING,
+     (char *) 1,
+     (char *) &G.select_descr,
+     "Convert only series whose description matches this POSIX regex (case-insensitive, e.g. 'FLAIR')."},
+
     {NULL, ARGV_END, NULL, NULL, NULL}
 
 };
@@ -335,6 +352,8 @@ main(int argc, char *argv[])
     G.use_stdin = FALSE;        /* Do not read file list from stdin */
     G.filename_format = NULL;
     G.dirname_format = NULL;
+    G.select_series = NULL;
+    G.select_descr = NULL;
 
     G.minc_history = time_stamp(argc, argv); /* Create minc history string */
     G.prefer_coords = FALSE;
@@ -348,6 +367,21 @@ main(int argc, char *argv[])
      */
     if (ParseArgv(&argc, argv, argTable, 0)) {
         usage();
+    }
+
+    /* Compile the -select_descr pattern once (extended, case-insensitive).
+     * A malformed regex is a hard error rather than a silent empty result. */
+    if (G.select_descr != NULL) {
+        int rc = regcomp(&descr_re, G.select_descr,
+                         REG_EXTENDED | REG_ICASE | REG_NOSUB);
+        if (rc != 0) {
+            char errbuf[256];
+            regerror(rc, &descr_re, errbuf, sizeof(errbuf));
+            fprintf(stderr, "Invalid -select_descr regex '%s': %s\n",
+                    G.select_descr, errbuf);
+            exit(EXIT_FAILURE);
+        }
+        have_descr_re = 1;
     }
 
     /* G.filename_format is non-NULL only if -fname was passed on command line
@@ -811,8 +845,57 @@ usage(void)
     exit(EXIT_FAILURE);
 }
 
+/* TRUE if series_no appears in a comma list of numbers and/or a-b ranges,
+ * e.g. "16,18,40016" or "16-19". Whitespace around tokens is tolerated.
+ * Malformed tokens are skipped rather than treated as an error. */
 static int
-use_the_files(int num_files, 
+series_number_matches(int series_no, const char *spec)
+{
+    const char *p = spec;
+    while (*p) {
+        char *end;
+        long lo, hi;
+        while (*p == ',' || isspace((unsigned char)*p)) p++;
+        if (*p == '\0') break;
+        lo = strtol(p, &end, 10);
+        if (end == p) { p++; continue; }   /* skip junk, stay robust */
+        p = end;
+        while (isspace((unsigned char)*p)) p++;
+        if (*p == '-') {                    /* a-b range */
+            p++;
+            hi = strtol(p, &end, 10);
+            if (end == p) hi = lo;
+            else p = end;
+        } else {
+            hi = lo;
+        }
+        if (series_no >= lo && series_no <= hi) return TRUE;
+    }
+    return FALSE;
+}
+
+/* Return TRUE if this series passes the user's -select_* filters.
+ * Default (no filter set) returns TRUE immediately. When both filters are
+ * set the result is a UNION: a series matching EITHER filter is kept. */
+static int
+series_is_selected(int series_no, const char *series_desc)
+{
+    if (G.select_series == NULL && !have_descr_re) {
+        return TRUE;                 /* fast default path */
+    }
+    if (G.select_series != NULL &&
+        series_number_matches(series_no, G.select_series)) {
+        return TRUE;
+    }
+    if (have_descr_re && series_desc != NULL &&
+        regexec(&descr_re, series_desc, 0, NULL, 0) == 0) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static int
+use_the_files(int num_files,
               Data_Object_Info *di_ptr[],
               const char *out_dir)
 {
@@ -951,10 +1034,23 @@ use_the_files(int num_files,
         if (acq_num_files == 0) {
             break;              /* All done!!! */
         }
-       
+
+        /* Honor -select_series / -select_descr.  Done before the -list/-debug
+         * print so a -list preview reflects exactly what would be converted.
+         * The files are already flagged used_file, so the outer loop advances
+         * to the next series group and terminates normally.
+         */
+        if (!series_is_selected(cur_acq_id,
+                                di_ptr[acq_file_index[0]]->series_description)) {
+            if (G.Debug) {
+                printf("Skipping series %d (filtered out)\n", cur_acq_id);
+            }
+            continue;
+        }
+
         /* Use the files for this acquisition
          */
-     
+
         /* Print out the file names if we are debugging.
          */
         if (G.Debug || G.List) {

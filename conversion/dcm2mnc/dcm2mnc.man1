@@ -140,6 +140,41 @@ for verifying the validity of a dataset, and for debugging problems with
 .BR dcm2mnc .
 
 .TP
+.BI -select_series " <spec>"
+Convert only the DICOM series whose series number matches
+.IR <spec> ,
+a comma\-separated list of numbers and/or inclusive
+.IR a\-b
+ranges (for example
+.B 16,18,40016
+or
+.BR 16-19 ).
+The series number is the value shown as
+.RB \(lq "Series NNNN" \(rq
+by
+.BR -list .
+This is not a regular expression.
+
+.TP
+.BI -select_descr " <regex>"
+Convert only the series whose Series Description (0008,103E) matches the
+POSIX extended regular expression
+.IR <regex> ,
+compared case\-insensitively (for example
+.B FLAIR
+or
+.BR "T1|T2" ).
+A malformed expression is reported and the program aborts.
+
+When both
+.B -select_series
+and
+.B -select_descr
+are given, a series is converted if it matches
+.I either
+filter (union).  When neither is given, all series are converted.
+
+.TP
 .BI -verbose
 Verbose operation.  Prints a large amount of additional information
 about the program's operation. This information can probably only be 

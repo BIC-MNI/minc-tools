@@ -279,6 +279,8 @@ struct globals {
     int n_image_type_groups;    /* Distinct image-type groups for current series (0=mag,1=ph,…) */
     int cur_image_type_val;     /* image_type value for the current series being written */
     int user_fname_format;      /* TRUE if user passed -fname explicitly */
+    char *select_series;        /* -select_series num/range list; NULL = no filter */
+    char *select_descr;         /* -select_descr  ERE;            NULL = no filter */
 };
 
 /* Values for options flags */
