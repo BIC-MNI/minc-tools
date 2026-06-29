@@ -198,6 +198,7 @@ static void free_list(int num_files,
                       Data_Object_Info **file_info_list);
 static int check_file_type_consistency(int num_files, char **file_list);
 static int is_resampled_localizer(Acr_Group group_list);
+static int is_spectroscopy(Acr_Group group_list);
 
 
 struct globals G;
@@ -543,6 +544,18 @@ main(int argc, char *argv[])
              */
             if (G.Debug) {
                 printf("Skipping resampled localizer MPR %s\n", cur_fname_ptr);
+            }
+            acr_delete_group_list(group_list);
+            free(cur_fname_ptr);
+        }
+        else if (is_spectroscopy(group_list)) {
+            /* Drop MR Spectroscopy objects (SOP Class 1.2.840.10008.5.1.4.1.1.4.2,
+             * ImageType "...\SPECTROSCOPY\...").  These are not images; dcm2niix does
+             * not convert them to NIfTI, and admitting them otherwise over-splits the
+             * study into a meaningless extra single-frame volume (DIFF-E).
+             */
+            if (G.Debug) {
+                printf("Skipping MR spectroscopy %s\n", cur_fname_ptr);
             }
             acr_delete_group_list(group_list);
             free(cur_fname_ptr);
@@ -1393,6 +1406,21 @@ is_resampled_localizer(Acr_Group group_list)
     return (strstr(itype, "DERIVED") != NULL &&
             strstr(itype, "MPR") != NULL &&
             strstr(itype, "RESAMPLED") != NULL);
+}
+
+/* Identify MR Spectroscopy objects.  dcm2niix does not convert spectroscopy to
+ * NIfTI, so admitting these single-"frame" objects over-splits the study into a
+ * meaningless extra volume (DIFF-E).  Match on the MR Spectroscopy Storage SOP
+ * Class UID; fall back to the ImageType SPECTROSCOPY value for files whose SOP
+ * Class UID has been stripped.
+ */
+static int
+is_spectroscopy(Acr_Group group_list)
+{
+    const char *sop   = acr_find_string(group_list, ACR_SOP_Class_UID, "");
+    const char *itype = acr_find_string(group_list, ACR_Image_type, "");
+    return (strcmp(sop, "1.2.840.10008.5.1.4.1.1.4.2") == 0 ||
+            strstr(itype, "SPECTROSCOPY") != NULL);
 }
 
 static int
