@@ -3281,24 +3281,51 @@ mosaic_init(Acr_Group group_list, Mosaic_Info *mi_ptr, int load_image)
         }
     }
 
-    /* If the pixel data is still encapsulated/compressed (e.g. JPEG 2000), the
-     * bytes are not a raw rows x cols x slices mosaic. De-mosaicing them would
-     * read far past the buffer -- previously a segfault that left a truncated,
-     * unreadable MINC behind. Detect it here (during both the parse pass and the
-     * image pass, before the output file is created) and refuse cleanly rather
-     * than crash or emit a corrupt file. Decoding compressed mosaics requires
-     * wiring the OPENJPEG/JPEG decoder into this path -- see plan. */
+    /* The de-mosaic code below treats the pixel data as a raw rows x cols
+     * mosaic and copies tiles out of it by byte offset. If the pixel data is
+     * still encapsulated/compressed (e.g. JPEG 2000), those bytes are a
+     * codestream, not a raw grid -- de-tiling it would read far past the buffer
+     * (previously a segfault / corrupt MINC). So when loading the image, decode
+     * the codestream now and replace the compressed element with the raw,
+     * host-order pixels before the tiles are extracted. */
     {
         Acr_Element pix = acr_find_group_element(group_list, ACR_Pixel_data);
         long mosaic_bytes = (long) mi_ptr->big[0] * mi_ptr->big[1] *
                             mi_ptr->pixel_size;
-        if (pix != NULL &&
-            (acr_element_is_sequence(pix) ||
-             acr_get_element_length(pix) < mosaic_bytes)) {
+        if (load_image && pix != NULL && acr_element_is_sequence(pix)) {
+            int raw_length = 0;
+            void *raw_data = decompress_pixel_element(group_list, pix,
+                                                      &raw_length);
+            if (raw_data == NULL) {
+                fprintf(stderr,
+                        "ERROR: failed to decode compressed/encapsulated mosaic "
+                        "pixel data (no working JPEG/JPEG-2000 decoder); "
+                        "skipping series to avoid producing a corrupt file.\n");
+                exit(EXIT_FAILURE);
+            }
+            else {
+                int pix_group = acr_get_element_group(pix);
+                int pix_elid = acr_get_element_element(pix);
+                Acr_Element raw = acr_create_element(pix_group, pix_elid,
+                                                     acr_get_element_vr(pix),
+                                                     (long) raw_length,
+                                                     raw_data);
+                /* The decoded buffer is already in the host byte order, so make
+                 * the replacement element say so -- otherwise the later
+                 * acr_get_short() that reads the de-tiled sub-image would
+                 * needlessly swap the bytes. */
+                acr_set_element_byte_order(raw, acr_get_machine_byte_order());
+                acr_group_remove_element(acr_find_group(group_list, pix_group),
+                                         pix_elid);
+                acr_insert_element_into_group_list(&group_list, raw);
+            }
+        }
+        else if (pix != NULL && !acr_element_is_sequence(pix) &&
+                 acr_get_element_length(pix) < mosaic_bytes) {
             fprintf(stderr,
-                    "ERROR: compressed/encapsulated mosaic pixel data is not "
-                    "supported (decompression must precede de-mosaicing); "
-                    "skipping series to avoid producing a corrupt file.\n");
+                    "ERROR: truncated mosaic pixel data (%ld < %ld bytes); "
+                    "skipping series to avoid producing a corrupt file.\n",
+                    acr_get_element_length(pix), mosaic_bytes);
             exit(EXIT_FAILURE);
         }
     }

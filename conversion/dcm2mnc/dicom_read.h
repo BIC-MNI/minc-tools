@@ -1,4 +1,6 @@
 extern void get_dicom_image_data(Acr_Group group_list, Image_Data *image);
+extern void *decompress_pixel_element(Acr_Group group_list, Acr_Element element,
+                                      int *out_length);
 extern void parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr);
 extern void get_file_info(Acr_Group group_list, File_Info *file_info,
                           General_Info *general_info, const char *file_name);

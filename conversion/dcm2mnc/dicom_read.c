@@ -2900,6 +2900,88 @@ dicom_opj_decompress(unsigned char *jpg_buffer, int jpg_size)
 }
 #endif
 
+#include "jpg_0xc3.h"
+
+/* ----------------------------- MNI Header -----------------------------------
+   @NAME       : decode_compressed_fragment
+   @INPUT      : data - one encapsulated (compressed) pixel-data fragment
+                 encoded_length - length of the fragment, in bytes
+   @OUTPUT     : (none)
+   @RETURNS    : a freshly malloc'd buffer of raw, host-order pixels, or NULL
+                 if no available decoder could handle the fragment.  The
+                 caller owns the returned buffer.
+   @DESCRIPTION: Runs the JPEG-lossless (SOF 0xC3), JPEG-2000 (OpenJPEG) and
+                 baseline JPEG (libjpeg) decoders in turn until one succeeds.
+   ---------------------------------------------------------------------------- */
+static void *
+decode_compressed_fragment(void *data, int encoded_length)
+{
+    void *decoded_data;
+    int dimX, dimY, bits, frames;
+
+    decoded_data = decode_jpeg_sof_0xc3(data, encoded_length, 0,
+                                        &dimX, &dimY, &bits, &frames);
+#if OPENJPEG_FOUND
+    if (decoded_data == NULL) {
+        decoded_data = dicom_opj_decompress(data, encoded_length);
+    }
+#endif
+#if JPEG_FOUND
+    if (decoded_data == NULL) {
+        decoded_data = dicom_jpeg_decompress(data, encoded_length);
+    }
+#endif
+    return decoded_data;
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+   @NAME       : decompress_pixel_element
+   @INPUT      : group_list - DICOM group list (for Rows/Columns/Bits)
+                 element - an encapsulated (compressed) pixel-data element
+   @OUTPUT     : out_length - if non-NULL, set to the decoded byte count
+                              (rows * columns * bytes-per-sample)
+   @RETURNS    : a freshly malloc'd buffer of raw, host-order pixels, or NULL
+                 if the element is not an encapsulated sequence or decoding
+                 failed.  The caller owns the returned buffer.
+   @DESCRIPTION: Extracts the (first) compressed fragment from an encapsulated
+                 pixel-data sequence and decodes it.  Shared by the de-mosaic
+                 path in dicom_to_minc.c, which must decompress before it can
+                 de-tile a mosaic.
+   ---------------------------------------------------------------------------- */
+void *
+decompress_pixel_element(Acr_Group group_list, Acr_Element element,
+                         int *out_length)
+{
+    void *data;
+    void *decoded_data;
+    int encoded_length;
+    Acr_Element item;
+
+    if (element == NULL || !acr_element_is_sequence(element)) {
+        return NULL;
+    }
+
+    /* The first item of the encapsulated sequence is the basic offset table;
+     * the compressed pixel data is in the following item. */
+    item = (Acr_Element) acr_get_element_data(element);
+    item = acr_get_element_next(item);
+    if (item == NULL) {
+        return NULL;
+    }
+    data = acr_get_element_data(item);
+    encoded_length = acr_get_element_length(item);
+
+    decoded_data = decode_compressed_fragment(data, encoded_length);
+
+    if (decoded_data != NULL && out_length != NULL) {
+        int nrows = (int)acr_find_short(group_list, ACR_Rows, 0);
+        int ncolumns = (int)acr_find_short(group_list, ACR_Columns, 0);
+        int bits_alloc = (int)acr_find_short(group_list, ACR_Bits_allocated, 0);
+        int pixel_size = (bits_alloc + (CHAR_BIT - 1)) / CHAR_BIT;
+        *out_length = nrows * ncolumns * pixel_size;
+    }
+    return decoded_data;
+}
 
 /* ----------------------------- MNI Header -----------------------------------
    @NAME       : get_dicom_image_data
@@ -2928,7 +3010,6 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
     nc_type datatype;
     void *decoded_data = NULL;
     int encoded_length;
-    int dimX, dimY, bits, frames;
 
     /* Get the image information */
     bits_alloc = (int)acr_find_short(group_list, ACR_Bits_allocated, 0);
@@ -2961,20 +3042,8 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
       element = acr_get_element_next(element);
       data = acr_get_element_data(element);
       encoded_length = acr_get_element_length(element);
-      
-#include "jpg_0xc3.h"
-      decoded_data = decode_jpeg_sof_0xc3(data, encoded_length, 0,
-                                          &dimX, &dimY, &bits, &frames);
-#if OPENJPEG_FOUND
-      if (decoded_data == NULL) {
-        decoded_data = dicom_opj_decompress(data, encoded_length);
-      }
-#endif
-#if JPEG_FOUND
-      if (decoded_data == NULL) {
-        decoded_data = dicom_jpeg_decompress(data, encoded_length);
-      }
-#endif
+
+      decoded_data = decode_compressed_fragment(data, encoded_length);
       if (decoded_data == NULL) {
         printf("ERROR: JPEG decoding failed.\n");
         exit(-1);
