@@ -227,6 +227,8 @@ typedef struct {
     int coord_found;
     double coord[WORLD_NDIMS];
     int tpos_id;
+    double image_orientation[6]; /* row(0..2)+col(3..5) dir cosines, (0020,0037) */
+    int image_orientation_found; /* non-zero if image_orientation was read */
 } Data_Object_Info;
 
 #include "dicom_read.h"

@@ -3184,6 +3184,24 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
 
     di_ptr->coord_found = dicom_read_position(group_list, 0, di_ptr->coord);
 
+    /* Image orientation (0020,0037), used as a grouping key so that a series
+     * containing several distinct orientations (a 3-plane localizer / scout) is
+     * split into one output volume per orientation, matching dcm2niix.  Read
+     * quietly here: dicom_read_orientation() warns on absence, but many files in
+     * a study legitimately lack orientation (reports, derived maps), so probe
+     * for the element first and only parse when present.
+     */
+    di_ptr->image_orientation_found = 0;
+    if (acr_recurse_for_element(group_list, 0, ACR_Shared_func_groups_seq,
+                                ACR_Image_orientation_patient) != NULL ||
+        acr_recurse_for_element(group_list, 0, ACR_Perframe_func_groups_seq,
+                                ACR_Image_orientation_patient) != NULL ||
+        acr_find_group_element(group_list, ACR_Image_orientation_patient) != NULL ||
+        acr_find_group_element(group_list, ACR_Image_orientation_patient_old) != NULL) {
+        di_ptr->image_orientation_found =
+            dicom_read_orientation(group_list, di_ptr->image_orientation);
+    }
+
     /* identification info needed to generate unique session id
      * for file names
      */

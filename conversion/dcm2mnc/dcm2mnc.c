@@ -924,6 +924,27 @@ series_is_selected(int series_no, const char *series_desc)
     return FALSE;
 }
 
+/* Return TRUE if two files share an image orientation (and therefore belong in
+ * the same output volume).  Files lacking orientation information are treated as
+ * matching, so this is a strict no-op for non-spatial data and for any series
+ * with a single orientation; only genuinely multi-orientation series (3-plane
+ * localizers / scouts) are split, matching dcm2niix. */
+static int
+orientation_matches(const double a[6], int a_found,
+                    const double b[6], int b_found)
+{
+    int i;
+    if (!a_found || !b_found) {
+        return TRUE;
+    }
+    for (i = 0; i < 6; i++) {
+        if (fabs(a[i] - b[i]) > 1e-3) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
 static int
 use_the_files(int num_files,
               Data_Object_Info *di_ptr[],
@@ -944,6 +965,8 @@ use_the_files(int num_files,
     string_t cur_patient_id;
     string_t cur_sequence_name;
     string_t cur_protocol_name;
+    double cur_image_orientation[6];
+    int cur_image_orientation_found;
     int exit_status;
     const char *output_file_name;
     string_t file_prefix;
@@ -1027,6 +1050,12 @@ use_the_files(int num_files,
                 strcpy(cur_sequence_name, di_ptr[ifile]->sequence_name);
                 strcpy(cur_protocol_name, di_ptr[ifile]->protocol_name);
 
+                cur_image_orientation_found =
+                    di_ptr[ifile]->image_orientation_found;
+                memcpy(cur_image_orientation,
+                       di_ptr[ifile]->image_orientation,
+                       sizeof(cur_image_orientation));
+
                 used_file[ifile] = TRUE;
             }
             /* otherwise check if attributes of the new input file match those
@@ -1042,7 +1071,11 @@ use_the_files(int num_files,
                       !G.splitDynScan) &&
                      !strcmp(cur_protocol_name, di_ptr[ifile]->protocol_name) &&
                      !strcmp(cur_patient_name, di_ptr[ifile]->patient_name) &&
-                     !strcmp(cur_patient_id, di_ptr[ifile]->patient_id)) {
+                     !strcmp(cur_patient_id, di_ptr[ifile]->patient_id) &&
+                     orientation_matches(cur_image_orientation,
+                                         cur_image_orientation_found,
+                                         di_ptr[ifile]->image_orientation,
+                                         di_ptr[ifile]->image_orientation_found)) {
 
                 used_file[ifile] = TRUE;
             }
