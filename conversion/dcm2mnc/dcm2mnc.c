@@ -197,6 +197,7 @@ static void free_list(int num_files,
                       char **file_list, 
                       Data_Object_Info **file_info_list);
 static int check_file_type_consistency(int num_files, char **file_list);
+static int is_resampled_localizer(Acr_Group group_list);
 
 
 struct globals G;
@@ -528,6 +529,22 @@ main(int argc, char *argv[])
              */
             printf("Skipping file %s, which is not in the expected format.\n",
                    cur_fname_ptr);
+            free(cur_fname_ptr);
+        }
+        else if (is_resampled_localizer(group_list)) {
+            /* Drop Siemens AAHead_Scout resampled-MPR localizer reformats
+             * (ImageType "DERIVED\...\MPR\...\RESAMPLED").  These are secondary
+             * reformatted previews of the scout, not acquired data; dcm2niix
+             * discards them, and keeping them otherwise over-splits the study
+             * into extra single-frame volumes (DIFF-E).  The guard requires all
+             * three of DERIVED, MPR and RESAMPLED so genuine acquired series and
+             * non-resampled scout MPRs (DERIVED\...\MPR\ND, which carry real
+             * multi-orientation data) are left untouched.
+             */
+            if (G.Debug) {
+                printf("Skipping resampled localizer MPR %s\n", cur_fname_ptr);
+            }
+            acr_delete_group_list(group_list);
             free(cur_fname_ptr);
         }
         else {
@@ -1360,6 +1377,22 @@ use_the_files(int num_files,
     free(used_file);
 
     return exit_status;
+}
+
+/* TRUE if this object is a Siemens resampled-MPR localizer reformat, i.e. its
+ * ImageType (0008,0008) contains all of DERIVED, MPR and RESAMPLED.  Such
+ * AAHead_Scout MPR previews are secondary reformatted images, not acquired
+ * data; dcm2niix drops them.  Requiring all three substrings keeps the test
+ * narrow: acquired series and non-resampled scout MPRs (DERIVED\...\MPR\ND) are
+ * not matched.
+ */
+static int
+is_resampled_localizer(Acr_Group group_list)
+{
+    const char *itype = acr_find_string(group_list, ACR_Image_type, "");
+    return (strstr(itype, "DERIVED") != NULL &&
+            strstr(itype, "MPR") != NULL &&
+            strstr(itype, "RESAMPLED") != NULL);
 }
 
 static int
