@@ -109,6 +109,29 @@ ADD_TEST12(minccmp-test ${CMAKE_CURRENT_SOURCE_DIR}/minccmp-test.pl)
 
 ADD_TEST12(mnc2nii-compress-test ${CMAKE_CURRENT_SOURCE_DIR}/mnc2nii-compress-test.sh)
 
+# ------------ nii2mnc dimension-naming regression tests ----------------------
+# Self-contained: tiny committed NIfTI fixtures (nii2mnc_data/, built by
+# make_nii_fixtures.py) exercise the file-axis -> MINC spatial-axis assignment.
+# The *_zeroslice fixtures reproduce a degenerate s-form (slice column all zero)
+# that used to make nii2mnc emit "xspace" twice and drop "zspace".
+SET(_nii2mnc_bin ${CMAKE_CURRENT_SOURCE_DIR}/nii2mnc-dimnames-test.sh)
+SET(_nii2mnc_dir ${CMAKE_CURRENT_SOURCE_DIR}/nii2mnc_data)
+
+MACRO(ADD_NII2MNC_TEST _case)
+  ADD_TEST(NAME nii2mnc-dimnames-${_case}
+    COMMAND ${_nii2mnc_bin} $<TARGET_FILE:nii2mnc> $<TARGET_FILE:mincinfo>
+            ${_nii2mnc_dir}/${_case}.nii ${ARGN}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  set_tests_properties(nii2mnc-dimnames-${_case} PROPERTIES
+    ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "nii2mnc")
+ENDMACRO(ADD_NII2MNC_TEST)
+
+ADD_NII2MNC_TEST(nii_3d_ras       xspace yspace zspace)
+ADD_NII2MNC_TEST(nii_3d_permuted  xspace yspace zspace)
+ADD_NII2MNC_TEST(nii_4d_normal    time xspace yspace zspace)
+ADD_NII2MNC_TEST(nii_3d_zeroslice xspace yspace zspace)
+ADD_NII2MNC_TEST(nii_4d_zeroslice time xspace yspace zspace)
+
 # ------------ dcm2mnc integration tests (opt-in, data fetched at build time) -
 
 if(MT_BUILD_DCM2MNC_TESTS)

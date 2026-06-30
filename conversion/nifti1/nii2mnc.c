@@ -414,19 +414,75 @@ main(int argc, char **argv)
        * to SI. This tells us both how to convert the transform and how the
        * file data is arranged.
        */
-      for ( i = 0; i < VIO_N_DIMENSIONS; i++) {
-        int spatial_axis = VIO_X;
-        float c_x = fabsf(nii_xfm.m[VIO_X][i]);
-        float c_y = fabsf(nii_xfm.m[VIO_Y][i]);
-        float c_z = fabsf(nii_xfm.m[VIO_Z][i]);
-        if (c_y > c_x && c_y > c_z) {
-          spatial_axis = VIO_Y;
+      /* If the slice direction could not be determined upstream (e.g. dcm2niix
+       * writes an s-form whose k column is all zeros), one spatial column is
+       * degenerate. Rebuild it as the unit cross product of the other two
+       * columns, scaled by the matching voxel spacing, so the volume keeps a
+       * valid, non-singular orientation instead of collapsing two file axes
+       * onto the same MINC spatial axis.
+       */
+      {
+        double pixdim[VIO_N_DIMENSIONS];
+        pixdim[VIO_X] = nii_ptr->dx;
+        pixdim[VIO_Y] = nii_ptr->dy;
+        pixdim[VIO_Z] = nii_ptr->dz;
+        for (i = 0; i < VIO_N_DIMENSIONS; i++) {
+          double col_norm = sqrt(nii_xfm.m[VIO_X][i] * nii_xfm.m[VIO_X][i] +
+                                 nii_xfm.m[VIO_Y][i] * nii_xfm.m[VIO_Y][i] +
+                                 nii_xfm.m[VIO_Z][i] * nii_xfm.m[VIO_Z][i]);
+          if (col_norm < 1e-6) {
+            int a = (i + 1) % VIO_N_DIMENSIONS;
+            int b = (i + 2) % VIO_N_DIMENSIONS;
+            double ux = nii_xfm.m[VIO_Y][a] * nii_xfm.m[VIO_Z][b] -
+                        nii_xfm.m[VIO_Z][a] * nii_xfm.m[VIO_Y][b];
+            double uy = nii_xfm.m[VIO_Z][a] * nii_xfm.m[VIO_X][b] -
+                        nii_xfm.m[VIO_X][a] * nii_xfm.m[VIO_Z][b];
+            double uz = nii_xfm.m[VIO_X][a] * nii_xfm.m[VIO_Y][b] -
+                        nii_xfm.m[VIO_Y][a] * nii_xfm.m[VIO_X][b];
+            double un = sqrt(ux * ux + uy * uy + uz * uz);
+            double step = (pixdim[i] != 0.0) ? pixdim[i] : 1.0;
+            if (un < 1e-6) {            /* the other two columns are degenerate too */
+              ux = (i == VIO_X); uy = (i == VIO_Y); uz = (i == VIO_Z);
+              un = 1.0;
+            }
+            nii_xfm.m[VIO_X][i] = (float)(ux / un * step);
+            nii_xfm.m[VIO_Y][i] = (float)(uy / un * step);
+            nii_xfm.m[VIO_Z][i] = (float)(uz / un * step);
+            if (!qflag) {
+              printf("Note: spatial axis %d had zero direction cosines; "
+                     "reconstructed it via cross product.\n", i);
+            }
+          }
         }
-        if (c_z > c_x && c_z > c_y) {
-          spatial_axis = VIO_Z;
+      }
+
+      /* Assign each file axis to a distinct MINC spatial axis (a bijection):
+       * repeatedly take the largest remaining |cosine| in the 3x3 spatial
+       * sub-matrix, then strike out that file axis and that spatial axis. For
+       * well-formed transforms this reproduces the simple per-axis argmax
+       * exactly; it only differs when two axes would otherwise collide onto the
+       * same spatial axis (the degenerate case that dropped "zspace").
+       */
+      {
+        int axis_used[VIO_N_DIMENSIONS] = {0, 0, 0};
+        int file_used[VIO_N_DIMENSIONS] = {0, 0, 0};
+        int pick;
+        for (pick = 0; pick < VIO_N_DIMENSIONS; pick++) {
+          int best_file = -1, best_axis = -1, fi, ax;
+          float best_c = -1.0f;
+          for (fi = 0; fi < VIO_N_DIMENSIONS; fi++) {
+            if (file_used[fi]) continue;
+            for (ax = 0; ax < VIO_N_DIMENSIONS; ax++) {
+              if (axis_used[ax]) continue;
+              float c = fabsf(nii_xfm.m[ax][fi]);
+              if (c > best_c) { best_c = c; best_file = fi; best_axis = ax; }
+            }
+          }
+          file_used[best_file] = 1;
+          axis_used[best_axis] = 1;
+          spatial_axes[best_file] = best_axis;
+          mnc_ordered_dim_names[best_file] = spatial_names[best_axis];
         }
-        spatial_axes[i] = spatial_axis;
-        mnc_ordered_dim_names[i] = spatial_names[spatial_axis];
       }
 
       
