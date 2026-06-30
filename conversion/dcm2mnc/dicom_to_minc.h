@@ -217,6 +217,8 @@ typedef struct {
 	string_t series_description; /*added by ilana*/
         string_t receive_coil;
         string_t transmit_coil;
+        string_t coil;          /* backslash-joined per-channel coil labels
+                                   (TIME-frame order) for uncombined data; "" otherwise */
         double rep_time;
         double slice_thickness;
         double num_slices;

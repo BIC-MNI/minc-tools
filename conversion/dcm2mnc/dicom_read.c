@@ -635,6 +635,43 @@ get_axis_lengths(const Acr_Group group_list, General_Info *gi_ptr, const File_In
   } /* Loop over dimensions */
 }
 
+/* Return the 1-based position of coil name `name` among the backslash-separated
+ * tokens of G.coil_labels, or -1 if not found.  Used to map an uncombined
+ * acquisition's per-channel coil element (0051,100f) onto the TIME axis. */
+static int
+coil_time_index(const char *name)
+{
+  const char *p = G.coil_labels;
+  int idx = 1;
+  size_t nlen;
+
+  if (name == NULL) {
+    return -1;
+  }
+  /* Ignore DICOM even-length space padding on the raw element value so it
+   * matches the trimmed labels stored in G.coil_labels (e.g. "H13 "->"H13"). */
+  nlen = strlen(name);
+  while (nlen > 0 && name[nlen - 1] == ' ') {
+    nlen--;
+  }
+  if (nlen == 0) {
+    return -1;
+  }
+  while (*p != '\0') {
+    const char *e = strchr(p, '\\');
+    size_t len = (e != NULL) ? (size_t)(e - p) : strlen(p);
+    if (len == nlen && strncmp(p, name, nlen) == 0) {
+      return idx;
+    }
+    if (e == NULL) {
+      break;
+    }
+    p = e + 1;
+    idx++;
+  }
+  return -1;
+}
+
 void
 get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_Info *fi_ptr)
 {
@@ -652,6 +689,15 @@ get_file_indices(const Acr_Group group_list, const General_Info *gi_ptr, File_In
   /* Get indices for image in current file
    */
   for (imri = 0; imri < MRI_NDIMS; imri++) {
+    /* Uncombined coil data: carry the coil channel (0051,100f) on the TIME
+     * axis so all channels are preserved instead of overwriting one another.
+     * Only active when use_the_files() detected genuine per-channel data. */
+    if (imri == TIME && G.coils_on_time) {
+      int ci = coil_time_index(acr_find_string(group_list,
+                                               SPI_Coil_for_frame, ""));
+      fi_ptr->index[TIME] = (ci > 0) ? ci : 1;
+      continue;
+    }
     if (mri_index_list[imri] != NULL) {
       int tmp_index = acr_find_int(group_list, mri_index_list[imri], -1);
 
@@ -2073,6 +2119,15 @@ get_coordinate_info(Acr_Group group_list,
     }
     fi_ptr->coordinate[TIME] = frame_time;
 
+    /* For uncombined coil data the TIME axis carries the coil channel, not a
+     * real acquisition time (which is constant across channels).  Give it a
+     * clean monotonic coordinate so the 4th dimension is well-defined and does
+     * not collapse to a zero-step axis. */
+    if (G.coils_on_time) {
+      fi_ptr->coordinate[TIME] = (double)(fi_ptr->index[TIME] - 1);
+      fi_ptr->width[TIME] = 0.0;
+    }
+
     /* end of time section */
 
     fi_ptr->coordinate[PHASE] = 0.0;
@@ -2266,6 +2321,15 @@ get_general_header_info(Acr_Group group_list, General_Info *gi_ptr)
                      ACR_Receive_coil_name);
     get_string_field(gi_ptr->acq.transmit_coil, group_list,
                      ACR_Transmit_coil_name);
+    /* For uncombined ("per-channel") data, record the ordered coil labels that
+     * were mapped onto the TIME axis (written to acquisitions:coil). */
+    if (G.coils_on_time) {
+        strncpy(gi_ptr->acq.coil, G.coil_labels, STRING_T_LEN);
+        gi_ptr->acq.coil[STRING_T_LEN] = '\0';
+    }
+    else {
+        gi_ptr->acq.coil[0] = '\0';
+    }
     get_string_field(gi_ptr->acq.slice_order, group_list,
 		     EXT_Slice_order);
       /*0x1 means ASCENDING
@@ -3200,6 +3264,23 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
         acr_find_group_element(group_list, ACR_Image_orientation_patient_old) != NULL) {
         di_ptr->image_orientation_found =
             dicom_read_orientation(group_list, di_ptr->image_orientation);
+    }
+
+    /* Per-image receive-coil element (0051,100f).  For uncombined ("per-channel")
+     * acquisitions this is the only field that differs between the channels, so it
+     * is collected here and later mapped onto the TIME axis (see use_the_files /
+     * get_file_indices).  Empty for the usual combined-coil data. */
+    strncpy(di_ptr->coil_name,
+            acr_find_string(group_list, SPI_Coil_for_frame, ""),
+            STRING_T_LEN);
+    di_ptr->coil_name[STRING_T_LEN] = '\0';
+    /* Strip DICOM even-length space padding so labels (and the TIME-axis
+     * matching that keys on them) are clean, e.g. "H13 " -> "H13". */
+    {
+        size_t cl = strlen(di_ptr->coil_name);
+        while (cl > 0 && di_ptr->coil_name[cl - 1] == ' ') {
+            di_ptr->coil_name[--cl] = '\0';
+        }
     }
 
     /* identification info needed to generate unique session id

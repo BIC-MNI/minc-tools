@@ -229,6 +229,7 @@ typedef struct {
     int tpos_id;
     double image_orientation[6]; /* row(0..2)+col(3..5) dir cosines, (0020,0037) */
     int image_orientation_found; /* non-zero if image_orientation was read */
+    string_t coil_name;          /* per-image coil element (0051,100f), "" if absent */
 } Data_Object_Info;
 
 #include "dicom_read.h"
@@ -283,6 +284,11 @@ struct globals {
     int user_fname_format;      /* TRUE if user passed -fname explicitly */
     char *select_series;        /* -select_series num/range list; NULL = no filter */
     char *select_descr;         /* -select_descr  ERE;            NULL = no filter */
+    int coils_on_time;          /* TRUE: map per-channel coil (0051,100f) onto TIME
+                                   for the current uncombined acquisition. */
+    int num_coils;              /* Number of distinct coils in current acquisition. */
+    string_t coil_labels;       /* Backslash-joined coil names in TIME-frame order;
+                                   also written to acquisitions:coil. */
 };
 
 /* Values for options flags */

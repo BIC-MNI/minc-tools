@@ -1047,8 +1047,13 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         miattputstr(mincid, varid, "receive_coil", 
                     general_info->acq.receive_coil);
     if (strlen(general_info->acq.transmit_coil) > 0)
-        miattputstr(mincid, varid, "transmit_coil", 
+        miattputstr(mincid, varid, "transmit_coil",
                     general_info->acq.transmit_coil);
+    /* Per-channel coil labels (backslash-separated, in TIME-frame order) for
+     * uncombined single-coil data mapped onto the time axis. */
+    if (strlen(general_info->acq.coil) > 0)
+        miattputstr(mincid, varid, "coil",
+                    general_info->acq.coil);
 
     if (general_info->acq.rep_time != -DBL_MAX)
         miattputdbl(mincid, varid, MIrepetition_time, 

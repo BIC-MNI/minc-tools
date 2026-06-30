@@ -105,6 +105,13 @@ GLOBAL_ELEMENT(SPI_Current_slice_number               , 0x0021, 0x1342, IS);
 GLOBAL_ELEMENT(SPI_Order_of_slices                    , 0x0021, 0x134f, IS);
 GLOBAL_ELEMENT(SPI_Number_of_echoes                   , 0x0021, 0x1370, IS);
 
+/* Per-image receive-coil element string (e.g. "H1".."H32") for uncombined,
+ * single-coil ("per-channel") Siemens data.  This is the ONLY tag that
+ * distinguishes the channels of an uncombined acquisition -- slice position,
+ * echo, acquisition number and instance number are all identical across them.
+ * Used to map the coil onto the TIME axis so all channels are preserved. */
+GLOBAL_ELEMENT(SPI_Coil_for_frame                     , 0x0051, 0x100f, LO);
+
 /* These are the two large fields in Siemens files in which many parameters
  * are dumped. The ASCCONV block is located in the second (0029, 1020), but
  * many of the DTI parameters are available in the first.

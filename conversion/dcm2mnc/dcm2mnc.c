@@ -1368,6 +1368,76 @@ use_the_files(int num_files,
             G.cur_image_type_val  = cur_image_type;
         }
 
+        /* Detect uncombined per-channel ("single-coil") data and, if found, map
+         * the coil element (0051,100f) onto the TIME axis so every channel is
+         * preserved as a 4D volume (matching dcm2niix) instead of the channels
+         * overwriting one another at identical slice/echo/time indices.
+         *
+         * Narrowly guarded so ordinary combined-coil and genuine
+         * multi-acquisition / 4D series are a strict no-op:
+         *   - the acquisition number must be non-informative (constant), so TIME
+         *     is not already carrying real dynamics, AND
+         *   - there must be >1 distinct, non-empty coil name in the acquisition.
+         */
+        G.coils_on_time = 0;
+        G.num_coils = 0;
+        G.coil_labels[0] = '\0';
+        if (G.min_acq_num == G.max_acq_num) {
+#define MAX_COILS 256
+            const char *coils[MAX_COILS];
+            int n_coils = 0;
+            for (ifile = 0; ifile < acq_num_files; ifile++) {
+                int ix = acq_file_index[ifile];
+                const char *nm = di_ptr[ix]->coil_name;
+                int j, found = 0;
+                if (nm[0] == '\0') {
+                    continue;
+                }
+                for (j = 0; j < n_coils; j++) {
+                    if (strcmp(coils[j], nm) == 0) {
+                        found = 1;
+                        break;
+                    }
+                }
+                if (!found) {
+                    if (n_coils >= MAX_COILS) {
+                        n_coils = 0;    /* implausibly many: bail, keep 3D */
+                        break;
+                    }
+                    coils[n_coils++] = nm;
+                }
+            }
+            if (n_coils > 1) {
+                /* Build the backslash-joined label list (TIME-frame order =
+                 * first-seen order), guarding the fixed string_t capacity. */
+                size_t used = 0;
+                int ok = 1, j;
+                G.coil_labels[0] = '\0';
+                for (j = 0; j < n_coils; j++) {
+                    size_t len = strlen(coils[j]);
+                    if (used + len + (j > 0 ? 1 : 0) > STRING_T_LEN) {
+                        ok = 0;
+                        break;
+                    }
+                    if (j > 0) {
+                        G.coil_labels[used++] = '\\';
+                    }
+                    memcpy(G.coil_labels + used, coils[j], len);
+                    used += len;
+                    G.coil_labels[used] = '\0';
+                }
+                if (ok) {
+                    G.num_coils = n_coils;
+                    G.coils_on_time = 1;
+                }
+            }
+            if (G.Debug && G.coils_on_time) {
+                printf("INFO: uncombined coil data: %d channels mapped to TIME axis\n",
+                       G.num_coils);
+            }
+#undef MAX_COILS
+        }
+
         /* Create minc file
          */
         exit_status = dicom_to_minc(acq_num_files,
