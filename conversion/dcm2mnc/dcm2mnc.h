@@ -218,6 +218,10 @@ typedef struct {
     int num_mosaic_rows;
     int num_mosaic_cols;
     int num_slices_in_file;
+    int num_frames;              /* NumberOfFrames (0028,0008): frames per multiframe
+                                    file, 1 if absent.  Available at parse time. */
+    int partial_volume;          /* non-zero if this file's frame count is below the
+                                    dominant count for its series/echo (aborted volume) */
     string_t sequence_name;
     string_t protocol_name;
     string_t series_description;

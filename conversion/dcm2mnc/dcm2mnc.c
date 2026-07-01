@@ -961,6 +961,7 @@ use_the_files(int num_files,
     int cur_image_type;
     int cur_echo_number;
     int cur_dyn_scan_number;
+    int cur_partial_volume;
     string_t cur_patient_name;
     string_t cur_patient_id;
     string_t cur_sequence_name;
@@ -1007,6 +1008,33 @@ use_the_files(int num_files,
         used_file[ifile] = FALSE;
     }
 
+    /* Flag aborted "partial volumes".  Some multi-echo / fMRI acquisitions end
+     * with a truncated final volume (e.g. Siemens enhanced multiframe: the scan
+     * was stopped mid-volume, so the last file has fewer slices than the rest).
+     * dcm2niix isolates such a volume into its own output; without this, dcm2mnc
+     * would fold it onto the TIME axis as a padded extra frame, corrupting the
+     * timeseries.  For each file, find the dominant (max) slice count among files
+     * sharing its series/echo, and flag files whose own count is below it.  Files
+     * with unset (IDEFAULT) or uniform counts are never flagged -> strict no-op
+     * for classic stacks, single-file mosaics/3D and clean full-length series. */
+    for (ifile = 0; ifile < num_files; ifile++) {
+        int grp_max = di_ptr[ifile]->num_frames;
+        int own = di_ptr[ifile]->num_frames;
+        int jfile;
+        for (jfile = 0; jfile < num_files; jfile++) {
+            if (jfile == ifile)
+                continue;
+            if (di_ptr[jfile]->study_id    != di_ptr[ifile]->study_id)    continue;
+            if (di_ptr[jfile]->acq_id      != di_ptr[ifile]->acq_id)      continue;
+            if (di_ptr[jfile]->rec_num     != di_ptr[ifile]->rec_num)     continue;
+            if (di_ptr[jfile]->image_type  != di_ptr[ifile]->image_type)  continue;
+            if (di_ptr[jfile]->echo_number != di_ptr[ifile]->echo_number) continue;
+            if (di_ptr[jfile]->num_frames > grp_max)
+                grp_max = di_ptr[jfile]->num_frames;
+        }
+        di_ptr[ifile]->partial_volume = (own >= 1 && grp_max > 1 && own < grp_max);
+    }
+
     for (;;) {
 
         /* Loop through files, looking for an acquisition
@@ -1044,6 +1072,7 @@ use_the_files(int num_files,
                 cur_image_type = di_ptr[ifile]->image_type;
                 cur_echo_number = di_ptr[ifile]->echo_number;
                 cur_dyn_scan_number = di_ptr[ifile]->dyn_scan_number;
+                cur_partial_volume = di_ptr[ifile]->partial_volume;
 
                 strcpy(cur_patient_name, di_ptr[ifile]->patient_name);
                 strcpy(cur_patient_id, di_ptr[ifile]->patient_id);
@@ -1069,6 +1098,7 @@ use_the_files(int num_files,
                       !G.splitEcho) &&
                      (di_ptr[ifile]->dyn_scan_number == cur_dyn_scan_number ||
                       !G.splitDynScan) &&
+                     (di_ptr[ifile]->partial_volume == cur_partial_volume) &&
                      !strcmp(cur_protocol_name, di_ptr[ifile]->protocol_name) &&
                      !strcmp(cur_patient_name, di_ptr[ifile]->patient_name) &&
                      !strcmp(cur_patient_id, di_ptr[ifile]->patient_id) &&

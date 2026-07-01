@@ -3336,6 +3336,12 @@ parse_dicom_groups(Acr_Group group_list, Data_Object_Info *di_ptr)
     di_ptr->num_slices_in_file = acr_find_int(group_list, EXT_Slices_in_file,
                                               IDEFAULT);
 
+    /* Raw NumberOfFrames (0028,0008): frames per multiframe file (1 if absent).
+     * Unlike num_slices_in_file (EXT_Slices_in_file, only synthesized later in
+     * the read pass), this is available now, at parse time, and lets us detect an
+     * aborted/partial final volume whose frame count is below the series norm. */
+    di_ptr->num_frames = acr_find_int(group_list, ACR_Number_of_frames, 1);
+
     di_ptr->tpos_id = acr_find_int(group_list, ACR_Temporal_position_identifier,
                                    IDEFAULT);
 
