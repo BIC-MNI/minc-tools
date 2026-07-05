@@ -191,12 +191,23 @@ add_custom_target (minc_tools
  )   
    
 # perl and shell scripts
+# Stage each into the build tree under its real name (not just at install
+# time) so tests that invoke them by bare name via PATH (e.g. mincdiff, which
+# in turn calls mincheader) work with a plain `make` + `ctest`, without
+# requiring `make install` first.
+FOREACH(_script mincdiff mincedit mincheader mincview)
+  CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/${_script}/${_script}
+                  ${CMAKE_CURRENT_BINARY_DIR}/${_script} COPYONLY)
+  ADD_CUSTOM_TARGET(${_script} ALL chmod +x ${CMAKE_CURRENT_BINARY_DIR}/${_script}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_script}/${_script})
+ENDFOREACH()
+
 INSTALL(PROGRAMS
-   mincdiff/mincdiff  
-   mincedit/mincedit  
-   mincheader/mincheader  
-   mincview/mincview
-   PERMISSIONS 
+   ${CMAKE_CURRENT_BINARY_DIR}/mincdiff
+   ${CMAKE_CURRENT_BINARY_DIR}/mincedit
+   ${CMAKE_CURRENT_BINARY_DIR}/mincheader
+   ${CMAKE_CURRENT_BINARY_DIR}/mincview
+   PERMISSIONS
     OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ  WORLD_EXECUTE WORLD_READ
    DESTINATION bin )
 
