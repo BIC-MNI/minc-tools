@@ -155,8 +155,8 @@ ADD_NII2MNC_INTENSITY_TEST(nii_dt_int8     "signed__ byte"     0   4   240  0)
 ADD_NII2MNC_INTENSITY_TEST(nii_dt_int16    "signed__ short"    0   4   240  0)
 ADD_NII2MNC_INTENSITY_TEST(nii_dt_uint16   "unsigned short"    0   4   240  0)
 ADD_NII2MNC_INTENSITY_TEST(nii_dt_int32    "signed__ long"     0   4   240  0)
-ADD_NII2MNC_INTENSITY_TEST(nii_dt_float32  "float"            0   4   240  0.001)
-ADD_NII2MNC_INTENSITY_TEST(nii_dt_float64  "double"           0   4   240  0)
+ADD_NII2MNC_INTENSITY_TEST(nii_dt_float32  "signed__ float"    0   4   240  0.001)
+ADD_NII2MNC_INTENSITY_TEST(nii_dt_float64  "signed__ double"   0   4   240  0)
 ADD_NII2MNC_INTENSITY_TEST(nii_scl_int16   "signed__ short"  -10  -2  -720  0)
 
 # ------------ mnc2nii data-type + intensity-preservation tests ---------------
