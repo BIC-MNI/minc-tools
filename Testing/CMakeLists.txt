@@ -62,6 +62,17 @@ SET(MINCTOOLS_TEST_ENVIRONMENT2 ${MINCTOOLS_TEST_ENVIRONMENT})
 LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT1 "MINC_FORCE_V2=0")
 LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT2 "MINC_FORCE_V2=1")
 
+# nii2mnc's output format (classic NetCDF/MINC1 vs. HDF5/MINC2) otherwise
+# falls back to a process-global heuristic in micreate()/micreatex() when
+# MINC_FORCE_V2 isn't set, which picks different formats on different
+# platforms (observed: NetCDF on Linux, HDF5 on Apple) and makes attributes
+# like image:signtype -- which HDF5/MINC2 only emulates for integer voxel
+# types -- appear/disappear depending on the OS rather than the input. Force
+# MINC2 explicitly so these tests exercise one consistent, platform-independent
+# code path.
+SET(MINCTOOLS_TEST_ENVIRONMENT_NII2MNC ${MINCTOOLS_TEST_ENVIRONMENT})
+LIST(APPEND MINCTOOLS_TEST_ENVIRONMENT_NII2MNC "MINC_FORCE_V2=1")
+
 MACRO(ADD_TEST12 name cmd)
   # test in minc1 mode — runs in v1/ directory
   ADD_TEST( ${name}-1
@@ -123,7 +134,7 @@ MACRO(ADD_NII2MNC_TEST _case)
             ${_nii2mnc_dir}/${_case}.nii ${ARGN}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   set_tests_properties(nii2mnc-dimnames-${_case} PROPERTIES
-    ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "nii2mnc")
+    ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT_NII2MNC}" LABELS "nii2mnc")
 ENDMACRO(ADD_NII2MNC_TEST)
 
 ADD_NII2MNC_TEST(nii_3d_ras       xspace yspace zspace)
@@ -146,7 +157,7 @@ MACRO(ADD_NII2MNC_INTENSITY_TEST _case _vt _min _max _sum _tol)
             ${_vt} ${_min} ${_max} ${_sum} ${_tol}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   set_tests_properties(nii2mnc-intensity-${_case} PROPERTIES
-    ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "nii2mnc")
+    ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT_NII2MNC}" LABELS "nii2mnc")
 ENDMACRO(ADD_NII2MNC_INTENSITY_TEST)
 
 #                            case            vartype           min max sum  tol
