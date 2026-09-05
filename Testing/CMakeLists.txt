@@ -210,25 +210,36 @@ if(MT_BUILD_DCM2MNC_TESTS)
   set(_datadir      ${CMAKE_CURRENT_BINARY_DIR}/dcm2niix_data)
 
   # Download-only ExternalProjects — configure/build/install are no-ops.
-  # DOWNLOAD_EXTRACT_TIMESTAMP TRUE suppresses the CMP0135 warning on CMake >= 3.24.
   # ExternalProject flattens the single <repo>-<sha>/ top-level dir that GitHub
   # puts inside archive tarballs, so In/... resolves directly under SOURCE_DIR.
+  #
+  # DOWNLOAD_EXTRACT_TIMESTAMP TRUE suppresses the CMP0135 warning, and CMake
+  # only accepts it from 3.24. Passing it to an older CMake is not ignored: it
+  # survives into the generated extract script and the download step dies with
+  # "execute_process given unknown argument". This file must work on the 3.10
+  # this project asks for, so give the argument only where it exists.
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+    set(_extract_timestamp DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+  else()
+    set(_extract_timestamp "")
+  endif()
+
   ExternalProject_Add(dcm_qa_data
     URL        "https://github.com/neurolabusc/dcm_qa/archive/4f85d067c8b61d12cec1689f8516cc30cd583d65.tar.gz"
     SOURCE_DIR "${_datadir}/dcm_qa"
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    ${_extract_timestamp}
     CONFIGURE_COMMAND "" BUILD_COMMAND "" INSTALL_COMMAND "")
 
   ExternalProject_Add(dcm_qa_nih_data
     URL        "https://github.com/neurolabusc/dcm_qa_nih/archive/d302d6e241dda747b79ee1724ada3200179755a2.tar.gz"
     SOURCE_DIR "${_datadir}/dcm_qa_nih"
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    ${_extract_timestamp}
     CONFIGURE_COMMAND "" BUILD_COMMAND "" INSTALL_COMMAND "")
 
   ExternalProject_Add(dcm_qa_uih_data
     URL        "https://github.com/neurolabusc/dcm_qa_uih/archive/d729bdd785d37ad5f1ed479c305a76f370d8011b.tar.gz"
     SOURCE_DIR "${_datadir}/dcm_qa_uih"
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    ${_extract_timestamp}
     CONFIGURE_COMMAND "" BUILD_COMMAND "" INSTALL_COMMAND "")
 
   # Each test converts one DICOM series and checks the output geometry +
