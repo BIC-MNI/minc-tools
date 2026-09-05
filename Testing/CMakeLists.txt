@@ -221,7 +221,7 @@ if(MT_BUILD_DCM2MNC_TESTS)
   if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
     set(_extract_timestamp DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
   else()
-    set(_extract_timestamp "")
+    unset(_extract_timestamp)
   endif()
 
   ExternalProject_Add(dcm_qa_data
