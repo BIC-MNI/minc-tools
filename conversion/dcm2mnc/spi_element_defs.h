@@ -81,6 +81,15 @@ GLOBAL_ELEMENT(SPI_Saturation_regions                 , 0x0019, 0x1290, IS);
 GLOBAL_ELEMENT(SPI_Magnetic_field_strength            , 0x0019, 0x1412, DS);
 GLOBAL_ELEMENT(SPI_Base_raw_matrix_size               , 0x0019, 0x14d4, IS);
 
+/* Siemens Numaris 4 "NumberOfImagesInMosaic" -- the number of slices actually
+ * packed into a mosaic frame.  NOTE: this tag collides with the old Philips
+ * SPI_PMS_slice_orientation above.  The two are told apart by the (0019,0010)
+ * private creator, and in practice they never meet: the Siemens one is only read
+ * from add_siemens_info(), which dicom_to_minc.c only calls when ACR_Manufacturer
+ * says SIEMENS, and the Philips one only from add_philips_info().
+ */
+GLOBAL_ELEMENT(SPI_Number_of_images_in_mosaic         , 0x0019, 0x100a, US);
+
 GLOBAL_ELEMENT(SPI_Field_of_view                      , 0x0021, 0x1120, DS);
 GLOBAL_ELEMENT(SPI_Image_magnification_factor         , 0x0021, 0x1122, DS);
 GLOBAL_ELEMENT(SPI_View_direction                     , 0x0021, 0x1130, CS);

@@ -1458,20 +1458,64 @@ add_siemens_info(Acr_Group group_list)
         int mosaic_rows, mosaic_cols;
         Acr_Short subimage_size[4];
         int subimage_rows, subimage_cols;
+        int images_in_mosaic;
 
         /* Now figure out mosaic rows and columns, and put in EXT
          * shadow group. Check for interpolation - will require 2x
          * scaling of rows and columns.
          */
 
-        /* Assign defaults in case something goes wrong below...
+        subimage_rows = subimage_cols = 0;
+
+        /* Preferred source: the number of slices Siemens packed into the frame.
+         * Numaris 4 lays them out in a *square* grid of ceil(sqrt(n)) cells, so
+         * the tile size follows straight from Rows/Columns and needs no assumption
+         * about the acquisition matrix.  It is also the only source that survives
+         * partial phase resolution, partial Fourier and 2x interpolation, where
+         * ACR_Acquisition_matrix reports the number of phase-encoding lines
+         * *acquired* rather than the size of the reconstructed tile (e.g. a 720x720
+         * mosaic of 60 90x90 slices at 50% phase resolution reports [90,0,0,45],
+         * from which the code below infers a 45x90 tile in a 16x8 grid).
+         *
+         * NOTE: the grid is square here, unlike the UIH mosaics in add_uih_info(),
+         * which really do use ceil(n / ceil(sqrt(n))) rows.  dcm_qa_nih 20180918Si
+         * settles it: 216x216 with 5 slices is a 3x3 grid of 72x72 tiles.
          */
-        subimage_rows = subimage_cols = acr_find_int(group_list, 
-                                                     SPI_Base_raw_matrix_size, 
-                                                     0);
+        images_in_mosaic = acr_find_int(group_list,
+                                        SPI_Number_of_images_in_mosaic, 0);
+        if (images_in_mosaic > 1) {
+            int grid = (int) ceil(sqrt((double) images_in_mosaic));
+            int big_rows = acr_find_int(group_list, ACR_Rows, 0);
+            int big_cols = acr_find_int(group_list, ACR_Columns, 0);
+
+            if (grid > 0 && big_rows > 0 && big_cols > 0 &&
+                big_rows % grid == 0 && big_cols % grid == 0) {
+                subimage_rows = big_rows / grid;
+                subimage_cols = big_cols / grid;
+                if (G.Debug >= HI_LOGGING) {
+                    printf(" * %d images in mosaic: %dx%d grid of %dx%d tiles\n",
+                           images_in_mosaic, grid, grid,
+                           subimage_rows, subimage_cols);
+                }
+            }
+            else if (G.Debug) {
+                printf("WARNING: %d images in mosaic do not tile a %dx%d image\n",
+                       images_in_mosaic, big_rows, big_cols);
+            }
+        }
+
+        /* Next best: the Siemens 'base raw matrix size'.
+         */
+        if (subimage_rows == 0) {
+            subimage_rows = subimage_cols = acr_find_int(group_list, 
+                                                         SPI_Base_raw_matrix_size, 
+                                                         0);
+        }
 
         /* If we don't have an "SPI_Base_raw_matrix_size" field, try using
-         * the acquisition matrix.
+         * the acquisition matrix.  Note this gives the number of lines
+         * *acquired*, which is the reconstructed tile size only at 100% phase
+         * resolution -- prefer either source above where it is available.
          */
         if (subimage_rows == 0) {
 
@@ -1547,11 +1591,12 @@ add_siemens_info(Acr_Group group_list)
             mosaic_cols = 1;
         }
         else {
-            if (G.Debug >= HI_LOGGING) {
-                printf("Assuming %dx%d mosaic\n", subimage_rows, subimage_cols);
-            }
             mosaic_rows = acr_find_int(group_list, ACR_Rows, 1) / subimage_rows;
             mosaic_cols = acr_find_int(group_list, ACR_Columns, 1) / subimage_cols;
+            if (G.Debug >= HI_LOGGING) {
+                printf("Assuming a %dx%d mosaic of %dx%d tiles\n",
+                       mosaic_rows, mosaic_cols, subimage_rows, subimage_cols);
+            }
         }
 
         acr_insert_numeric(&group_list, EXT_Mosaic_rows, (double)mosaic_rows);
