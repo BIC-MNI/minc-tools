@@ -117,7 +117,8 @@ process_repo() {  # $1 = repo name
     # ground truth: convert this series only (-d 0) with dcm2niix, name by UID
     local nii="$WORK/nii_$name"; rm -rf "$nii"; mkdir -p "$nii"
     "$DCM2NIIX" -b y -z n -d 0 -f '%j' -o "$nii" "$dir" >/dev/null 2>&1
-    mapfile -t refs < <(find "$nii" -name '*.nii' | sort)
+    refs=()
+    while IFS= read -r _f; do refs+=("$_f"); done < <(find "$nii" -name '*.nii' | sort)
     if [ "${#refs[@]}" -eq 0 ]; then
       echo "  SKIP(noref) $repo/$rel  (dcm2niix produced no NIfTI)"
       echo "NOREF $repo/$rel" >> "$WORK/skips"; continue

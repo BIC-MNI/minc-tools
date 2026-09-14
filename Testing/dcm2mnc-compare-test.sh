@@ -99,7 +99,8 @@ find "$INDIR" -maxdepth 1 -type f \
   -not -iname 'README*' -not -iname '.*' \
   | "$DCM2MNC" -clobber -stdin "$OUTDIR"
 
-mapfile -t MNC < <(find "$OUTDIR" -name '*.mnc' | sort)
+MNC=()
+while IFS= read -r _f; do MNC+=("$_f"); done < <(find "$OUTDIR" -name '*.mnc' | sort)
 NMNC=${#MNC[@]}
 
 # ---- output count --------------------------------------------------------
@@ -173,7 +174,8 @@ for uid in $uids; do
            [ "${R_UID[$i]}" = "$uid" ] && echo "${R_MEAN[$i]} $i"; done | sort -g | awk '{print $2}')
   midx=$(for i in "${!MNC[@]}"; do
            [ "${M_UID[$i]}" = "$uid" ] && echo "${M_MEAN[$i]} $i"; done | sort -g | awk '{print $2}')
-  mapfile -t BA <<< "$bidx"; mapfile -t MA <<< "$midx"
+  BA=(); while IFS= read -r _l; do BA+=("$_l"); done <<< "$bidx"
+  MA=(); while IFS= read -r _l; do MA+=("$_l"); done <<< "$midx"
   # drop possible empty lines
   BA=($(printf '%s\n' "${BA[@]}")); MA=($(printf '%s\n' "${MA[@]}"))
   if [ "${#BA[@]}" -ne "${#MA[@]}" ]; then
