@@ -40,7 +40,9 @@ IF(NOT MINC_TOOLS_EXTERNALLY_CONFIGURED)
   INCLUDE(CPack)
   
   FIND_PACKAGE(LIBMINC REQUIRED)
-  FIND_PACKAGE(NIFTI   QUIET)
+  # nifti_clib ships its own CMake package (NIFTI::niftiio / NIFTI::znz).
+  # Without it, mnc2nii/nii2mnc are simply skipped.
+  FIND_PACKAGE(NIFTI CONFIG QUIET)
   FIND_PACKAGE(ZLIB    REQUIRED)
   
   FIND_PACKAGE( JPEG )
