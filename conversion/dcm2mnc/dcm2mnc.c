@@ -1177,7 +1177,37 @@ use_the_files(int num_files,
             }
         }
 
-        /* Do some sanity checks on the acquisition.  In particular, we 
+        /* dcm2niix's reference pipeline drops a trailing aborted dynamic when
+         * it never captured more than a single frame -- i.e. it isn't a
+         * usable (if short) volume, just a stray leftover image -- but it
+         * DOES keep genuine partial acquisitions that captured a real
+         * fraction of the volume (e.g. the ep2176 rsfmri-Multi-Echo series,
+         * where a several-of-34-slice partial is emitted as its own short
+         * volume).  Match that: only drop the single-frame stub case; leave
+         * every other partial_volume group alone.  This group's file(s) are
+         * already marked `used_file` above, so the outer loop simply
+         * advances to the next acquisition -- no other group's indexing or
+         * output filename is affected.
+         */
+        if (cur_partial_volume) {
+            int pf, max_frames = 0;
+
+            for (pf = 0; pf < acq_num_files; pf++) {
+                int nf = di_ptr[acq_file_index[pf]]->num_frames;
+                if (nf > max_frames) {
+                    max_frames = nf;
+                }
+            }
+            if (max_frames <= 1) {
+                printf("WARNING: Skipping single-frame aborted volume in "
+                       "series %d (%s) -- dcm2niix reference drops these.\n",
+                       cur_acq_id,
+                       di_ptr[acq_file_index[0]]->series_description);
+                continue;
+            }
+        }
+
+        /* Do some sanity checks on the acquisition.  In particular, we
          * verify that the coordinate and/or slice location information
          * looks reliable.
          */
