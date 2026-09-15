@@ -730,10 +730,20 @@ main(int argc, char **argv)
                          img_rrange, img_vrange);
     }
     else {
-      if (img_rrange[0] == nii_vrange[0] && img_rrange[1] == nii_vrange[1]) {
-        img_vrange[0] = img_rrange[0];
-        img_vrange[1] = img_rrange[1];
-      }
+      /* No voxel format conversion is happening, so the values actually
+       * written to the file are exactly nii_vrange (the NIfTI data's own
+       * stored-code range), regardless of scl_slope/scl_inter. MIvalid_range
+       * must describe that stored-code range so that MINC readers recover
+       * real values via (stored - valid_min)/(valid_max - valid_min) *
+       * (imagemax - imagemin) + imagemin correctly. Leaving img_vrange at
+       * the storage type's full default range (set above via
+       * miget_default_range()) instead of nii_vrange silently dilutes every
+       * real value whenever scl_slope/scl_inter are not exactly 1.0/0.0 --
+       * e.g. a scl_slope of 2 with scl_inter of -4096 on 12-bit data stored
+       * in a 16-bit signed volume.
+       */
+      img_vrange[0] = nii_vrange[0];
+      img_vrange[1] = nii_vrange[1];
     }
 
     ncattput(mnc_fd, mnc_iid, MIvalid_range, NC_DOUBLE, 2, img_vrange);

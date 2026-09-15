@@ -47,7 +47,7 @@ done
 [ -n "$BUILD" ] || { echo "need --build <build-dir>"; exit 2; }
 [ -n "$DATA" ] || DATA="$BUILD/minctools/Testing/dcm2niix_data"
 
-find_tool() { find "$BUILD" -name "$1" -type f -executable 2>/dev/null | head -1; }
+find_tool() { find "$BUILD" -name "$1" -type f -perm -u+x 2>/dev/null | head -1; }
 MI=$(find_tool mincinfo); MS=$(find_tool mincstats); N2M=$(find_tool nii2mnc)
 DCM=$(find_tool dcm2mnc)
 [ -n "$DCM2NIIX" ] || DCM2NIIX=$(command -v dcm2niix 2>/dev/null || true)
