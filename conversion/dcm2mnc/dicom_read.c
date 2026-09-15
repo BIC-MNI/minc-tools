@@ -1199,7 +1199,20 @@ get_identification_info(Acr_Group group_list,
     if (rec_num != NULL)
         *rec_num = 0;
     if (image_type != NULL) {
-        *image_type = acr_find_int(group_list, GEMS_Image_type, -1);
+        *image_type = -1;
+        {
+            /* GEMS_Image_type is a private tag (0043,102f); reading it
+             * unconditionally risks colliding with an unrelated private
+             * element at the same (group,element) on non-GE scanners, since
+             * private groups are not otherwise creator-scoped here. Only
+             * trust it for GE Medical Systems equipment.
+             */
+            char *mfg_str = acr_find_string(group_list, ACR_Manufacturer, "");
+            if (strstr(mfg_str, "GEMS") != NULL ||
+                strstr(mfg_str, "GE MEDICAL") != NULL) {
+                *image_type = acr_find_int(group_list, GEMS_Image_type, -1);
+            }
+        }
 
         /* Phase / magnitude image detection for non-GE scanners.
          *
@@ -1379,6 +1392,54 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
         rescale_slope = 1.0;
     }
 
+    /* Some vendors omit the standard Rescale tags and carry the true
+     * pixel-value scale elsewhere.
+     */
+    if (acr_find_group_element(group_list, ACR_Rescale_slope) == NULL &&
+        acr_find_group_element(group_list, ACR_Rescale_intercept) == NULL) {
+        int image_type = -1;
+        char *mfg_str = acr_find_string(group_list, ACR_Manufacturer, "");
+
+        get_identification_info(group_list, NULL, NULL, NULL, &image_type);
+        if (image_type == 1 /* phase */ &&
+            (strstr(mfg_str, "SIEMENS") != NULL ||
+             strstr(mfg_str, "Siemens") != NULL)) {
+            /* Siemens phase reconstructions with no explicit Rescale tags
+             * use a fixed 12-bit unsigned-code-range convention.
+             */
+            rescale_slope = 2.0;
+            rescale_intercept = -4096.0;
+        }
+    }
+
+    /* Philips scanners may carry the true scale in the private Scale
+     * Slope/Intercept tags (2005,100E)/(2005,100D) instead of, or in
+     * addition to, the standard Rescale tags.  The real-world value is
+     * (stored*RS+RC)/SS, where RS/RC are the standard rescale slope/
+     * intercept already applied above (identity when absent) and SS is
+     * this private Scale Slope.
+     */
+    if (strstr(acr_find_string(group_list, ACR_Manufacturer, ""), "Philips") != NULL) {
+        Acr_Element scale_slope_elem = acr_find_group_element(group_list, PMS_Scale_Slope);
+        if (scale_slope_elem != NULL) {
+            double scale_slope;
+
+            /* Readers without Philips' private dictionary (including many
+             * anonymizers) encode unrecognized private elements as VR=UN;
+             * force the known VR so the raw bytes are read as a float
+             * instead of silently converting to zero.
+             */
+            if (acr_get_element_vr(scale_slope_elem) == ACR_VR_UN) {
+                acr_set_element_vr(scale_slope_elem, ACR_VR_FL);
+            }
+            scale_slope = acr_get_element_numeric(scale_slope_elem);
+            if (scale_slope != 0.0) {
+                rescale_slope /= scale_slope;
+                rescale_intercept /= scale_slope;
+            }
+        }
+    }
+
     fi_ptr->slice_min = fi_ptr->pixel_min * rescale_slope + rescale_intercept;
     fi_ptr->slice_max = fi_ptr->pixel_max * rescale_slope + rescale_intercept;
 
@@ -1510,7 +1571,7 @@ dicom_read_position(Acr_Group group_list, int index, double coordinate[3])
                                           ACR_Detector_information_seq,
                                           ACR_Image_position_patient);
       }
-      
+
       if (element == NULL) {
         element = acr_find_group_element(group_list,
                                          ACR_Image_position_patient_old);
@@ -1971,8 +2032,24 @@ get_coordinate_info(Acr_Group group_list,
         found_coordinate = TRUE;
     }
     else {
-        found_coordinate = dicom_read_position(group_list, 
-                                               -1, /* ?? */
+        /* If a flat, top-level position tag is already present, use it
+         * directly (index -1 skips the per-frame search below): for an
+         * Enhanced Multiframe/mosaic subimage, multiframe_insert_subframe()/
+         * mosaic_insert_subframe() have already derived and inserted this
+         * specific subimage's true position here, while the original
+         * ACR_Perframe_func_groups_seq is left untouched in group_list and
+         * still describes every frame -- indexing into it here would
+         * silently return frame 0's position for every subimage. Only a
+         * single-frame Enhanced MR object (never flattened) lacks a flat
+         * tag; for that case, index 0 finds its true position nested at
+         * ACR_Perframe_func_groups_seq[0].
+         */
+        int has_flat_position =
+            (acr_find_group_element(group_list, ACR_Image_position_patient) != NULL) ||
+            (acr_find_group_element(group_list, ACR_Image_position_patient_old) != NULL);
+
+        found_coordinate = dicom_read_position(group_list,
+                                               has_flat_position ? -1 : 0,
                                                coordinate);
         if (!found_coordinate) {
             /* Last gasp - try to interpret the slice location as our slice

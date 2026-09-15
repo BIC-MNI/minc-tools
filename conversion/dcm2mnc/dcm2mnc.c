@@ -1016,10 +1016,16 @@ use_the_files(int num_files,
      * timeseries.  For each file, find the dominant (max) slice count among files
      * sharing its series/echo, and flag files whose own count is below it.  Files
      * with unset (IDEFAULT) or uniform counts are never flagged -> strict no-op
-     * for classic stacks, single-file mosaics/3D and clean full-length series. */
+     * for classic stacks, single-file mosaics/3D and clean full-length series.
+     * Require more than one file at the dominant count before flagging anything:
+     * a lone file establishing grp_max is not an established norm to be
+     * truncated from (e.g. a 2-file static localizer with a 2-frame and a
+     * 1-frame Enhanced MR object is not a timeseries, just two files that
+     * together comprise one volume). */
     for (ifile = 0; ifile < num_files; ifile++) {
         int grp_max = di_ptr[ifile]->num_frames;
         int own = di_ptr[ifile]->num_frames;
+        int n_at_max = 1;
         int jfile;
         for (jfile = 0; jfile < num_files; jfile++) {
             if (jfile == ifile)
@@ -1029,10 +1035,16 @@ use_the_files(int num_files,
             if (di_ptr[jfile]->rec_num     != di_ptr[ifile]->rec_num)     continue;
             if (di_ptr[jfile]->image_type  != di_ptr[ifile]->image_type)  continue;
             if (di_ptr[jfile]->echo_number != di_ptr[ifile]->echo_number) continue;
-            if (di_ptr[jfile]->num_frames > grp_max)
+            if (di_ptr[jfile]->num_frames > grp_max) {
                 grp_max = di_ptr[jfile]->num_frames;
+                n_at_max = 1;
+            }
+            else if (di_ptr[jfile]->num_frames == grp_max) {
+                n_at_max++;
+            }
         }
-        di_ptr[ifile]->partial_volume = (own >= 1 && grp_max > 1 && own < grp_max);
+        di_ptr[ifile]->partial_volume =
+            (own >= 1 && grp_max > 1 && own < grp_max && n_at_max > 1);
     }
 
     for (;;) {

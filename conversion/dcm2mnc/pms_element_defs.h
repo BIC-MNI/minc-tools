@@ -80,6 +80,8 @@ GLOBAL_ELEMENT(PMS_Private_group_creator_2            , 0x2005, 0x0011, LO);
 GLOBAL_ELEMENT(PMS_Private_group_creator_3            , 0x2005, 0x0012, LO);
 GLOBAL_ELEMENT(PMS_Private_group_creator_4            , 0x2005, 0x0013, LO);
 GLOBAL_ELEMENT(PMS_Private_group_creator_5            , 0x2005, 0x0014, LO);
+GLOBAL_ELEMENT(PMS_Scale_Intercept                    , 0x2005, 0x100d, FL);
+GLOBAL_ELEMENT(PMS_Scale_Slope                        , 0x2005, 0x100e, FL);
 GLOBAL_ELEMENT(PMS_Acquisition_parameters_seq, 0x2005, 0x140f, SQ);
 
 /* These values indicate the index of the B-values and gradient
