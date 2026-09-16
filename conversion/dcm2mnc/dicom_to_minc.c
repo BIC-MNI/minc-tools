@@ -3720,7 +3720,8 @@ multiframe_init(Acr_Group group_list, Multiframe_Info *mfi_ptr, int load_image)
         
         /* Add a small image
          */
-        mfi_ptr->frame_size = rows * cols * pixel_size;
+        mfi_ptr->frame_size = rows * cols * pixel_size *
+            acr_find_int(group_list, ACR_Samples_per_pixel, 1);
         data_ptr = malloc(mfi_ptr->frame_size);
         CHKMEM(data_ptr);
 

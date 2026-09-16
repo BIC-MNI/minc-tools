@@ -745,6 +745,7 @@ void setup_minc_variables(int mincid, General_Info *general_info,
     Volume_Index ivol;
     World_Index iworld;
     int ndims;
+    int nimgdims;               /* trailing dims not spanned by image-min/max */
     int dim[MAX_VAR_DIMS];
     long dimsize;
     char *dimname;
@@ -880,6 +881,17 @@ void setup_minc_variables(int mincid, General_Info *general_info,
         ndims++;
     }
 
+    /* Multi-sample (RGB) pixels become a trailing vector dimension, which
+     * image-min/max must not span (see MI_verify_maxmin_dims).
+     */
+    nimgdims = 2;
+    if (general_info->samples_per_pixel > 1) {
+        dim[ndims] = ncdimdef(mincid, MIvector_dimension,
+                              general_info->samples_per_pixel);
+        ndims++;
+        nimgdims = 3;
+    }
+
     /* Set up image variable */
     imgid = micreate_std_variable(mincid, MIimage, general_info->datatype,
                                   ndims, dim);
@@ -893,10 +905,12 @@ void setup_minc_variables(int mincid, General_Info *general_info,
     miattputstr(mincid, imgid, MIcomplete, MI_FALSE);
 
     /* Create image max and min variables */
-    varid = micreate_std_variable(mincid, MIimagemin, NC_DOUBLE, ndims-2, dim);
+    varid = micreate_std_variable(mincid, MIimagemin, NC_DOUBLE,
+                                  ndims-nimgdims, dim);
     if (strlen(general_info->units) > 0)
         miattputstr(mincid, varid, MIunits, general_info->units);
-    varid = micreate_std_variable(mincid, MIimagemax, NC_DOUBLE, ndims-2, dim);
+    varid = micreate_std_variable(mincid, MIimagemax, NC_DOUBLE,
+                                  ndims-nimgdims, dim);
     if (strlen(general_info->units) > 0)
         miattputstr(mincid, varid, MIunits, general_info->units);
 
@@ -1393,6 +1407,7 @@ save_minc_image(int icvid, General_Info *gi_ptr,
     int pvalue, pmax, pmin;
     double dvalue, maximum, minimum, scale, offset;
     long ipix, imagepix;
+    int lossless;
 
     /* Get the minc file id */
     miicv_inqint(icvid, MI_ICV_CDFID, &mincid);
@@ -1422,6 +1437,10 @@ save_minc_image(int icvid, General_Info *gi_ptr,
     start[idim+1] = 0;
     count[idim] = gi_ptr->nrows;
     count[idim+1] = gi_ptr->ncolumns;
+    if (gi_ptr->samples_per_pixel > 1) {
+        start[idim+2] = 0;
+        count[idim+2] = gi_ptr->samples_per_pixel;
+    }
 
     /* Write out slice position */
     switch (gi_ptr->slice_world) {
@@ -1529,7 +1548,8 @@ save_minc_image(int icvid, General_Info *gi_ptr,
      *
      * First, calculate the total number of voxels in this image.
      */
-    imagepix = gi_ptr->nrows * gi_ptr->ncolumns;
+    imagepix = (long) gi_ptr->nrows * gi_ptr->ncolumns *
+        gi_ptr->samples_per_pixel;
 
     pmax = INT_MIN;             /* Initialize to smallest possible int  */
     pmin = INT_MAX;             /* Initialize to largest possible int */
@@ -1557,18 +1577,30 @@ save_minc_image(int icvid, General_Info *gi_ptr,
         }
     }
 
-    /* Calculate the 'scale' and 'offset' (slope and intercept) we
-     * must use to scale the data.
+    /* If the stored codes already lie within the valid range, write them
+     * unchanged: image-min/max are then the real values of the valid-range
+     * endpoints and real = stored * rescale_slope + rescale_intercept holds
+     * exactly.  Stretching [pmin,pmax] onto the valid range and rounding
+     * would add up to half a rescale step of error per voxel, which is
+     * significant for signed (e.g. phase) data whose mean is near zero.
+     * Only codes outside the valid range still need the stretch.
      */
-    if (pmax > pmin) {
-        scale = (gi_ptr->pixel_max - gi_ptr->pixel_min) / 
-            ((double) pmax - (double) pmin);
+    lossless = (pmin >= gi_ptr->pixel_min && pmax <= gi_ptr->pixel_max);
+
+    if (lossless) {
+        scale = 1.0;
+        offset = 0.0;
     }
     else {
-        scale = 0.0;
+        if (pmax > pmin) {
+            scale = (gi_ptr->pixel_max - gi_ptr->pixel_min) /
+                ((double) pmax - (double) pmin);
+        }
+        else {
+            scale = 0.0;
+        }
+        offset = gi_ptr->pixel_min - scale * (double) pmin;
     }
-
-    offset = gi_ptr->pixel_min - scale * (double) pmin;
 
     /* debugging info for slice intensity scaling
      */
@@ -1582,12 +1614,12 @@ save_minc_image(int icvid, General_Info *gi_ptr,
         printf("1. scale %.2f offset %.2f\n", scale, offset);
     }
 
-    /* Re-scale the images. Again, this has to be done in a 
-     * "signedness-aware" way, so that negative values will be 
+    /* Re-scale the images. Again, this has to be done in a
+     * "signedness-aware" way, so that negative values will be
      * dealt with properly in signed data.
      */
 
-    if (gi_ptr->is_signed) {
+    if (!lossless && gi_ptr->is_signed) {
         short *ssh_ptr = (short *) image->data;
 
         for (ipix = 0; ipix < imagepix; ipix++) {
@@ -1595,7 +1627,7 @@ save_minc_image(int icvid, General_Info *gi_ptr,
             ssh_ptr[ipix] = (short) rint(dvalue * scale + offset);
         }
     }
-    else {
+    else if (!lossless) {
         unsigned short *ush_ptr = (unsigned short *) image->data;
 
         for (ipix = 0; ipix < imagepix; ipix++) {
@@ -1604,20 +1636,23 @@ save_minc_image(int icvid, General_Info *gi_ptr,
         }
     }
 
-    if (gi_ptr->pixel_max > gi_ptr->pixel_min) {
-        scale = (fi_ptr->slice_max - fi_ptr->slice_min) /
-            (gi_ptr->pixel_max - gi_ptr->pixel_min);
+    /* Real values at the stored codes mapped to the valid-range ends. */
+    if (lossless) {
+        minimum = gi_ptr->pixel_min * fi_ptr->rescale_slope +
+            fi_ptr->rescale_intercept;
+        maximum = gi_ptr->pixel_max * fi_ptr->rescale_slope +
+            fi_ptr->rescale_intercept;
     }
     else {
-        scale = 0.0;
+        minimum = (double) pmin * fi_ptr->rescale_slope +
+            fi_ptr->rescale_intercept;
+        maximum = (double) pmax * fi_ptr->rescale_slope +
+            fi_ptr->rescale_intercept;
     }
 
-    offset = fi_ptr->slice_min - scale * gi_ptr->pixel_min;
-    minimum = (double) pmin * scale + offset;
-    maximum = (double) pmax * scale + offset;
-
     if (G.Debug >= HI_LOGGING) {
-        printf("2. scale %.2f offset %.2f min %.2f max %.2f\n", scale, offset,
+        printf("2. slope %.2f intercept %.2f min %.2f max %.2f\n",
+               fi_ptr->rescale_slope, fi_ptr->rescale_intercept,
                minimum, maximum);
         printf("3. position %ld,%ld,%ld\n", start[0], start[1], start[2]);
     }

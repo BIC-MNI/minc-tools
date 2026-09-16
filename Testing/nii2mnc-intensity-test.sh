@@ -12,7 +12,8 @@
 #     (sign + netCDF type, e.g. "unsigned byte", "signed__ short", "float")
 #     matches <exp_vartype>, proving the datatype mapping.
 #
-# Fixtures live in nii2mnc_data/ and are built by make_nii_fixtures.py.
+# Fixtures live in nii2mnc_data/ and are built by make_nii_fixtures.py (the
+# RGB24 fixture by make_nii_rgb24_fixture.py).
 set -u
 
 N2M="$1"; MI="$2"; MS="$3"; NII="$4"; EXP_VT="$5"

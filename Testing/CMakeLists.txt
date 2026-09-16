@@ -142,6 +142,8 @@ ADD_NII2MNC_TEST(nii_3d_permuted  xspace yspace zspace)
 ADD_NII2MNC_TEST(nii_4d_normal    time xspace yspace zspace)
 ADD_NII2MNC_TEST(nii_3d_zeroslice xspace yspace zspace)
 ADD_NII2MNC_TEST(nii_4d_zeroslice time xspace yspace zspace)
+# RGB24 (built by make_nii_rgb24_fixture.py) -> trailing vector_dimension
+ADD_NII2MNC_TEST(nii_dt_rgb24     xspace yspace zspace vector_dimension)
 
 # ------------ nii2mnc data-type + intensity-preservation tests ---------------
 # Each nii_dt_* / nii_scl_* fixture holds the integer ramp v=i%5 over 120 voxels
@@ -169,6 +171,8 @@ ADD_NII2MNC_INTENSITY_TEST(nii_dt_int32    "signed__ long"     0   4   240  0)
 ADD_NII2MNC_INTENSITY_TEST(nii_dt_float32  "float"              0   4   240  0.001)
 ADD_NII2MNC_INTENSITY_TEST(nii_dt_float64  "double"             0   4   240  0)
 ADD_NII2MNC_INTENSITY_TEST(nii_scl_int16   "signed__ short"  -10  -2  -720  0)
+# RGB24: 24 voxels x 3 components, R=i%5 G=i%5+5 B=20 (sum over components)
+ADD_NII2MNC_INTENSITY_TEST(nii_dt_rgb24    "unsigned byte"     0  20   692  0)
 
 # ------------ mnc2nii data-type + intensity-preservation tests ---------------
 # Convert test-rnd.mnc (ints 0..4, sum 250) with each output type flag, verify

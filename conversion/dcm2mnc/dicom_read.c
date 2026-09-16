@@ -392,6 +392,7 @@ init_general_info(General_Info *gi_ptr, /* OUT */
 
     gi_ptr->pixel_min = fi_ptr->pixel_min;
     gi_ptr->pixel_max = fi_ptr->pixel_max;
+    gi_ptr->samples_per_pixel = fi_ptr->samples_per_pixel;
 
     /* Save display window info */
     gi_ptr->window_min = fi_ptr->window_min;
@@ -870,6 +871,30 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
         return;
     }
 
+    /* Multi-sample pixels: only uncompressed, non-mosaic RGB is supported
+     * (the JPEG decoders return inconsistent sample layouts).
+     */
+    if (fi_ptr->samples_per_pixel != 1) {
+        char *photometric = acr_find_string(group_list,
+                                            ACR_Photometric_interpretation, "");
+        char *syntax = acr_find_string(group_list, ACR_Transfer_Syntax_UID,
+                                       ACR_EXPLICIT_VR_LITTLE_END_UID);
+        int uncompressed = (!strcmp(syntax, ACR_IMPLICIT_VR_LITTLE_END_UID) ||
+                            !strcmp(syntax, ACR_EXPLICIT_VR_LITTLE_END_UID) ||
+                            !strcmp(syntax, ACR_EXPLICIT_VR_BIG_END_UID));
+
+        if (fi_ptr->samples_per_pixel != 3 ||
+            strncmp(photometric, "RGB", 3) != 0 ||
+            !uncompressed ||
+            gi_ptr->subimage_type == SUBIMAGE_TYPE_MOSAIC) {
+            printf("WARNING: Unsupported pixel format (%d samples, '%s', "
+                   "transfer syntax %s), skipping '%s'\n",
+                   fi_ptr->samples_per_pixel, photometric, syntax, file_name);
+            fi_ptr->valid = FALSE;
+            return;
+        }
+    }
+
     /* Get study, acq, rec, image type id's
      */
     get_identification_info(group_list, &study_id, &acq_id, &rec_num, NULL);
@@ -953,6 +978,13 @@ get_file_info(Acr_Group group_list, File_Info *fi_ptr, General_Info *gi_ptr, con
         if (((gi_ptr->datatype == NC_BYTE) && (fi_ptr->bits_alloc > 8)) ||
             ((gi_ptr->datatype == NC_SHORT) && (fi_ptr->bits_alloc <= 8))) {
             printf("Inconsistent datatype, marking invalid\n");
+            fi_ptr->valid = FALSE;
+            return;
+        }
+
+        /* Check for consistent samples per pixel */
+        if (gi_ptr->samples_per_pixel != fi_ptr->samples_per_pixel) {
+            printf("Inconsistent samples per pixel, marking invalid\n");
             fi_ptr->valid = FALSE;
             return;
         }
@@ -1320,6 +1352,10 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
     /* Get pixel storage information */
     fi_ptr->bits_alloc = (int)acr_find_short(group_list, ACR_Bits_allocated, 0);
     fi_ptr->bits_stored = (int)acr_find_short(group_list, ACR_Bits_stored, 0);
+    fi_ptr->samples_per_pixel =
+        (int)acr_find_short(group_list, ACR_Samples_per_pixel, 1);
+    fi_ptr->planar_config =
+        (int)acr_find_short(group_list, ACR_Planar_configuration, 0);
 
     /* bert- properly set the minimum and maximum pixel values depending
      * on whether or not this file specifies signed pixel values.
@@ -1440,6 +1476,8 @@ get_intensity_info(Acr_Group group_list, File_Info *fi_ptr)
         }
     }
 
+    fi_ptr->rescale_slope = rescale_slope;
+    fi_ptr->rescale_intercept = rescale_intercept;
     fi_ptr->slice_min = fi_ptr->pixel_min * rescale_slope + rescale_intercept;
     fi_ptr->slice_max = fi_ptr->pixel_max * rescale_slope + rescale_intercept;
 
@@ -3119,7 +3157,8 @@ decompress_pixel_element(Acr_Group group_list, Acr_Element element,
         int ncolumns = (int)acr_find_short(group_list, ACR_Columns, 0);
         int bits_alloc = (int)acr_find_short(group_list, ACR_Bits_allocated, 0);
         int pixel_size = (bits_alloc + (CHAR_BIT - 1)) / CHAR_BIT;
-        *out_length = nrows * ncolumns * pixel_size;
+        int samples = (int)acr_find_short(group_list, ACR_Samples_per_pixel, 1);
+        *out_length = nrows * ncolumns * pixel_size * samples;
     }
     return decoded_data;
 }
@@ -3151,12 +3190,15 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
     nc_type datatype;
     void *decoded_data = NULL;
     int encoded_length;
+    int samples, planar;
 
     /* Get the image information */
     bits_alloc = (int)acr_find_short(group_list, ACR_Bits_allocated, 0);
     nrows = (int)acr_find_short(group_list, ACR_Rows, 0);
     ncolumns = (int)acr_find_short(group_list, ACR_Columns, 0);
     image_group = (int)acr_find_short(group_list, ACR_Image_location, ACR_IMAGE_GID);
+    samples = (int)acr_find_short(group_list, ACR_Samples_per_pixel, 1);
+    planar = (int)acr_find_short(group_list, ACR_Planar_configuration, 0);
 
     /* Figure out type */
     if (bits_alloc > CHAR_BIT)
@@ -3164,8 +3206,8 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
     else
         datatype = NC_BYTE;
 
-    /* Set image info */
-    imagepix = nrows * ncolumns;
+    /* Set image info (samples are interleaved per pixel in the buffer) */
+    imagepix = (long) nrows * ncolumns * samples;
     image->data = (unsigned short *) malloc(imagepix * sizeof(short));
     CHKMEM(image->data);
 
@@ -3174,6 +3216,14 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
     elid.element_id = ACR_IMAGE_EID;
     element = acr_find_group_element(group_list, &elid);
     if (element == NULL) {
+        memset(image->data, 0, imagepix * sizeof(short));
+        return;
+    }
+    if (acr_element_is_sequence(element) && samples != 1) {
+        /* Normally rejected in get_file_info(); decoders do not return a
+         * consistent multi-sample layout. */
+        printf("WARNING: Compressed multi-sample pixel data not supported, "
+               "writing zeros\n");
         memset(image->data, 0, imagepix * sizeof(short));
         return;
     }
@@ -3210,13 +3260,33 @@ get_dicom_image_data(Acr_Group group_list, Image_Data *image)
         /* Look for unpacked short data */
         if (bits_alloc == nctypelen(datatype) * CHAR_BIT) {
             acr_get_short(acr_get_element_byte_order(element),
-                          nrows*ncolumns, data, image->data);
+                          imagepix, data, image->data);
         }
 
         /* Fill with zeros in any other case */
         else {
             memset(image->data, 0, imagepix * sizeof(short));
         }
+    }
+
+    /* Planar configuration 1 stores RRR...GGG...BBB; the writer expects
+     * samples interleaved per pixel.
+     */
+    if (samples > 1 && planar == 1) {
+        long npix = (long) nrows * ncolumns;
+        int isample;
+        unsigned short *interleaved =
+            (unsigned short *) malloc(imagepix * sizeof(short));
+
+        CHKMEM(interleaved);
+        for (ipix = 0; ipix < npix; ipix++) {
+            for (isample = 0; isample < samples; isample++) {
+                interleaved[ipix * samples + isample] =
+                    image->data[isample * npix + ipix];
+            }
+        }
+        free(image->data);
+        image->data = interleaved;
     }
 
     if (decoded_data != NULL) {

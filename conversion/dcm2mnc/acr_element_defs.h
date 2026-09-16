@@ -151,6 +151,9 @@ GLOBAL_ELEMENT(ACR_Images_in_acquisition,  0x0020, 0x1002, IS);
 GLOBAL_ELEMENT(ACR_Slice_location,         0x0020, 0x1041, DS);
 GLOBAL_ELEMENT(ACR_Image_comments,         0x0020, 0x4000, DS);
 
+GLOBAL_ELEMENT(ACR_Samples_per_pixel     , 0x0028, 0x0002, US);
+GLOBAL_ELEMENT(ACR_Photometric_interpretation, 0x0028, 0x0004, CS);
+GLOBAL_ELEMENT(ACR_Planar_configuration  , 0x0028, 0x0006, US);
 GLOBAL_ELEMENT(ACR_Number_of_frames      , 0x0028, 0x0008, IS);
 GLOBAL_ELEMENT(ACR_Frame_increment_ptr   , 0x0028, 0x0009, AT);
 GLOBAL_ELEMENT(ACR_Rows                  , 0x0028, 0x0010, US);

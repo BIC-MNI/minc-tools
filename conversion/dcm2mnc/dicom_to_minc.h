@@ -168,6 +168,7 @@ typedef struct {
     double dircos[WORLD_NDIMS][WORLD_NDIMS];
     nc_type datatype;           /* netCDF (and therefore MINC) datatype */
     int is_signed;              /* TRUE of 2's compliment data */
+    int samples_per_pixel;      /* >1 adds a trailing vector_dimension */
     double pixel_min;
     double pixel_max;
     string_t units;
@@ -276,11 +277,15 @@ typedef struct {
    Acr_Group group_list;
    int bits_alloc;
    int bits_stored;
+   int samples_per_pixel;       /* 1 for greyscale, 3 for RGB */
+   int planar_config;           /* 0 = RGBRGB..., 1 = RRR...GGG...BBB */
    int index[MRI_NDIMS];
    double pixel_max;
    double pixel_min;
    double slice_max;
    double slice_min;
+   double rescale_slope;        /* real = stored * slope + intercept */
+   double rescale_intercept;
    double window_max;
    double window_min;
    double coordinate[MRI_NDIMS];

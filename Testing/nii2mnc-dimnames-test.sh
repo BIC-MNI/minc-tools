@@ -6,7 +6,7 @@
 # MINC spatial-axis (xspace/yspace/zspace) assignment: a degenerate s-form
 # slice column must still yield three distinct spatial axes, not a duplicated
 # "xspace" with "zspace" dropped. Fixtures live in nii2mnc_data/ and are built
-# by make_nii_fixtures.py.
+# by make_nii_fixtures.py (the RGB24 fixture by make_nii_rgb24_fixture.py).
 set -u
 
 N2M="$1"; MI="$2"; NII="$3"; shift 3

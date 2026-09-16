@@ -43,6 +43,7 @@ find_data_range(int datatype, size_t nvox, void *data, double range[2])
             tmp = (double) ((char *)data)[i];
             break;
         case DT_UINT8:
+        case DT_RGB24:          /* caller passes nvox*3 component bytes */
             tmp = (double) ((unsigned char *)data)[i];
             break;
         case DT_INT16:
@@ -85,6 +86,7 @@ default_data_range(int datatype, double range[2])
         range[1] = CHAR_MAX;
         break;
     case DT_UINT8:
+    case DT_RGB24:
         range[0] = 0;
         range[1] = UCHAR_MAX;
         break;
@@ -127,7 +129,9 @@ do_data_conversion(nifti_image *nii_ptr,
                    const double img_rrange[2],
                    double img_vrange[2])
 {
-  void *new_data = malloc(nii_ptr->nvox * nctypelen(img_vtype));
+  /* RGB24 holds 3 unsigned-byte components per voxel. */
+  size_t nelem = nii_ptr->nvox * (nii_ptr->datatype == DT_RGB24 ? 3 : 1);
+  void *new_data = malloc(nelem * nctypelen(img_vtype));
   double input_min = img_rrange[0];
   double input_rng = (img_rrange[1] - img_rrange[0]);
   double output_min = img_vrange[0];
@@ -146,7 +150,7 @@ do_data_conversion(nifti_image *nii_ptr,
     img_vrange[1] = img_rrange[1];
   }
 
-  for (i = 0; i < (int) nii_ptr->nvox; i++) {
+  for (i = 0; i < (int) nelem; i++) {
     double value;
 
     switch (img_mtype) {
@@ -257,6 +261,7 @@ main(int argc, char **argv)
     static int qflag = 0;       /* Quiet flag (default is non-quiet) */
     static int rflag = 1;       /* Scan range flag */
     static int cflag = 0;       /* Clobber flag */
+    int is_rgb = 0;             /* DT_RGB24: 3 components per voxel */
     const char *mnc_ordered_dim_names[VIO_N_DIMENSIONS+2]; // VF: HACK to make it work with 4D and 5D nifti files
 
     static ArgvInfo argTable[] = {
@@ -335,6 +340,12 @@ main(int argc, char **argv)
     case DT_UINT8:
         mnc_msign = 0;
         mnc_mtype = NC_BYTE;
+        break;
+    case DT_RGB24:
+        /* 3 interleaved unsigned bytes per voxel -> trailing vector_dimension */
+        mnc_msign = 0;
+        mnc_mtype = NC_BYTE;
+        is_rgb = 1;
         break;
     case DT_INT16:
         mnc_msign = 1;
@@ -607,7 +618,17 @@ main(int argc, char **argv)
         miattputstr(mnc_fd, r, MIunits, "mm");
     }
 
-    if (nii_ptr->nu > 1) {
+    if (is_rgb) {
+        if (nii_ptr->nu > 1) {
+            fprintf(stderr, "RGB24 data with a 5th (vector) dimension "
+                    "is not supported\n");
+            return (-1);
+        }
+        mnc_dimids[mnc_ndims] = ncdimdef(mnc_fd, MIvector_dimension, 3);
+        mnc_count[mnc_ndims] = 3;
+        mnc_ndims++;
+    }
+    else if (nii_ptr->nu > 1) {
         mnc_dimids[mnc_ndims] = ncdimdef(mnc_fd, MIvector_dimension,
                                          nii_ptr->nu);
         mnc_count[mnc_ndims] = nii_ptr->nu;
@@ -694,8 +715,15 @@ main(int argc, char **argv)
     /* Find the valid minimum and maximum of the data, in order to set the
      * global image minimum and image maximum properly.
      */
+    if (is_rgb) {
+        /* NIfTI scl_slope/scl_inter do not apply to RGB data. */
+        nii_ptr->scl_slope = 1.0;
+        nii_ptr->scl_inter = 0.0;
+    }
+
     if (rflag) {
-        find_data_range(nii_ptr->datatype, nii_ptr->nvox, nii_ptr->data,
+        find_data_range(nii_ptr->datatype,
+                        nii_ptr->nvox * (is_rgb ? 3 : 1), nii_ptr->data,
                         nii_vrange);
     }
     else {
