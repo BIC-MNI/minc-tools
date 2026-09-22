@@ -325,6 +325,10 @@ main(int argc, char **argv)
 
     /* Read in the entire NIfTI file. */
     nii_ptr = nifti_image_read(argv[1], 1);
+    if (nii_ptr == NULL) {
+        fprintf(stderr, "Can't read NIfTI file '%s'\n", argv[1]);
+        return (-1);
+    }
 
     if (!qflag) {
         nifti_image_infodump(nii_ptr);
