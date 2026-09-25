@@ -246,6 +246,7 @@ main(int argc, char **argv)
     double nii_vrange[2];       /* NIfTI voxel range. */
     double mnc_time_step;
     double mnc_time_start;
+    const char *mnc_time_units;
     int trivial_axes[VIO_N_DIMENSIONS+2] = {VIO_X, VIO_Y, VIO_Z,3,4};// VF: HACK to make it work with 4D and 5D nifti files
     int spatial_axes[VIO_N_DIMENSIONS+2] = {VIO_X, VIO_Y, VIO_Z,3,4};// 
     double dim_starts[VIO_N_DIMENSIONS+2];
@@ -562,11 +563,15 @@ main(int argc, char **argv)
         mnc_ndims++;
 
         r = micreate_std_variable(mnc_fd, MItime, NC_INT, 0, NULL);
+        /* Times go to seconds. Spectral units (nifti1.h: Hz, ppm, rad/s)
+         * keep their values and their unit name.
+         */
+        mnc_time_step = nii_ptr->dt;
+        mnc_time_start = nii_ptr->toffset;
+        mnc_time_units = "s";
         switch (nii_ptr->time_units) {
         case NIFTI_UNITS_UNKNOWN:
         case NIFTI_UNITS_SEC:
-            mnc_time_step = nii_ptr->dt;
-            mnc_time_start = nii_ptr->toffset;
             break;
         case NIFTI_UNITS_MSEC:
             mnc_time_step = nii_ptr->dt / 1000;
@@ -576,14 +581,23 @@ main(int argc, char **argv)
             mnc_time_step = nii_ptr->dt / 1000000;
             mnc_time_start = nii_ptr->toffset / 1000000;
             break;
+        case NIFTI_UNITS_HZ:
+            mnc_time_units = "Hz";
+            break;
+        case NIFTI_UNITS_PPM:
+            mnc_time_units = "ppm";
+            break;
+        case NIFTI_UNITS_RADS:
+            mnc_time_units = "rad/s";
+            break;
         default:
-            fprintf(stderr, "Unknown time units value %d\n",
+            fprintf(stderr, "Unknown time units value %d; assuming seconds\n",
                     nii_ptr->time_units);
             break;
         }
         miattputdbl(mnc_fd, r, MIstart, mnc_time_start);
         miattputdbl(mnc_fd, r, MIstep, mnc_time_step);
-        miattputstr(mnc_fd, r, MIunits, "s");
+        miattputstr(mnc_fd, r, MIunits, mnc_time_units);
     }
 
     if (nii_ptr->nz > 1) {
