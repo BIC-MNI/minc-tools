@@ -26,6 +26,14 @@ static const char *dimnames[MAX_NII_DIMS] = {
     NULL
 };
 
+/* The NIfTI slot of each name in dimnames[]: 0 is dim[1] (x) ... 4 is
+ * dim[5]. NIfTI-1 fixes the meaning of each slot: dimensions 1-3 are space,
+ * 4 is time, and 5 holds the values at each voxel (for example a vector).
+ */
+static const int dimslots[MAX_NII_DIMS] = {
+    4, 3, 2, 1, 0, -1, -1, -1
+};
+
 static const char *mnc_spatial_names[VIO_N_DIMENSIONS] = {
   MIxspace, MIyspace, MIzspace
 };
@@ -105,6 +113,8 @@ main(int argc, char **argv)
     int nii_dimids[MAX_NII_DIMS];
     int nii_dir[MAX_NII_DIMS];
     int nii_map[MAX_NII_DIMS];
+    int nii_slot[MAX_NII_DIMS];
+    int nii_top_slot;
     unsigned long nii_len[MAX_NII_DIMS];
     double nii_step[MAX_NII_DIMS];
     int nii_ndims;
@@ -519,6 +529,7 @@ main(int argc, char **argv)
 
             nii_len[nii_ndims] = mnc_dlen;
             nii_step[nii_ndims] = mnc_dstep;
+            nii_slot[nii_ndims] = dimslots[i];
             nii_ndims++;
         }
     }
@@ -540,11 +551,23 @@ main(int argc, char **argv)
 
     nii_ptr->nvox = 1;          /* Initial value for voxel count */
 
+    /* Each dimension goes into its NIfTI slot by name. A slot that the file
+     * does not have has length 1, so the other dimensions keep their
+     * meaning (for example 2-D + time is dim = 4 nx ny 1 nt).
+     */
+    nii_ptr->nx = nii_ptr->ny = nii_ptr->nz = 1;
+    nii_ptr->nt = nii_ptr->nu = nii_ptr->nv = nii_ptr->nw = 1;
+    nii_ptr->dx = nii_ptr->dy = nii_ptr->dz = 1.0;
+    nii_top_slot = 0;
+
     for (i = 0; i < nii_ndims; i++) {
       long length = nii_len[i];
-      int j = nii_ndims - i - 1;
+      int j = nii_slot[i];
       printf("%d %d %d %d %ld %f\n", i, j, nii_map[i], nii_dir[i], nii_len[i], nii_step[i]);
       nii_ptr->nvox *= length;
+      if (j > nii_top_slot) {
+        nii_top_slot = j;
+      }
       switch (j) {
       case 0:
         nii_ptr->nx = (int)length;
@@ -566,27 +589,12 @@ main(int argc, char **argv)
       case 4:
         nii_ptr->nu = (int)length;
         nii_ptr->du = nii_step[i];
+        nii_ptr->intent_code = NIFTI_INTENT_VECTOR;
         break;
       }
     }
 
-#if 0
-    /* Here we do some "post-processing" of the results. Make certain that
-     * the nt value is never zero, and make certain that ndim is set to
-     * 4 if there is a time dimension and 5 if there is a vector dimension
-     */
-
-    if (nii_ptr->dim[3] > 1 && nii_ndims < 4) {
-        nii_ndims = 4;
-    }
-
-    if (nii_ptr->dim[4] > 1) {
-        nii_ptr->intent_code = NIFTI_INTENT_VECTOR;
-        nii_ndims = 5;
-    }
-#endif
-
-    nii_ptr->ndim = nii_ndims; /* Total number of dimensions in file */
+    nii_ptr->ndim = nii_top_slot + 1; /* Highest NIfTI dimension used */
     nii_ptr->nifti_type = nifti_filetype;
 
 
