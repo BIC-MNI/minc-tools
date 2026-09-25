@@ -66,6 +66,57 @@ double nearest_power_of_two(double value)
     return r;
 }
 
+/* Return TRUE if the values of the named variable (image-max or image-min,
+ * which can have one value per slice) are not all the same.
+ */
+static int
+values_vary(int mnc_fd, const char *name)
+{
+    int varid = ncvarid(mnc_fd, name);
+    int ndims = 0;
+    int dimids[MAX_VAR_DIMS];
+    long start[MAX_VAR_DIMS];
+    long count[MAX_VAR_DIMS];
+    long n = 1;
+    long i;
+    double *values;
+    int result = FALSE;
+
+    if (varid < 0 ||
+        ncvarinq(mnc_fd, varid, NULL, NULL, &ndims, dimids, NULL) < 0 ||
+        ndims == 0) {
+        return FALSE;
+    }
+    for (i = 0; i < ndims; i++) {
+        start[i] = 0;
+        ncdiminq(mnc_fd, dimids[i], NULL, &count[i]);
+        n *= count[i];
+    }
+    values = malloc(n * sizeof(double));
+    if (values == NULL ||
+        mivarget(mnc_fd, varid, start, count, NC_DOUBLE, MI_SIGNED, values) < 0) {
+        free(values);
+        return TRUE;
+    }
+    for (i = 1; i < n; i++) {
+        if (values[i] != values[0]) {
+            result = TRUE;
+            break;
+        }
+    }
+    free(values);
+    return result;
+}
+
+/* Return TRUE if the image has more than one scaling (for example a
+ * different image-min/image-max for each slice).
+ */
+static int
+has_slice_scaling(int mnc_fd)
+{
+    return (values_vary(mnc_fd, MIimagemax) || values_vary(mnc_fd, MIimagemin));
+}
+
 static void
 my_nifti_set_description(nifti_image *nii_ptr, int argc, char **argv)
 {
@@ -390,7 +441,24 @@ main(int argc, char **argv)
     total_valid_range = input_valid_range[1] - input_valid_range[0];
     total_real_range = real_range[1] - real_range[0];
 
-    if ((output_valid_range[1] - output_valid_range[0]) >= total_valid_range) {
+    if ((output_valid_range[1] - output_valid_range[0]) >= total_valid_range &&
+        img_type != NC_FLOAT && img_type != NC_DOUBLE &&
+        total_valid_range > 0 && !has_slice_scaling(mnc_fd)) {
+        /* Integer voxels with one scaling for the whole image fit the
+         * output type: keep the stored values (shifted into the output
+         * range if necessary), so that the conversion is exact. Any other
+         * range would requantize them, and labels would not stay integers.
+         */
+        if (input_valid_range[0] >= output_valid_range[0] &&
+            input_valid_range[1] <= output_valid_range[1]) {
+            output_valid_range[0] = input_valid_range[0];
+            output_valid_range[1] = input_valid_range[1];
+        }
+        else {
+            output_valid_range[1] = output_valid_range[0] + total_valid_range;
+        }
+    }
+    else if ((output_valid_range[1] - output_valid_range[0]) >= total_valid_range) {
         /* Empirically, forcing the valid range to be the nearest power
          * of two greater than the existing valid range seems to improve
          * the behavior of the conversion. This is at least in part because
