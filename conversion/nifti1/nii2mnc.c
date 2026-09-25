@@ -647,13 +647,15 @@ main(int argc, char **argv)
     /* Create the group variables.
      */
     micreate_std_variable(mnc_fd, MIstudy, NC_INT, 0, NULL);
-    if (strlen(nii_ptr->descrip) > 0 && strlen(nii_ptr->descrip) < 79 ) {
-      int varid = micreate_std_variable(mnc_fd, MIpatient, NC_INT, 0, NULL);
-      miattputstr(mnc_fd, varid, MIfull_name, nii_ptr->descrip);
-    } else {
-       micreate_std_variable(mnc_fd, MIpatient, NC_INT, 0, NULL);
-    }
+    micreate_std_variable(mnc_fd, MIpatient, NC_INT, 0, NULL);
     micreate_std_variable(mnc_fd, MIacquisition, NC_INT, 0, NULL);
+
+    /* descrip is free text (tools such as dcm2niix put acquisition values
+     * there), not a patient name.
+     */
+    if (strlen(nii_ptr->descrip) > 0) {
+      miattputstr(mnc_fd, NC_GLOBAL, MIcomments, nii_ptr->descrip);
+    }
 
     /* Create the MINC image variable.  If we can't, there is no
      * further processing possible...
