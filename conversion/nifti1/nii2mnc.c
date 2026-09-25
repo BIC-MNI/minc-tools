@@ -186,7 +186,12 @@ do_data_conversion(nifti_image *nii_ptr,
      */
     value = (value * nii_ptr->scl_slope) + nii_ptr->scl_inter;
 
-    value = (((value - input_min) / input_rng) * output_rng) + output_min;
+    /* Floating-point output holds the real value. Integer output maps the
+     * real range onto the valid range.
+     */
+    if (img_vtype != NC_FLOAT && img_vtype != NC_DOUBLE) {
+      value = (((value - input_min) / input_rng) * output_rng) + output_min;
+    }
 
     switch (img_vtype) {
     case NC_BYTE:
@@ -262,6 +267,7 @@ main(int argc, char **argv)
     static int rflag = 1;       /* Scan range flag */
     static int cflag = 0;       /* Clobber flag */
     int is_rgb = 0;             /* DT_RGB24: 3 components per voxel */
+    int float_out;              /* !0 if MINC voxels are floating-point */
     const char *mnc_ordered_dim_names[VIO_N_DIMENSIONS+2]; // VF: HACK to make it work with 4D and 5D nifti files
 
     static ArgvInfo argTable[] = {
@@ -753,11 +759,28 @@ main(int argc, char **argv)
         img_rrange[1] = nii_vrange[1];
     }
 
+    /* MINC does not apply image-min/image-max to floating-point voxels, so
+     * floating-point output must hold the real (scaled) values, and its
+     * range must be in order even for a negative scl_slope.
+     */
+    float_out = (mnc_vtype == NC_FLOAT || mnc_vtype == NC_DOUBLE);
+    if (float_out && img_rrange[0] > img_rrange[1]) {
+      double tmp = img_rrange[0];
+      img_rrange[0] = img_rrange[1];
+      img_rrange[1] = tmp;
+    }
+
     /* Now we may have to perform voxel type conversion. This is unfortunate
      * but we warned you it might happen.
      */
     if (mnc_mtype != mnc_vtype || mnc_msign != mnc_vsign) {
       printf("Performing voxel format conversion.\n");
+      do_data_conversion(nii_ptr, mnc_mtype, mnc_msign, mnc_vtype, mnc_vsign,
+                         img_rrange, img_vrange);
+    }
+    else if (float_out &&
+             (nii_ptr->scl_slope != 1.0 || nii_ptr->scl_inter != 0.0)) {
+      /* Same floating-point type, but the NIfTI scaling must be applied. */
       do_data_conversion(nii_ptr, mnc_mtype, mnc_msign, mnc_vtype, mnc_vsign,
                          img_rrange, img_vrange);
     }
