@@ -66,6 +66,37 @@ double nearest_power_of_two(double value)
     return r;
 }
 
+/* Return the NIfTI voxel width for a MINC dimension that has no step
+ * attribute. An irregular dimension (for example frame times) holds one
+ * coordinate per sample; NIfTI-1 cannot store that, so use the mean
+ * spacing. Otherwise use the MINC default step, 1.
+ */
+static double
+missing_step(int mnc_fd, const char *name, long length)
+{
+    int varid = ncvarid(mnc_fd, name);
+    int ndims;
+    int dimids[MAX_VAR_DIMS];
+    long index;
+    double first, last;
+
+    if (varid >= 0 && length > 1 &&
+        ncvarinq(mnc_fd, varid, NULL, NULL, &ndims, dimids, NULL) >= 0 &&
+        ndims == 1) {
+        index = 0;
+        if (mivarget1(mnc_fd, varid, &index, NC_DOUBLE, MI_SIGNED, &first) >= 0) {
+            index = length - 1;
+            if (mivarget1(mnc_fd, varid, &index, NC_DOUBLE, MI_SIGNED,
+                          &last) >= 0 && last != first) {
+                fprintf(stderr, "WARNING: %s has irregular spacing; "
+                        "NIfTI-1 stores its mean step.\n", name);
+                return fabs(last - first) / (length - 1);
+            }
+        }
+    }
+    return 1.0;
+}
+
 static void
 my_nifti_set_description(nifti_image *nii_ptr, int argc, char **argv)
 {
@@ -508,6 +539,10 @@ main(int argc, char **argv)
 
             ncdiminq(mnc_fd, nii_dimids[nii_ndims], NULL, &mnc_dlen);
             ncattget(mnc_fd, ncvarid(mnc_fd, dimnames[i]), MIstep, &mnc_dstep);
+            if (mnc_dstep == 0) {
+                /* NIfTI pixdim must be positive. */
+                mnc_dstep = missing_step(mnc_fd, dimnames[i], mnc_dlen);
+            }
 
             if (mnc_dstep < 0) {
                 nii_dir[nii_ndims] = 1;
