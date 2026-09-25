@@ -134,6 +134,7 @@ main(int argc, char **argv)
     double nifti_inter;         /* Intercept to be applied to output voxels. */
     double total_valid_range;   /* Overall valid range (max - min). */
     double total_real_range;    /* Overall real range (max - min). */
+    double time_start = 0.0;    /* MINC time start (NIfTI toffset). */
 
     /* Other stuff */
     char out_str[1024];         /* Big string for filename */
@@ -509,6 +510,14 @@ main(int argc, char **argv)
             ncdiminq(mnc_fd, nii_dimids[nii_ndims], NULL, &mnc_dlen);
             ncattget(mnc_fd, ncvarid(mnc_fd, dimnames[i]), MIstep, &mnc_dstep);
 
+            if (!strcmp(dimnames[i], MItime)) {
+                int tmp;
+
+                /* NIfTI time point m is at toffset + m * pixdim[4]. */
+                miattget(mnc_fd, ncvarid(mnc_fd, MItime), MIstart, NC_DOUBLE, 1,
+                         &time_start, &tmp);
+            }
+
             if (mnc_dstep < 0) {
                 nii_dir[nii_ndims] = 1;
                 mnc_dstep = -mnc_dstep;
@@ -527,6 +536,7 @@ main(int argc, char **argv)
      */
     nii_ptr = nifti_make_new_nim(NULL, nifti_datatype, FALSE);
     nii_ptr->xyz_units = NIFTI_UNITS_MM ;
+    nii_ptr->toffset = time_start;
 
     my_nifti_set_description(nii_ptr, argc, argv);
 
