@@ -4,6 +4,7 @@
 
 #include <limits.h>
 #include <float.h>
+#include <sys/stat.h>
 #include <minc.h>
 #include <ParseArgv.h>
 #include <volume_io.h>
@@ -17,6 +18,14 @@ static const char *spatial_names[VIO_N_DIMENSIONS+2] = {
     MIxspace, MIyspace, MIzspace, MItime, MIvector_dimension
 };
 
+/* NIfTI file name extensions that the default output name replaces with
+ * ".mnc". Longer extensions come first.
+ */
+static const char *nifti_extensions[] = {
+    ".nii.gz", ".hdr.gz", ".img.gz", ".nia.gz", ".nii", ".hdr", ".img", ".nia",
+    NULL
+};
+
 static int usage(void)
 {
     static const char msg[] = {
@@ -25,6 +34,20 @@ static int usage(void)
     };
     fprintf(stderr, "%s", msg);
     return (-1);
+}
+
+/* Return TRUE if both paths name the same existing file.
+ */
+static int
+same_file(const char *path1, const char *path2)
+{
+    struct stat st1, st2;
+
+    if (path1 == NULL || path2 == NULL ||
+        stat(path1, &st1) != 0 || stat(path2, &st2) != 0) {
+        return FALSE;
+    }
+    return (st1.st_dev == st2.st_dev && st1.st_ino == st2.st_ino);
 }
 
 static void
@@ -306,14 +329,21 @@ main(int argc, char **argv)
         return usage();
     }
     else if (argc == 2) {
+        /* Replace a NIfTI extension with ".mnc", or add ".mnc", so that
+         * the output name is never the input name.
+         */
         strcpy(out_str, argv[1]);
-        str_ptr = strrchr(out_str, '.');
-        if (str_ptr != NULL) {
-            if (!strcmp(str_ptr, ".nii") || !strcmp(str_ptr, ".hdr")) {
-                *str_ptr = '\0';
-                strcat(out_str, ".mnc");
+        for (i = 0; nifti_extensions[i] != NULL; i++) {
+            size_t len = strlen(out_str);
+            size_t ext_len = strlen(nifti_extensions[i]);
+
+            if (len > ext_len &&
+                !strcmp(out_str + len - ext_len, nifti_extensions[i])) {
+                out_str[len - ext_len] = '\0';
+                break;
             }
         }
+        strcat(out_str, ".mnc");
     }
     else if (argc == 3) {
         strcpy(out_str, argv[2]);
@@ -327,6 +357,15 @@ main(int argc, char **argv)
     nii_ptr = nifti_image_read(argv[1], 1);
     if (nii_ptr == NULL) {
         fprintf(stderr, "Can't read NIfTI file '%s'\n", argv[1]);
+        return (-1);
+    }
+
+    /* Never write the output over an input file (the header, or the image
+     * file of a .hdr/.img pair), not even with -clobber.
+     */
+    if (same_file(out_str, nii_ptr->fname) ||
+        same_file(out_str, nii_ptr->iname)) {
+        fprintf(stderr, "Output file '%s' is an input file\n", out_str);
         return (-1);
     }
 
