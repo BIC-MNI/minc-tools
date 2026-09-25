@@ -12,6 +12,9 @@
 
 #define MAX_NII_DIMS 8
 
+/* The NIfTI-1 header stores each dimension length in a short. */
+#define MAX_NII_DIM_LENGTH 32767
+
 /* This list is in the order in which dimension lengths and sample
  * widths are stored in the NIfTI-1 structure.
  */
@@ -520,6 +523,17 @@ main(int argc, char **argv)
             nii_len[nii_ndims] = mnc_dlen;
             nii_step[nii_ndims] = mnc_dstep;
             nii_ndims++;
+        }
+    }
+
+    for (i = 0; i < nii_ndims; i++) {
+        if (nii_len[i] > MAX_NII_DIM_LENGTH) {
+            char name[1024];
+
+            ncdiminq(mnc_fd, nii_dimids[i], name, NULL);
+            fprintf(stderr, "Dimension '%s' has length %lu; NIfTI-1 allows "
+                    "at most %d\n", name, nii_len[i], MAX_NII_DIM_LENGTH);
+            return (-1);
         }
     }
 
