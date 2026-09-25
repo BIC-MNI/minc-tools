@@ -117,6 +117,35 @@ default_data_range(int datatype, double range[2])
     }
 }
 
+/* NIfTI stores the dim[5] (vector) index slowest: all voxels of component
+ * 0, then all voxels of component 1, and so on. MINC's vector_dimension is
+ * the fastest-varying dimension, so put the components of each voxel
+ * together.
+ */
+static int
+interleave_vector_components(nifti_image *nii_ptr)
+{
+  size_t ncomp = nii_ptr->nu;
+  size_t nvox = (size_t) nii_ptr->nx * nii_ptr->ny * nii_ptr->nz * nii_ptr->nt;
+  size_t size = nii_ptr->nbyper;
+  char *src = nii_ptr->data;
+  char *dst = malloc(ncomp * nvox * size);
+  size_t c, v;
+
+  if (dst == NULL) {
+    fprintf(stderr, "ERROR: Out of memory.\n");
+    return FALSE;
+  }
+  for (c = 0; c < ncomp; c++) {
+    for (v = 0; v < nvox; v++) {
+      memcpy(dst + (v * ncomp + c) * size, src + (c * nvox + v) * size, size);
+    }
+  }
+  free(nii_ptr->data);
+  nii_ptr->data = dst;
+  return TRUE;
+}
+
 /* This function is responsible for changing the voxel type of the data,
  * if requested.
  */
@@ -378,6 +407,15 @@ main(int argc, char **argv)
     default:
         fprintf(stderr, "Data type %d not handled\n", nii_ptr->datatype);
         break;
+    }
+
+    /* A dim[5] vector becomes the last (fastest) MINC dimension, below.
+     * RGB24 components are already interleaved.
+     */
+    if (!is_rgb && nii_ptr->nu > 1) {
+        if (!interleave_vector_components(nii_ptr)) {
+            return (-1);
+        }
     }
 
     if (mnc_vtype == NC_NAT) {

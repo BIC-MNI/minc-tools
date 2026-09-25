@@ -174,6 +174,15 @@ ADD_NII2MNC_INTENSITY_TEST(nii_scl_int16   "signed__ short"  -10  -2  -720  0)
 # RGB24: 24 voxels x 3 components, R=i%5 G=i%5+5 B=20 (sum over components)
 ADD_NII2MNC_INTENSITY_TEST(nii_dt_rgb24    "unsigned byte"     0  20   692  0)
 
+# ------------ nii2mnc dim[5] vector images (component order) ----------------
+ADD_TEST(NAME nii2mnc-vector
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/nii2mnc-vector-test.sh
+          $<TARGET_FILE:nii2mnc> $<TARGET_FILE:mincinfo>
+          $<TARGET_FILE:mincextract> ${_nii2mnc_dir}/nii_vector.nii
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(nii2mnc-vector PROPERTIES
+  ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT_NII2MNC}" LABELS "nii2mnc")
+
 # ------------ mnc2nii data-type + intensity-preservation tests ---------------
 # Convert test-rnd.mnc (ints 0..4, sum 250) with each output type flag, verify
 # the NIfTI on-disk datatype code, then round-trip back and verify the sum.
