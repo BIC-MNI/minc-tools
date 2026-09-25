@@ -523,6 +523,29 @@ main(int argc, char **argv)
         }
     }
 
+    /* Every image dimension must map to a NIfTI dimension. The voxel buffer
+     * is sized from the mapped dimensions only, but miicv_get() reads all
+     * of them.
+     */
+    if (nii_ndims != mnc_ndims) {
+        for (j = 0; j < mnc_ndims; j++) {
+            char name[1024];
+
+            for (i = 0; i < nii_ndims; i++) {
+                if (nii_dimids[i] == mnc_dimids[j]) {
+                    break;
+                }
+            }
+            if (i == nii_ndims) {
+                ncdiminq(mnc_fd, mnc_dimids[j], name, NULL);
+                fprintf(stderr, "Cannot convert dimension '%s': NIfTI output "
+                        "supports only xspace, yspace, zspace, time and "
+                        "vector_dimension\n", name);
+            }
+        }
+        return (-1);
+    }
+
     /* Initialize the NIfTI structure
      */
     nii_ptr = nifti_make_new_nim(NULL, nifti_datatype, FALSE);
