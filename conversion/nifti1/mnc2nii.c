@@ -192,7 +192,7 @@ main(int argc, char **argv)
          "Quiet operation"},
         {"-verbose", ARGV_CONSTANT, (char *)1,
          (char *)&vflag,
-         "Quiet operation"},
+         "Verbose operation"},
         {NULL, ARGV_END, NULL, NULL, NULL}
     };
 
@@ -504,7 +504,9 @@ main(int argc, char **argv)
             mnc_dlen = 1;
             mnc_dstep = 0;
 
-            printf("found %s at %d %d\n", dimnames[i], j, nii_ndims);
+            if (vflag) {
+                printf("found %s at %d %d\n", dimnames[i], j, nii_ndims);
+            }
 
             ncdiminq(mnc_fd, nii_dimids[nii_ndims], NULL, &mnc_dlen);
             ncattget(mnc_fd, ncvarid(mnc_fd, dimnames[i]), MIstep, &mnc_dstep);
@@ -543,7 +545,9 @@ main(int argc, char **argv)
     for (i = 0; i < nii_ndims; i++) {
       long length = nii_len[i];
       int j = nii_ndims - i - 1;
-      printf("%d %d %d %d %ld %f\n", i, j, nii_map[i], nii_dir[i], nii_len[i], nii_step[i]);
+      if (vflag) {
+        printf("%d %d %d %d %ld %f\n", i, j, nii_map[i], nii_dir[i], nii_len[i], nii_step[i]);
+      }
       nii_ptr->nvox *= length;
       switch (j) {
       case 0:
@@ -696,7 +700,9 @@ main(int argc, char **argv)
     /* Rearrange the data to correspond to the NIfTI dimension ordering.
      */
     if (nii_mismatches > 0) {
-      printf("Restructuring...\n");
+      if (vflag) {
+        printf("Restructuring...\n");
+      }
       restructure_array(nii_ndims,
                         nii_ptr->data,
                         nii_len,
