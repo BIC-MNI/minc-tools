@@ -376,8 +376,11 @@ main(int argc, char **argv)
         mnc_mtype = NC_DOUBLE;
         break;
     default:
-        fprintf(stderr, "Data type %d not handled\n", nii_ptr->datatype);
-        break;
+        /* Stop before the output file is made. */
+        fprintf(stderr, "Data type %d (%s) not supported\n",
+                nii_ptr->datatype, nifti_datatype_string(nii_ptr->datatype));
+        nifti_image_free(nii_ptr);
+        return (-1);
     }
 
     if (mnc_vtype == NC_NAT) {
