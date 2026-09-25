@@ -330,6 +330,15 @@ main(int argc, char **argv)
         return (-1);
     }
 
+    /* MINC dimensions exist only for NIfTI dim[1] to dim[5]. */
+    if (nii_ptr->nv > 1 || nii_ptr->nw > 1) {
+        fprintf(stderr, "Cannot convert NIfTI dim[6] = %d, dim[7] = %d: "
+                "only dim[1] to dim[5] can be converted\n",
+                nii_ptr->nv, nii_ptr->nw);
+        nifti_image_free(nii_ptr);
+        return (-1);
+    }
+
     if (!qflag) {
         nifti_image_infodump(nii_ptr);
     }
