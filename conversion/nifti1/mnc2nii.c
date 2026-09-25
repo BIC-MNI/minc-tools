@@ -66,6 +66,49 @@ double nearest_power_of_two(double value)
     return r;
 }
 
+/* Return the factor that converts values in the MINC "units" of the named
+ * dimension to mm (spatial dimensions) or seconds (time), the units that
+ * mnc2nii writes. A dimension with no units uses the MINC default, mm or
+ * seconds. If warn is TRUE, report units that are not known.
+ */
+static double
+unit_scale(int mnc_fd, const char *name, int warn)
+{
+    static const struct {
+        const char *units;
+        int is_time;
+        double scale;
+    } table[] = {
+        {"mm", 0, 1.0}, {"millimeters", 0, 1.0}, {"millimetres", 0, 1.0},
+        {"cm", 0, 10.0},
+        {"m", 0, 1000.0}, {"meters", 0, 1000.0}, {"metres", 0, 1000.0},
+        {"um", 0, 1.0e-3}, {"micron", 0, 1.0e-3}, {"microns", 0, 1.0e-3},
+        {"s", 1, 1.0}, {"sec", 1, 1.0}, {"seconds", 1, 1.0},
+        {"ms", 1, 1.0e-3}, {"msec", 1, 1.0e-3}, {"milliseconds", 1, 1.0e-3},
+        {"us", 1, 1.0e-6}, {"usec", 1, 1.0e-6}, {"microseconds", 1, 1.0e-6}
+    };
+    int is_time = !strcmp(name, MItime);
+    int varid = ncvarid(mnc_fd, name);
+    char units[128];
+    size_t i;
+
+    if (varid < 0 ||
+        miattgetstr(mnc_fd, varid, MIunits, sizeof(units), units) == NULL ||
+        units[0] == '\0') {
+        return 1.0;
+    }
+    for (i = 0; i < sizeof(table) / sizeof(table[0]); i++) {
+        if (table[i].is_time == is_time && !strcmp(units, table[i].units)) {
+            return table[i].scale;
+        }
+    }
+    if (warn) {
+        fprintf(stderr, "WARNING: unknown units '%s' for %s; assuming %s.\n",
+                units, name, is_time ? "seconds" : "mm");
+    }
+    return 1.0;
+}
+
 static void
 my_nifti_set_description(nifti_image *nii_ptr, int argc, char **argv)
 {
@@ -508,6 +551,10 @@ main(int argc, char **argv)
 
             ncdiminq(mnc_fd, nii_dimids[nii_ndims], NULL, &mnc_dlen);
             ncattget(mnc_fd, ncvarid(mnc_fd, dimnames[i]), MIstep, &mnc_dstep);
+            if (strcmp(dimnames[i], MIvector_dimension)) {
+                /* The NIfTI output is in mm and seconds. */
+                mnc_dstep *= unit_scale(mnc_fd, dimnames[i], TRUE);
+            }
 
             if (mnc_dstep < 0) {
                 nii_dir[nii_ndims] = 1;
@@ -607,6 +654,9 @@ main(int argc, char **argv)
 
         miattget(mnc_fd, id, MIstart, NC_DOUBLE, 1, &start[axis], &tmp);
         miattget(mnc_fd, id, MIstep, NC_DOUBLE, 1, &step[axis], &tmp);
+        /* The s-form is in mm. */
+        start[axis] *= unit_scale(mnc_fd, mnc_spatial_names[i], FALSE);
+        step[axis] *= unit_scale(mnc_fd, mnc_spatial_names[i], FALSE);
         miattget(mnc_fd, id, MIdirection_cosines, NC_DOUBLE, VIO_N_DIMENSIONS,
                  &dircos[axis], &tmp); /*will overwrite dircos if variable is there*/
         miattgetstr(mnc_fd, id, MIspacetype, sizeof(att_str), att_str);
