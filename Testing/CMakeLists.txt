@@ -199,6 +199,14 @@ ADD_MNC2NII_DT_TEST(int            "-int"                8    250  0)
 ADD_MNC2NII_DT_TEST(float          "-float"              16   250  0)
 ADD_MNC2NII_DT_TEST(double         "-double"             64   250  0)
 
+# ------------ mnc2nii exit status when the write fails ----------------------
+ADD_TEST(NAME mnc2nii-write-error
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mnc2nii-write-error-test.sh
+          $<TARGET_FILE:mnc2nii> ${_mnc2nii_src}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(mnc2nii-write-error PROPERTIES
+  ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "mnc2nii")
+
 # ------------ dcm2mnc integration tests (opt-in, data fetched at build time) -
 
 if(MT_BUILD_DCM2MNC_TESTS)

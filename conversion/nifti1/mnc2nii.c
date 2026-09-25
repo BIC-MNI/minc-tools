@@ -717,12 +717,31 @@ main(int argc, char **argv)
     if (vflag) {
         fprintf(stdout, "Writing NIfTI-1 file...");
     }
-    nifti_image_write(nii_ptr);
+    /* nifti_image_write() does not report errors, so write the header (and
+     * leave the file open at the data offset), then the data, and check both.
+     */
+    {
+        znzFile fp = nifti_image_write_hdr_img(nii_ptr, 2, "wb");
+
+        r = 0;
+        if (znz_isnull(fp)) {
+            r = -1;
+        }
+        else {
+            if (nifti_write_all_data(fp, nii_ptr, NULL) < 0) {
+                r = -1;
+            }
+            znzclose(fp);
+        }
+        if (r < 0) {
+            fprintf(stderr, "Unable to write NIfTI file '%s'\n", nii_ptr->fname);
+        }
+    }
     nifti_image_free(nii_ptr);
-    if (vflag) {
+    if (vflag && r == 0) {
         fprintf(stdout, "done.\n");
     }
     delete_general_transform(&transform);
 
-    return (0);
+    return (r);
 }
