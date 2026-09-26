@@ -8,9 +8,11 @@
 #   name <stem>.img  -> <stem>.hdr + <stem>.img, magic "ni1"
 #   -analyze         -> <stem>.hdr + <stem>.img, no NIfTI magic
 #   -ASCII           -> <stem>.nia
+#   name <stem>      -> <stem>.nii, magic "n+1" (no flag, no extension)
+#   name <stem>.foo  -> <stem>.foo.nii, magic "n+1" (unknown extension)
 #
-# For each case, no <stem>.nii may be made, and nii2mnc must read the output
-# back with the same voxel sum. mnc2nii used to make the file names before it
+# For each two-file or ASCII case, no <stem>.nii may be made, and nii2mnc must
+# read every output back with the same voxel sum. mnc2nii used to make the file names before it
 # set the file type, so each case wrote a single <stem>.nii that held only the
 # voxel data (the header was overwritten).
 set -u
@@ -25,12 +27,12 @@ within() {
 # check STEM FLAGS NAME READ_FILE MAGIC
 check() {
   local stem=$1 flags=$2 name=$3 readf=$4 magic=$5
-  rm -f "$stem".nii "$stem".hdr "$stem".img "$stem".nia "$stem"_rt.mnc
+  rm -f "$stem".nii "$stem".hdr "$stem".img "$stem".nia "$stem"_rt.mnc "$readf"
   # flags is word-split on purpose (it can be empty)
   if ! "$M2N" $flags -float "$MNC" "$name" >/dev/null 2>&1; then
     echo "FAIL [$stem]: mnc2nii $flags failed"; ok=0; return
   fi
-  if [ -e "$stem.nii" ]; then
+  if [ "$readf" != "$stem.nii" ] && [ -e "$stem.nii" ]; then
     echo "FAIL [$stem]: $stem.nii was made"; ok=0
   fi
   if [ ! -s "$readf" ]; then
@@ -55,6 +57,8 @@ check ft_hdrname ""         ft_hdrname.hdr ft_hdrname.hdr ni1
 check ft_imgname ""         ft_imgname.img ft_imgname.hdr ni1
 check ft_analyze "-analyze" ft_analyze    ft_analyze.hdr ""
 check ft_ascii   "-ASCII"   ft_ascii      ft_ascii.nia   ""
+check ft_bare    ""         ft_bare       ft_bare.nii    n+1
+check ft_other   ""         ft_other.foo  ft_other.foo.nii n+1
 
 if [ "$ok" = 1 ]; then echo "RESULT: PASS"; exit 0; fi
 echo "RESULT: FAIL"; exit 1
