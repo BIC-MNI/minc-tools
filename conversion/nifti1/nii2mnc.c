@@ -136,7 +136,7 @@ do_data_conversion(nifti_image *nii_ptr,
   double input_rng = (img_rrange[1] - img_rrange[0]);
   double output_min = img_vrange[0];
   double output_rng = (img_vrange[1] - img_vrange[0]);
-  int i;
+  size_t i;
 
   if (new_data == NULL) {
     fprintf(stderr, "ERROR: Out of memory.\n");
@@ -150,7 +150,7 @@ do_data_conversion(nifti_image *nii_ptr,
     img_vrange[1] = img_rrange[1];
   }
 
-  for (i = 0; i < (int) nelem; i++) {
+  for (i = 0; i < nelem; i++) {
     double value;
 
     switch (img_mtype) {
