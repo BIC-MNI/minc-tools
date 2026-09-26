@@ -302,6 +302,11 @@ main(int argc, char **argv)
         return usage();
     }
 
+    /* No type flag and no known extension: write a one-file .nii. */
+    if (nifti_filetype < 0) {
+        nifti_filetype = NIFTI_FTYPE_NIFTI1_1;
+    }
+
     /* When compression is requested, pass a .nii.gz filename to
      * nifti_set_filenames() so that nifti_is_gzfile() returns 1 and
      * znzlib gzip I/O is enabled automatically. out_str holds a bare
