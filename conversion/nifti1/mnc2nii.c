@@ -302,6 +302,11 @@ main(int argc, char **argv)
         return usage();
     }
 
+    /* No type flag and no known extension: write a one-file .nii. */
+    if (nifti_filetype < 0) {
+        nifti_filetype = NIFTI_FTYPE_NIFTI1_1;
+    }
+
     /* When compression is requested, pass a .nii.gz filename to
      * nifti_set_filenames() so that nifti_is_gzfile() returns 1 and
      * znzlib gzip I/O is enabled automatically. out_str holds a bare
@@ -530,6 +535,10 @@ main(int argc, char **argv)
 
     my_nifti_set_description(nii_ptr, argc, argv);
 
+    /* nifti_set_filenames() makes the extensions from nifti_type, so set
+     * the file type first.
+     */
+    nii_ptr->nifti_type = nifti_filetype;
     if (nifti_set_filenames(nii_ptr, out_str, FALSE, TRUE) != 0) {
       fprintf(stderr, "Unable to set file names?\n");
       return (-1);
@@ -587,7 +596,6 @@ main(int argc, char **argv)
 #endif
 
     nii_ptr->ndim = nii_ndims; /* Total number of dimensions in file */
-    nii_ptr->nifti_type = nifti_filetype;
 
 
     for (i = 0; i < VIO_N_DIMENSIONS; i++) {
