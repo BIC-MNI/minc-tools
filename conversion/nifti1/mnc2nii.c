@@ -77,24 +77,22 @@ my_nifti_set_description(nifti_image *nii_ptr, int argc, char **argv)
    * combination of some other standard MINC fields that might
    * provide more information.
    */
-  str_ptr = nii_ptr->descrip;
-  for (i = 0; i < argc; i++) {
-    char *arg_ptr = argv[i];
+  /* Keep one byte for the terminating NUL. */
+  char *str_end = nii_ptr->descrip + sizeof(nii_ptr->descrip) - 1;
 
-    if ((size_t)(str_ptr - nii_ptr->descrip) >= sizeof(nii_ptr->descrip)) {
-      break;
-    }
+  str_ptr = nii_ptr->descrip;
+  for (i = 0; i < argc && str_ptr < str_end; i++) {
+    char *arg_ptr = argv[i];
 
     if (i != 0) {
       *str_ptr++ = ' ';
     }
 
-    while (*arg_ptr != '\0' &&
-           (size_t)(str_ptr - nii_ptr->descrip) < sizeof(nii_ptr->descrip)) {
+    while (*arg_ptr != '\0' && str_ptr < str_end) {
       *str_ptr++ = *arg_ptr++;
     }
-    *str_ptr = '\0';
   }
+  *str_ptr = '\0';
 }
 
 int
