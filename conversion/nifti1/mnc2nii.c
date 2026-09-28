@@ -136,7 +136,7 @@ main(int argc, char **argv)
     double total_real_range;    /* Overall real range (max - min). */
 
     /* Other stuff */
-    char out_str[1024];         /* Big string for filename */
+    char *out_str;              /* Output file name */
     char att_str[1024];         /* Big string for attribute values */
     int i;                      /* Generic loop counter the first */
     int j;                      /* Generic loop counter the second */
@@ -242,8 +242,15 @@ main(int argc, char **argv)
         break;
     }
 
+    /* Room for the name, ".nii.gz" and the terminating NUL. */
+    out_str = malloc(strlen(argv[argc - 1]) + sizeof(".nii.gz"));
+    if (out_str == NULL) {
+        fprintf(stderr, "Out of memory.\n");
+        return (-1);
+    }
+
     if (argc == 2) {
-        strncpy(out_str, argv[1], sizeof(out_str) - 1);
+        strcpy(out_str, argv[1]);
         str_ptr = strrchr(out_str, '.');
         if (str_ptr != NULL && !strcmp(str_ptr, ".mnc")) {
             *str_ptr = '\0';
@@ -253,7 +260,7 @@ main(int argc, char **argv)
         }
     }
     else if (argc == 3) {
-        strncpy(out_str, argv[2], sizeof(out_str) - 1);
+        strcpy(out_str, argv[2]);
         str_ptr = strrchr(out_str, '.');
         if (str_ptr != NULL) {
             /* See if a recognized file extension was specified.  If so,
@@ -307,7 +314,7 @@ main(int argc, char **argv)
      * znzlib gzip I/O is enabled automatically. out_str holds a bare
      * stem at this point (any recognised extension was already stripped). */
     if (nifti_compress) {
-        strncat(out_str, ".nii.gz", sizeof(out_str) - strlen(out_str) - 1);
+        strcat(out_str, ".nii.gz");
     }
 
     /* Open the MINC file.  It needs to exist.
