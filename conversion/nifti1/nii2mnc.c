@@ -253,7 +253,7 @@ main(int argc, char **argv)
     double dim_dircos[VIO_N_DIMENSIONS+2][VIO_N_DIMENSIONS];
 
     /* Other stuff */
-    char out_str[1024];         /* Big string for filename */
+    char *out_str;              /* Output file name */
     int i;                      /* Generic loop counter the first */
     int j;                      /* Generic loop counter the second */
     char *str_ptr;              /* Generic ASCIZ string pointer */
@@ -306,6 +306,12 @@ main(int argc, char **argv)
         return usage();
     }
     else if (argc == 2) {
+        /* Room for the name, ".mnc" and the terminating NUL. */
+        out_str = malloc(strlen(argv[1]) + sizeof(".mnc"));
+        if (out_str == NULL) {
+            fprintf(stderr, "ERROR: Out of memory.\n");
+            return (-1);
+        }
         strcpy(out_str, argv[1]);
         str_ptr = strrchr(out_str, '.');
         if (str_ptr != NULL) {
@@ -316,6 +322,11 @@ main(int argc, char **argv)
         }
     }
     else if (argc == 3) {
+        out_str = malloc(strlen(argv[2]) + 1);
+        if (out_str == NULL) {
+            fprintf(stderr, "ERROR: Out of memory.\n");
+            return (-1);
+        }
         strcpy(out_str, argv[2]);
     }
     else {
