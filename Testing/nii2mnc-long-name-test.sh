@@ -5,20 +5,38 @@
 # nii2mnc used to strcpy() the name into a 1024-byte stack buffer, which
 # overflowed it ("stack smashing detected", exit status 134).
 #
-# The test makes a directory tree whose path is about 1220 characters long
-# (each name is 200 characters) and converts:
+# The test makes a directory tree of 200-character names and converts:
 #   * with an explicit output name in that tree, and
 #   * with one argument, a copy of the input in that tree.
+#
+# The tree is six names deep (a path of about 1220 characters) where the
+# system allows it. A path must be shorter than PATH_MAX: Linux allows
+# 4096 bytes, but macOS allows only 1024, so there the tree has fewer
+# names and the path is about 1020 characters. That still checks a long
+# name, but it cannot reproduce the old overflow, which needs a name of
+# 1024 characters or more.
 set -u
 
 N2M="$1"; MS="$2"; NII="$3"
 ok=1
 
+limit=$(getconf PATH_MAX . 2>/dev/null)
+case "$limit" in
+  ''|*[!0-9]*) limit=4096 ;;
+esac
+
 seg=$(printf 'd%.0s' $(seq 1 200))
-DEEP="n2m_long/$seg/$seg/$seg/$seg/$seg/$seg"
+DEEP=n2m_long
+for level in 1 2 3 4 5 6; do
+  p="$DEEP/$seg/out.mnc"
+  [ "${#p}" -lt "$limit" ] || break
+  DEEP="$DEEP/$seg"
+done
+[ "$DEEP" != n2m_long ] || { echo "FAIL: PATH_MAX $limit is too small"; exit 1; }
 rm -rf n2m_long
 mkdir -p "$DEEP" || { echo "FAIL: mkdir"; exit 1; }
-echo "path length: $(printf '%s' "$DEEP/out.mnc" | wc -c)"
+p="$DEEP/out.mnc"
+echo "path length: ${#p} (PATH_MAX $limit)"
 
 "$N2M" -quiet -clobber "$NII" "$DEEP/out.mnc" >/dev/null 2>&1
 rc=$?
