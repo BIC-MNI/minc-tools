@@ -224,6 +224,14 @@ ADD_TEST(NAME mnc2nii-long-name
 set_tests_properties(mnc2nii-long-name PROPERTIES
   ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "mnc2nii")
 
+# ------------ mnc2nii refuses dimensions it cannot map -----------------------
+ADD_TEST(NAME mnc2nii-extra-dim
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mnc2nii-extra-dim-test.sh
+          $<TARGET_FILE:mnc2nii> $<TARGET_FILE:mincconcat> ${_mnc2nii_src}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(mnc2nii-extra-dim PROPERTIES
+  ENVIRONMENT "${MINCTOOLS_TEST_ENVIRONMENT}" LABELS "mnc2nii")
+
 # ------------ dcm2mnc integration tests (opt-in, data fetched at build time) -
 
 if(MT_BUILD_DCM2MNC_TESTS)
