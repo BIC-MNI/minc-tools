@@ -636,7 +636,10 @@ main(int argc, char **argv)
         miattputstr(mnc_fd, r, MIunits, "s");
     }
 
-    if (nii_ptr->nz > 1) {
+    /* Keep every spatial dimension, also one of length 1 (a single slice),
+     * so that its start and direction cosines stay with the axis.
+     */
+    if (nii_ptr->nz >= 1) {
         mnc_dimids[mnc_ndims] = ncdimdef(mnc_fd, mnc_ordered_dim_names[VIO_Z],
                                          nii_ptr->nz);
         mnc_count[mnc_ndims] = nii_ptr->nz;
@@ -648,7 +651,7 @@ main(int argc, char **argv)
         miattputstr(mnc_fd, r, MIunits, "mm");
     }
 
-    if (nii_ptr->ny > 1) {
+    if (nii_ptr->ny >= 1) {
         mnc_dimids[mnc_ndims] = ncdimdef(mnc_fd, mnc_ordered_dim_names[VIO_Y],
                                          nii_ptr->ny);
         mnc_count[mnc_ndims] = nii_ptr->ny;
@@ -660,7 +663,7 @@ main(int argc, char **argv)
         miattputstr(mnc_fd, r, MIunits, "mm");
     }
 
-    if (nii_ptr->nx > 1) {
+    if (nii_ptr->nx >= 1) {
         mnc_dimids[mnc_ndims] = ncdimdef(mnc_fd, mnc_ordered_dim_names[VIO_X],
                                          nii_ptr->nx);
         mnc_count[mnc_ndims] = nii_ptr->nx;
