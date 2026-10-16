@@ -144,7 +144,8 @@ main(int argc, char **argv)
     VIO_Real start[MAX_NII_DIMS];
     VIO_Real step[MAX_NII_DIMS];
     VIO_Real dircos[MAX_NII_DIMS][VIO_N_DIMENSIONS];
-    int spatial_axes[MAX_NII_DIMS];
+    /* -1 marks a spatial axis that the file does not have. */
+    int spatial_axes[MAX_NII_DIMS] = {-1, -1, -1, -1, -1, -1, -1, -1};
     VIO_General_transform transform;
     VIO_Transform *linear_transform;
 
@@ -600,7 +601,7 @@ main(int argc, char **argv)
         int tmp;
         int axis = spatial_axes[i];
 
-        if (id < 0) {
+        if (id < 0 || axis < 0) {
             continue;
         }
 
